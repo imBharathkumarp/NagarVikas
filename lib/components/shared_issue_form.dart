@@ -284,10 +284,12 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
+    return Container(
+        color: Colors.white,
+        child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+    child: Column(
+    children: [
           FadeInDown(
             duration: const Duration(milliseconds: 1000),
             child: Text(widget.headingText,
@@ -471,8 +473,9 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
                   : const Text("Submit", style: TextStyle(fontSize: 16, color: Colors.white)),
             ),
           ),
-        ],
-      ),
+    ],
+    ),
+        ),
     );
   }
 
