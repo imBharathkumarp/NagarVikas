@@ -150,9 +150,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F9FF),
       appBar: AppBar(
-        title: const Text("Admin Dashboard", style: TextStyle(color: Colors.white)),
+        title: const Text("Admin Dashboard", style: TextStyle(color: Color.fromARGB(255, 10, 10, 10))),
         backgroundColor: const Color.fromARGB(255, 4, 204, 240),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 13, 13, 13)),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
