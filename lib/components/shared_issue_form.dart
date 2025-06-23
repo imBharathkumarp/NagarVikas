@@ -44,6 +44,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
   bool _isUploading = false;
   late stt.SpeechToText _speech;
   bool _isListening = false;
+  int get _remainingCharacters => 250 - _descriptionController.text.length;
   bool get _canSubmit {
     return _selectedState != null &&
         _selectedCity != null &&
@@ -89,6 +90,9 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
     super.initState();
     _speech = stt.SpeechToText();
     _requestPermissions();
+    _descriptionController.addListener(() {
+      setState(() {}); // rebuild when text changes
+    });
   }
 
   Future<void> _requestPermissions() async {
@@ -325,10 +329,11 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
             ),
           ),
           const SizedBox(height: 10),
-
           TextField(
             controller: _descriptionController,
             maxLines: 3,
+            maxLength: 250,
+            buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
             decoration: _inputDecoration("Enter description or use mic").copyWith(
               suffixIcon: IconButton(
                 icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
@@ -336,7 +341,20 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
               ),
             ),
           ),
-
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                "${_remainingCharacters.clamp(0, 250)} characters remaining",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _remainingCharacters <= 0 ? Colors.red : Colors.grey[600],
+                  fontWeight: _remainingCharacters <= 0 ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
           const Align(
             alignment: Alignment.centerLeft,
