@@ -45,6 +45,34 @@ class AboutAppPage extends StatelessWidget {
   }
 
   Widget _buildQuestionTile(String question, String answer) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0),
+      child: _ExpandableTile(
+        question: question,
+        answer: answer,
+      ),
+    );
+  }
+}
+
+class _ExpandableTile extends StatefulWidget {
+  final String question;
+  final String answer;
+
+  const _ExpandableTile({
+    required this.question,
+    required this.answer,
+  });
+
+  @override
+  State<_ExpandableTile> createState() => _ExpandableTileState();
+}
+
+class _ExpandableTileState extends State<_ExpandableTile> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -62,8 +90,13 @@ class AboutAppPage extends StatelessWidget {
         ],
       ),
       child: ExpansionTile(
+        onExpansionChanged: (expanded) {
+          setState(() {
+            _isExpanded = expanded;
+          });
+        },
         title: Text(
-          question,
+          widget.question,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -71,7 +104,7 @@ class AboutAppPage extends StatelessWidget {
           ),
         ),
         trailing: AnimatedRotation(
-          turns: 1.5, // Rotation on click
+          turns: _isExpanded ? 0.5 : 0.0, // 180° when expanded
           duration: Duration(milliseconds: 300),
           child: Icon(
             Icons.arrow_drop_down,
@@ -86,7 +119,7 @@ class AboutAppPage extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(10.0),
               child: Text(
-                answer,
+                widget.answer,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.black54,
@@ -96,7 +129,7 @@ class AboutAppPage extends StatelessWidget {
             ),
           ),
         ],
-     ),
-);
-}
+      ),
+    );
+  }
 }
