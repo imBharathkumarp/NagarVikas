@@ -30,23 +30,26 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   void fetchComplaintStats() async {
     final ref = FirebaseDatabase.instance.ref('complaints');
     final snapshot = await ref.get();
+
     if (snapshot.exists) {
-      int resolved = 0, pending = 0, rejected = 0;
+      int res = 0, pen = 0, rej = 0;
       final data = snapshot.value as Map<dynamic, dynamic>;
       data.forEach((key, value) {
         final complaint = Map<String, dynamic>.from(value);
-        final status =
-            (complaint['status'] ?? 'Pending').toString().toLowerCase();
+        final status = (complaint['status'] ?? 'Pending').toString().toLowerCase();
         if (status == 'resolved') {
-          resolved++;
-        } else if (status == 'pending')
-          pending++;
-        else if (status == 'rejected') rejected++;
+          res++;
+        } else if (status == 'pending') {
+          pen++;
+        } else if (status == 'rejected') {
+          rej++;
+        }
       });
+
       setState(() {
-        resolved = resolved;
-        pending = pending;
-        rejected = rejected;
+        resolved = res;
+        pending = pen;
+        rejected = rej;
         isLoading = false;
         _buildDashboardSections();
       });
@@ -85,8 +88,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       LayoutBuilder(
         builder: (context, constraints) {
           double screenWidth = constraints.maxWidth;
-          int crossAxisCount =
-              screenWidth > 600 ? 2 : 2; // always 2 cards in a row
+          int crossAxisCount = screenWidth > 600 ? 2 : 2;
           double spacing = 12;
           double totalSpacing = spacing * (crossAxisCount - 1);
           double cardWidth = (screenWidth - totalSpacing) / crossAxisCount;
@@ -96,14 +98,10 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             runSpacing: spacing,
             alignment: WrapAlignment.center,
             children: [
-              _buildNeumorphicCard(
-                  'Total', total, Colors.blue, Icons.all_inbox, cardWidth),
-              _buildNeumorphicCard('Resolved', resolved, Colors.green,
-                  Icons.check_circle, cardWidth),
-              _buildNeumorphicCard('Pending', pending, Colors.orange,
-                  Icons.timelapse, cardWidth),
-              _buildNeumorphicCard(
-                  'Rejected', rejected, Colors.red, Icons.cancel, cardWidth),
+              _buildNeumorphicCard('Total', total, Colors.blue, Icons.all_inbox, cardWidth),
+              _buildNeumorphicCard('Resolved', resolved, Colors.green, Icons.check_circle, cardWidth),
+              _buildNeumorphicCard('Pending', pending, Colors.orange, Icons.timelapse, cardWidth),
+              _buildNeumorphicCard('Rejected', rejected, Colors.red, Icons.cancel, cardWidth),
             ],
           );
         },
@@ -128,7 +126,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       String title, int count, Color color, IconData icon, double width) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width:width,
+      width: width,
       height: 115,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -152,18 +150,22 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         children: [
           Icon(icon, color: color, size: 26),
           const SizedBox(height: 6),
-          Text('$count',
-              style: GoogleFonts.urbanist(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: color,
-              )),
+          Text(
+            '$count',
+            style: GoogleFonts.urbanist(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(title,
-              style: GoogleFonts.poppins(
-                color: color,
-                fontWeight: FontWeight.w500,
-              )),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -174,10 +176,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: isDarkMode
-          ? ThemeData.dark()
-              .copyWith(scaffoldBackgroundColor: const Color(0xFF121212))
-          : ThemeData.light()
-              .copyWith(scaffoldBackgroundColor: const Color(0xFFF2F7FF)),
+          ? ThemeData.dark().copyWith(scaffoldBackgroundColor: const Color(0xFF121212))
+          : ThemeData.light().copyWith(scaffoldBackgroundColor: const Color(0xFFF2F7FF)),
       home: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.teal,
@@ -220,3 +220,4 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     );
   }
 }
+
