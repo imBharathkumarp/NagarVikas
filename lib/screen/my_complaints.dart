@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 
 class MyComplaintsScreen extends StatefulWidget {
@@ -12,11 +13,13 @@ class MyComplaintsScreen extends StatefulWidget {
 
 class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
   List<Map<String, dynamic>> complaints = [];
-  List<Map<String, dynamic>> filteredComplaints = []; // Added for search
-  TextEditingController searchController = TextEditingController(); // Added
+  List<Map<String, dynamic>> filteredComplaints = [];
+  TextEditingController searchController = TextEditingController();
 
   bool _isLoading = true;
-  String selectedStatus = 'All'; // <-- Add this for status filter
+  String selectedStatus = 'All';
+
+  Map<int, String> complaintKeys = {};
 
   @override
   void initState() {
@@ -35,14 +38,17 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
       if (data == null) {
         setState(() {
           complaints = [];
-          filteredComplaints = []; // Clear filtered
+          filteredComplaints = [];
+          complaintKeys.clear();
           _isLoading = false;
         });
         return;
       }
 
       List<Map<String, dynamic>> loadedComplaints = [];
+      Map<int, String> keys = {};
 
+      int index = 0;
       data.forEach((key, value) {
         final complaint = value as Map<dynamic, dynamic>;
 
@@ -69,14 +75,116 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
           "city": complaint["city"]?.toString() ?? "Not Available",
           "state": complaint["state"]?.toString() ?? "Not Available",
         });
+
+        keys[index] = key;
+        index++;
       });
 
       setState(() {
         complaints = loadedComplaints;
-        _applyFilters(); // Use new filter logic
+        complaintKeys = keys;
+        _applyFilters();
         _isLoading = false;
       });
     });
+  }
+
+  Future<void> _deleteComplaint(int index) async {
+    try {
+      String? complaintKey = complaintKeys[index];
+      if (complaintKey != null) {
+        DataSnapshot snapshot = await FirebaseDatabase.instance
+            .ref('complaints/$complaintKey')
+            .get();
+
+        if (snapshot.exists) {
+          Map<String, dynamic> complaintData =
+              Map<String, dynamic>.from(snapshot.value as Map);
+
+          if (complaintData.containsKey('images') &&
+              complaintData['images'] != null) {
+            dynamic images = complaintData['images'];
+            List<String> imageUrls = [];
+
+            if (images is String) {
+              imageUrls.add(images);
+            } else if (images is List) {
+              imageUrls = List<String>.from(images);
+            }
+
+            for (String imageUrl in imageUrls) {
+              try {
+                if (imageUrl.isNotEmpty && imageUrl.contains('firebase')) {
+                  await FirebaseStorage.instance.refFromURL(imageUrl).delete();
+                  print('Image deleted: $imageUrl');
+                }
+              } catch (e) {
+                print('Error deleting image $imageUrl: $e');
+              }
+            }
+          }
+
+          if (complaintData.containsKey('image') &&
+              complaintData['image'] != null) {
+            String imageUrl = complaintData['image'].toString();
+            try {
+              if (imageUrl.isNotEmpty && imageUrl.contains('firebase')) {
+                await FirebaseStorage.instance.refFromURL(imageUrl).delete();
+                print('Single image deleted: $imageUrl');
+              }
+            } catch (e) {
+              print('Error deleting single image $imageUrl: $e');
+            }
+          }
+        }
+
+        await FirebaseDatabase.instance
+            .ref('complaints/$complaintKey')
+            .remove();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Complaint and associated images deleted successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting complaint: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _showDeleteDialog(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Complaint'),
+          content: Text('Are you sure you want to delete this complaint?'),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteComplaint(index);
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _applyFilters() {
@@ -84,7 +192,8 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
     setState(() {
       filteredComplaints = complaints.where((complaint) {
         final matchesStatus = selectedStatus == 'All' ||
-            complaint['status'].toString().toLowerCase() == selectedStatus.toLowerCase();
+            complaint['status'].toString().toLowerCase() ==
+                selectedStatus.toLowerCase();
         final matchesQuery = query.isEmpty ||
             complaint.values.any((value) =>
                 value.toString().toLowerCase().contains(query.toLowerCase()));
@@ -182,10 +291,11 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                               'Pending',
                               'In Progress',
                               'Resolved',
-                            ].map((status) => DropdownMenuItem(
-                                  value: status,
-                                  child: Text(status),
-                                ))
+                            ]
+                                .map((status) => DropdownMenuItem(
+                                      value: status,
+                                      child: Text(status),
+                                    ))
                                 .toList(),
                             onChanged: (value) {
                               if (value != null) {
@@ -208,6 +318,12 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                           padding: EdgeInsets.all(10),
                           itemBuilder: (ctx, index) {
                             final complaint = filteredComplaints[index];
+
+                            int originalIndex = complaints.indexWhere((c) =>
+                                c['issue'] == complaint['issue'] &&
+                                c['date'] == complaint['date'] &&
+                                c['time'] == complaint['time']);
+
                             return Container(
                               margin: EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
@@ -226,42 +342,58 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Status Tag
-                                    Align(
-                                      alignment: Alignment.topRight,
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: _getStatusColor(
-                                              complaint['status']),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black12,
-                                              spreadRadius: 1,
-                                              blurRadius: 3,
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: _getStatusColor(
+                                                complaint['status']),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black12,
+                                                spreadRadius: 1,
+                                                blurRadius: 3,
+                                              ),
+                                            ],
+                                          ),
+                                          child: Text(
+                                            complaint['status'],
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          complaint['status'],
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      ),
+                                        Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            onTap: () => _showDeleteDialog(
+                                                originalIndex),
+                                            child: Padding(
+                                              padding: EdgeInsets.all(8),
+                                              child: Icon(
+                                                Icons.delete_outline,
+                                                color: Colors.red[400],
+                                                size: 22,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    SizedBox(height: 5),
-
-                                    // Title Row with Icon
+                                    SizedBox(height: 10),
                                     Row(
                                       children: [
                                         Icon(
-                                          _getComplaintIcon(
-                                              complaint['issue']),
+                                          _getComplaintIcon(complaint['issue']),
                                           color: Colors.blueAccent,
                                           size: 22,
                                         ),
@@ -278,16 +410,12 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                                         ),
                                       ],
                                     ),
-
                                     SizedBox(height: 10),
                                     Divider(color: Colors.grey[300]),
-
-                                    // Date & Time Row
                                     Row(
                                       children: [
                                         Icon(Icons.calendar_today,
-                                            size: 16,
-                                            color: Colors.grey[600]),
+                                            size: 16, color: Colors.grey[600]),
                                         SizedBox(width: 5),
                                         Text(
                                           complaint['date'],
@@ -296,8 +424,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                                         ),
                                         SizedBox(width: 15),
                                         Icon(Icons.access_time,
-                                            size: 16,
-                                            color: Colors.grey[600]),
+                                            size: 16, color: Colors.grey[600]),
                                         SizedBox(width: 5),
                                         Text(
                                           complaint['time'],
@@ -307,13 +434,10 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                                       ],
                                     ),
                                     SizedBox(height: 10),
-
-                                    // Location Row
                                     Row(
                                       children: [
                                         Icon(Icons.location_on,
-                                            size: 18,
-                                            color: Colors.redAccent),
+                                            size: 18, color: Colors.redAccent),
                                         SizedBox(width: 5),
                                         Expanded(
                                           child: Text(
