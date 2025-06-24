@@ -31,22 +31,22 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     final ref = FirebaseDatabase.instance.ref('complaints');
     final snapshot = await ref.get();
     if (snapshot.exists) {
-      int _resolved = 0, _pending = 0, _rejected = 0;
+      int resolved = 0, pending = 0, rejected = 0;
       final data = snapshot.value as Map<dynamic, dynamic>;
       data.forEach((key, value) {
         final complaint = Map<String, dynamic>.from(value);
         final status =
             (complaint['status'] ?? 'Pending').toString().toLowerCase();
-        if (status == 'resolved')
-          _resolved++;
-        else if (status == 'pending')
-          _pending++;
-        else if (status == 'rejected') _rejected++;
+        if (status == 'resolved') {
+          resolved++;
+        } else if (status == 'pending')
+          pending++;
+        else if (status == 'rejected') rejected++;
       });
       setState(() {
-        resolved = _resolved;
-        pending = _pending;
-        rejected = _rejected;
+        resolved = resolved;
+        pending = pending;
+        rejected = rejected;
         isLoading = false;
         _buildDashboardSections();
       });
