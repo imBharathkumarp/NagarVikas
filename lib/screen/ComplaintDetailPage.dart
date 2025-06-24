@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:video_player/video_player.dart';
+import './admin_dashboard.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ComplaintDetailPage extends StatefulWidget {
   final String complaintId;
@@ -149,6 +151,52 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                       });
                     }
                   },
+                ),
+                const SizedBox(height: 20),
+
+// 🔴 Delete Button
+                Center(
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text("Delete"),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text("Confirm Deletion"),
+                          content: const Text("Are you sure you want to delete this complaint?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context), // Close dialog
+                              child: const Text("No"),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final navigator = Navigator.of(context); // ✅ capture the safe context *before* popping
+
+                                Navigator.pop(context); // Close dialog
+
+                                await FirebaseDatabase.instance
+                                    .ref('complaints/${widget.complaintId}')
+                                    .remove();
+
+                                if (!mounted) return;
+                                // ✅ Now use the saved navigator to push replacement
+                                navigator.pushReplacement(
+                                  MaterialPageRoute(builder: (context) => AdminDashboard()),
+                                );
+                                Fluttertoast.showToast(msg: "Deleted Successfully!");
+                              },
+                              child: const Text("Yes", style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),

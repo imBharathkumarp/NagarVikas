@@ -150,20 +150,40 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F9FF),
       appBar: AppBar(
-        title: const Text("Admin Dashboard", style: TextStyle(color: Colors.white)),
+        title: const Text("Admin Dashboard", style: TextStyle(color: Color.fromARGB(255, 10, 10, 10))),
         backgroundColor: const Color.fromARGB(255, 4, 204, 240),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Color.fromARGB(255, 13, 13, 13)),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                  title: const Text("Confirm Logout"),
+                  content: const Text("Are you sure you want to log out?"),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(), // Cancel
+                      child: const Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop(); // Close the dialog
+                        await FirebaseAuth.instance.signOut();
+                        if (!mounted) return;
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginPage()),
+                        );
+                      },
+                      child: const Text("Logout", style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
               );
             },
-          )
+          ),
         ],
       ),
       body: Padding(
