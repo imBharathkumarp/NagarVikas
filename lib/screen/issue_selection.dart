@@ -27,6 +27,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 // Main Stateful Widget for Issue Selection Page
 class IssueSelectionPage extends StatefulWidget {
@@ -37,6 +38,70 @@ class IssueSelectionPage extends StatefulWidget {
 }
 
 class _IssueSelectionPageState extends State<IssueSelectionPage> {
+  String _language = 'en'; // 'en' for English, 'hi' for Hindi
+
+  // Translation map for all visible strings in this file
+  static const Map<String, Map<String, String>> _localizedStrings = {
+    'en': {
+      'title': 'What type of issue are you facing?',
+      'garbage': 'No garbage lifting in my area.',
+      'water': 'No water supply in my area.',
+      'road': 'Road damage in my area.',
+      'streetlight': 'Streetlights not working in my area.',
+      'animals': 'Stray animals issue in my area.',
+      'drainage': 'Blocked drainage in my area.',
+      'other': 'Facing any other issue.',
+      'processing': 'Processing...\nTaking you to the complaint page',
+      'profile': 'Profile',
+      'my_complaints': 'My Complaints',
+      'user_feedback': 'User Feedback',
+      'refer_earn': 'Refer and Earn',
+      'facing_issues': 'Facing Issues in App',
+      'about': 'About App',
+      'contact': 'Contact Us',
+      'share_app': 'Share App',
+      'logout': 'Logout',
+      'logout_title': 'Logout',
+      'logout_content': 'Are you sure you want to logout?',
+      'cancel': 'Cancel',
+      'yes': 'Yes',
+      'follow_us': 'Follow Us On',
+      'version': 'Version',
+      'get_started': 'Get Started',
+      'discussion': 'Discussion Forum',
+    },
+    'hi': {
+      'title': 'आप किस प्रकार की समस्या का सामना कर रहे हैं?',
+      'garbage': 'मेरे क्षेत्र में कचरा नहीं उठाया जा रहा है।',
+      'water': 'मेरे क्षेत्र में पानी की आपूर्ति नहीं है।',
+      'road': 'मेरे क्षेत्र में सड़क क्षतिग्रस्त है।',
+      'streetlight': 'मेरे क्षेत्र में स्ट्रीटलाइट काम नहीं कर रही हैं।',
+      'animals': 'मेरे क्षेत्र में आवारा जानवरों की समस्या है।',
+      'drainage': 'मेरे क्षेत्र में नाली जाम है।',
+      'other': 'कोई अन्य समस्या का सामना कर रहे हैं।',
+      'processing': 'प्रोसेसिंग...\nआपको शिकायत पृष्ठ पर ले जाया जा रहा है',
+      'profile': 'प्रोफ़ाइल',
+      'my_complaints': 'मेरी शिकायतें',
+      'user_feedback': 'उपयोगकर्ता प्रतिक्रिया',
+      'refer_earn': 'रेफर और कमाएँ',
+      'facing_issues': 'ऐप में समस्या आ रही है',
+      'about': 'ऐप के बारे में',
+      'contact': 'संपर्क करें',
+      'share_app': 'ऐप साझा करें',
+      'logout': 'लॉगआउट',
+      'logout_title': 'लॉगआउट',
+      'logout_content': 'क्या आप वाकई लॉगआउट करना चाहते हैं?',
+      'cancel': 'रद्द करें',
+      'yes': 'हाँ',
+      'follow_us': 'हमें फॉलो करें',
+      'version': 'संस्करण',
+      'get_started': 'शुरू करें',
+      'discussion': 'चर्चा मंच',
+    },
+  };
+
+  String t(String key) => _localizedStrings[_language]![key] ?? key;
+
   @override
   void initState() {
     super.initState();
@@ -115,15 +180,23 @@ class _IssueSelectionPageState extends State<IssueSelectionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 253, 253, 253),
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(
+        language: _language,
+        onLanguageChanged: (lang) {
+          setState(() {
+            _language = lang;
+          });
+        },
+        t: t,
+      ),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: FadeInDown(
           duration: Duration(milliseconds: 1000),
-          child: const Text(
-            "What type of issue are you facing?",
-            style: TextStyle(
+          child: Text(
+            t('title'),
+            style: const TextStyle(
                 color: Colors.black, fontSize: 18, fontWeight: FontWeight.w900),
           ),
         ),
@@ -145,44 +218,44 @@ class _IssueSelectionPageState extends State<IssueSelectionPage> {
                       delay: Duration(milliseconds: 200),
                       child: buildIssueCard(
                           context,
-                          "No garbage lifting in my area.",
+                          t('garbage'),
                           "assets/garbage.png",
                           const GarbagePage())),
                   ZoomIn(
                       delay: Duration(milliseconds: 400),
                       child: buildIssueCard(
                           context,
-                          "No water supply in my area.",
+                          t('water'),
                           "assets/water.png",
                           const WaterPage())),
                   ZoomIn(
                       delay: Duration(milliseconds: 600),
-                      child: buildIssueCard(context, "Road damage in my area.",
+                      child: buildIssueCard(context, t('road'),
                           "assets/road.png", const RoadPage())),
                   ZoomIn(
                       delay: Duration(milliseconds: 800),
                       child: buildIssueCard(
                           context,
-                          "Streetlights not working in my area.",
+                          t('streetlight'),
                           "assets/streetlight.png",
                           const StreetLightPage())),
                   ZoomIn(
                       delay: Duration(milliseconds: 1000),
                       child: buildIssueCard(
                           context,
-                          "Stray animals issue in my area.",
+                          t('animals'),
                           "assets/animals.png",
                           const AnimalsPage())),
                   ZoomIn(
                       delay: Duration(milliseconds: 1200),
                       child: buildIssueCard(
                           context,
-                          "Blocked drainage in my area.",
+                          t('drainage'),
                           "assets/drainage.png",
                           const DrainagePage())),
                   ZoomIn(
                       delay: Duration(milliseconds: 1400),
-                      child: buildIssueCard(context, "Facing any other issue.",
+                      child: buildIssueCard(context, t('other'),
                           "assets/newentry.png", const NewEntryPage())),
                 ],
               ),
@@ -250,47 +323,48 @@ class _IssueSelectionPageState extends State<IssueSelectionPage> {
       ),
     );
   }
-}
 
-// Shows a processing dialog before navigating to the issue detail page
-void showProcessingDialog(BuildContext context, Widget nextPage) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(
-                color: Colors.red,
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Processing...\nTaking you to the complaint page",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
-              ),
-            ],
+  void showProcessingDialog(BuildContext context, Widget nextPage) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  t('processing'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
 
-  // After 2 seconds, close the dialog and navigate
-  Future.delayed(const Duration(seconds: 2), () {
-    Navigator.pop(context);
-    Navigator.push(context, MaterialPageRoute(builder: (context) => nextPage));
-  });
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pop(context);
+      Navigator.push(context, MaterialPageRoute(builder: (context) => nextPage));
+    });
+  }
 }
 
 // App Drawer for navigation and profile settings
 class AppDrawer extends StatefulWidget {
-  const AppDrawer({super.key});
+  final String language;
+  final void Function(String) onLanguageChanged;
+  final String Function(String) t;
+  const AppDrawer({super.key, required this.language, required this.onLanguageChanged, required this.t});
 
   @override
   _AppDrawerState createState() => _AppDrawerState();
@@ -327,23 +401,58 @@ class _AppDrawerState extends State<AppDrawer> {
                 child: Text("NagarVikas",
                     style: TextStyle(fontSize: 24, color: Colors.black)),
               ),
-              // Drawer Items
-              buildDrawerItem(context, Icons.person, "Profile", ProfilePage()),
-              buildDrawerItem(context, Icons.history, "My Complaints",
-                  MyComplaintsScreen()),
-              buildDrawerItem(
-                  context, Icons.favorite, "User Feedback", FeedbackPage()),
-              buildDrawerItem(context, Icons.card_giftcard, "Refer and Earn",
-                  ReferAndEarnPage()),
-              buildDrawerItem(context, Icons.report_problem,
-                  "Facing Issues in App", FacingIssuesPage()),
-              buildDrawerItem(context, Icons.info, "About App", AboutAppPage()),
-              buildDrawerItem(
-                  context, Icons.headset_mic, "Contact Us", ContactUsPage()),
-              //Share App
+              // Language Switcher
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.language, color: Colors.black),
+                    SizedBox(width: 8),
+                    Text("Language:", style: TextStyle(fontSize: 15, color: Colors.black)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            ChoiceChip(
+                              label: Text('English', style: TextStyle(fontSize: 13)),
+                              selected: widget.language == 'en',
+                              onSelected: (selected) {
+                                if (selected) widget.onLanguageChanged('en');
+                              },
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            SizedBox(width: 6),
+                            ChoiceChip(
+                              label: Text('हिन्दी', style: TextStyle(fontSize: 13)),
+                              selected: widget.language == 'hi',
+                              onSelected: (selected) {
+                                if (selected) widget.onLanguageChanged('hi');
+                              },
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Drawer Items (localized)
+              buildDrawerItem(context, Icons.person, widget.t('profile'), ProfilePage()),
+              buildDrawerItem(context, Icons.history, widget.t('my_complaints'), MyComplaintsScreen()),
+              buildDrawerItem(context, Icons.favorite, widget.t('user_feedback'), FeedbackPage()),
+              buildDrawerItem(context, Icons.card_giftcard, widget.t('refer_earn'), ReferAndEarnPage()),
+              buildDrawerItem(context, Icons.report_problem, widget.t('facing_issues'), FacingIssuesPage()),
+              buildDrawerItem(context, Icons.info, widget.t('about'), AboutAppPage()),
+              buildDrawerItem(context, Icons.headset_mic, widget.t('contact'), ContactUsPage()),
               ListTile(
                 leading: Icon(Icons.share),
-                title: Text('Share App'),
+                title: Text(widget.t('share_app')),
                 onTap: () {
                   Share.share(
                     'Check out this app: https://github.com/Prateek9876/NagarVikas',
@@ -351,21 +460,19 @@ class _AppDrawerState extends State<AppDrawer> {
                   );
                 },
               ),
-
-              // Logout Option
               ListTile(
                 leading: const Icon(Icons.logout),
-                title: const Text("Logout"),
+                title: Text(widget.t('logout')),
                 onTap: () {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text("Logout"),
-                      content: const Text("Are you sure you want to logout?"),
+                      title: Text(widget.t('logout_title')),
+                      content: Text(widget.t('logout_content')),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text("Cancel"),
+                          child: Text(widget.t('cancel')),
                         ),
                         TextButton(
                           onPressed: () async {
@@ -376,26 +483,21 @@ class _AppDrawerState extends State<AppDrawer> {
                                 MaterialPageRoute(
                                     builder: (context) => const LoginPage()));
                           },
-                          child: const Text("Yes"),
+                          child: Text(widget.t('yes')),
                         ),
                       ],
                     ),
                   );
                 },
               ),
-
               const Divider(),
-
-              // Social media section
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 14.0, vertical: 15),
                 child: Text(
-                  "Follow Us On",
+                  widget.t('follow_us'),
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
-
-              // Social Media Icons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -414,7 +516,6 @@ class _AppDrawerState extends State<AppDrawer> {
                 ],
               ),
               const SizedBox(height: 20),
-
               Divider(), // Divider before the footer
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -427,7 +528,7 @@ class _AppDrawerState extends State<AppDrawer> {
                           TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      "Version $_appVersion",
+                      "${widget.t('version')} $_appVersion",
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     )
                   ],
