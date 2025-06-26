@@ -4,6 +4,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 
 class MyComplaintsScreen extends StatefulWidget {
+  const MyComplaintsScreen({super.key});
+
   @override
   _MyComplaintsScreenState createState() => _MyComplaintsScreenState();
 }

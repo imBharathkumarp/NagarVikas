@@ -10,7 +10,9 @@ android {
     namespace = "com.example.nagarsur"
     // Required for video_player plugin which needs SDK 35+ (Comment by VJLIVE)
     compileSdk = 35
-    ndkVersion = flutter.ndkVersion
+   // ndkVersion = flutter.ndkVersion
+     ndkVersion  '29.0.13599879' //for run app locally
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

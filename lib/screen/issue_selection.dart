@@ -27,6 +27,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:NagarVikas/screen/fun_game_screen.dart';
 
 // Main Stateful Widget for Issue Selection Page
 class IssueSelectionPage extends StatefulWidget {
@@ -349,6 +350,14 @@ class _AppDrawerState extends State<AppDrawer> {
                     'Check out this app: https://github.com/Prateek9876/NagarVikas',
                     subject: 'NagarVikas App',
                   );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.games),
+                title: const Text('2048 Game'),
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const FunGameScreen()));
                 },
               ),
 
