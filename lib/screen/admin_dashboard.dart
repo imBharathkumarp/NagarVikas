@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'dart:async';
 import './ComplaintDetailPage.dart';
 import 'login_page.dart';
+import 'package:NagarVikas/screen/analytics_dashboard.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -87,7 +88,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
         String? mediaUrl = complaint["media_url"] ?? complaint["image_url"] ?? "";
         String mediaType = (complaint["media_type"] ??
-            (complaint["image_url"] != null ? "image" : "video"))
+                (complaint["image_url"] != null ? "image" : "video"))
             .toString()
             .toLowerCase();
 
@@ -148,44 +149,124 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F9FF),
-      appBar: AppBar(
-        title: const Text("Admin Dashboard", style: TextStyle(color: Color.fromARGB(255, 10, 10, 10))),
-        backgroundColor: const Color.fromARGB(255, 4, 204, 240),
-        iconTheme: const IconThemeData(color: Color.fromARGB(255, 13, 13, 13)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) => AlertDialog(
-                  title: const Text("Confirm Logout"),
-                  content: const Text("Are you sure you want to log out?"),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(), // Cancel
-                      child: const Text("Cancel"),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        Navigator.of(context).pop(); // Close the dialog
-                        await FirebaseAuth.instance.signOut();
-                        if (!mounted) return;
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LoginPage()),
-                        );
-                      },
-                      child: const Text("Logout", style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
+      drawer: Drawer(
+        child: Column(
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF66BCF1), Color(0xFF3A8EDB)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+              padding: const EdgeInsets.only(top: 50, bottom: 20),
+              width: double.infinity,
+              child: Column(
+                children: const [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundImage: NetworkImage(
+                      'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                    ),
+                    backgroundColor: Colors.white,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Admin Panel',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'amritsar.gov@gmail.com',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            ListTile(
+              leading: Icon(Icons.analytics, color: Colors.teal),
+              title: Text(
+                'Analytics',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => const AnalyticsDashboard(),
+                ));
+              },
+            ),
+            const Divider(thickness: 1),
+            ListTile(
+              leading: Icon(Icons.logout, color: Colors.red),
+              title: Text(
+                'Logout',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              onTap: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
+      backgroundColor: const Color(0xFFF0F9FF),
+  appBar: AppBar(
+  title: const Text(
+    "Admin Dashboard",
+    style: TextStyle(color: Color.fromARGB(255, 10, 10, 10)),
+  ),
+  backgroundColor: const Color.fromARGB(255, 4, 204, 240),
+  iconTheme: const IconThemeData(color: Color.fromARGB(255, 13, 13, 13)),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.logout),
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text("Confirm Logout"),
+            content: const Text("Are you sure you want to log out?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await FirebaseAuth.instance.signOut();
+                  if (!mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                },
+                child: const Text(
+                  "Logout",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  ],
+),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

@@ -1,6 +1,7 @@
 // 📦 Importing necessary packages and screens
 import 'package:NagarVikas/service/ConnectivityService.dart';
 import 'package:NagarVikas/widgets/bottom_nav_bar.dart';
+import 'package:NagarVikas/widgets/exit_confirmation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
@@ -89,7 +90,9 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: ConnectivityOverlay(child: const AuthCheckScreen()),
+      home: ExitConfirmationWrapper(
+        child: ConnectivityOverlay(child: const AuthCheckScreen()),
+      ),
     );
   }
 }
@@ -135,11 +138,9 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
     final prefs = await SharedPreferences.getInstance();
     bool? storedIsAdmin = prefs.getBool('isAdmin');
 
-    if (storedIsAdmin != null) {
-      setState(() {
-        isAdmin = storedIsAdmin;
-      });
-    }
+    setState(() {
+      isAdmin = storedIsAdmin ?? false;
+    });
   }
 
   // ✅ Build Method (Decides Which Screen to Show)
