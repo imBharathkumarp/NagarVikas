@@ -1,3 +1,4 @@
+// admin_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -325,7 +326,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         complaint["issue_type"] ?? "Unknown",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      subtitle: Text("Status: ${complaint["status"]}"),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Status: ${complaint["status"]}"),
+                          const SizedBox(height: 4),
+                          Text("City: ${complaint["city"]}, State: ${complaint["state"]}"),
+                        ],
+                      ),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () => Navigator.of(context).push(
                         _createSlideRoute(complaint),
