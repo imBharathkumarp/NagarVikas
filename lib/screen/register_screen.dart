@@ -36,6 +36,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  // ✅ This enables auto-capitalization and Capitalizes the first letter of each word.
+
+  @override
+  void initState() {
+    super.initState();
+
+    _nameController.addListener(() {
+      final text = _nameController.text;
+      final capitalized = text
+          .split(' ')
+          .map((word) => word.isNotEmpty
+          ? word[0].toUpperCase() + word.substring(1)
+          : '')
+          .join(' ');
+
+      // Avoid endless loops
+      if (text != capitalized) {
+        _nameController.value = _nameController.value.copyWith(
+          text: capitalized,
+          selection: TextSelection.collapsed(offset: capitalized.length),
+        );
+      }
+    });
+  }
+
+
   // Flags for loading and password validation
   bool isLoading = false;
   bool hasUppercase = false;
@@ -167,8 +193,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 duration: Duration(milliseconds: 1000),
                 child: TextField(
                   controller: _nameController,
+                  textCapitalization: TextCapitalization.words, // ✅ This enables auto-capitalization
                   decoration: InputDecoration(
-                    labelText: "Enter your name",
+                    labelText: "Enter Your Name",
                     labelStyle: TextStyle(color: Colors.black),
                     filled: true,
                     fillColor: Colors.white,
