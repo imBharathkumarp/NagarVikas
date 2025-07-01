@@ -1,4 +1,4 @@
-// AdminDashboard.dart
+// admin_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -208,7 +208,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   prefixIcon: Icon(Icons.search),
                   hintText: "Search complaints...",
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14), // updated
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
                 onChanged: _searchComplaints,
               ),
@@ -227,25 +227,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       contentPadding: const EdgeInsets.all(12),
                       leading: complaint["media_type"] == "image"
                           ? ClipOval(
-                        child: Image.network(
-                          complaint["media_url"],
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.broken_image, size: 40),
-                        ),
-                      )
+                              child: Image.network(
+                                complaint["media_url"],
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(Icons.broken_image, size: 40),
+                              ),
+                            )
                           : const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.grey,
-                        child: Icon(Icons.videocam, color: Colors.white),
-                      ),
+                              radius: 30,
+                              backgroundColor: Colors.grey,
+                              child: Icon(Icons.videocam, color: Colors.white),
+                            ),
                       title: Text(
                         complaint["issue_type"] ?? "Unknown",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      subtitle: Text("Status: ${complaint["status"]}"),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Status: ${complaint["status"]}"),
+                          const SizedBox(height: 4),
+                          Text("City: ${complaint["city"]}, State: ${complaint["state"]}"),
+                        ],
+                      ),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () => Navigator.of(context).push(
                         _createSlideRoute(complaint),
@@ -261,3 +268,4 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 }
+
