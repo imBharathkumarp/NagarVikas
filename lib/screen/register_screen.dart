@@ -36,6 +36,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  bool _obscurePassword = true;
+
   // ✅ This enables auto-capitalization and Capitalizes the first letter of each word.
 
   @override
@@ -243,7 +245,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 duration: Duration(milliseconds: 1400),
                 child: TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   onChanged: _validatePassword,
                   decoration: InputDecoration(
                     labelText: "Enter your password",
@@ -258,6 +260,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: Colors.blue, width: 2),
                     ),
+                    suffixIcon: IconButton(     //✅ This will show the eye icon on the right side.
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+
                   ),
                 ),
               ),
