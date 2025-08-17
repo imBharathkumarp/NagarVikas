@@ -132,7 +132,6 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 }
 
-// Real-time complaint card that fetches live data
 class RealTimeComplaintCard extends StatefulWidget {
   final String complaintId;
   final bool isFavorite;
@@ -180,7 +179,6 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
       if (complaintData != null) {
         String userId = complaintData["user_id"] ?? "Unknown";
 
-        // Fetch user data
         DataSnapshot userSnapshot = await usersRef.child(userId).get();
         Map<String, dynamic>? userData = userSnapshot.value != null
             ? Map<String, dynamic>.from(userSnapshot.value as Map)
@@ -223,7 +221,6 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
           isLoading = false;
         });
       } else {
-        // Complaint was deleted
         setState(() {
           complaint = null;
           isLoading = false;
@@ -295,7 +292,7 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
     }
 
     if (complaint == null) {
-      return SizedBox.shrink(); // Hide deleted complaints
+      return SizedBox.shrink();
     }
 
     return ComplaintCard(
@@ -307,7 +304,6 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
   }
 }
 
-// ComplaintCard class (reusable component)
 class ComplaintCard extends StatelessWidget {
   final Map<String, dynamic> complaint;
   final bool isFavorite;
@@ -359,7 +355,6 @@ class ComplaintCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Modern media preview
                 Container(
                   width: 56,
                   height: 56,
@@ -403,12 +398,10 @@ class ComplaintCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
 
-                // Content section
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title and favorite row
                       Row(
                         children: [
                           Expanded(
@@ -445,7 +438,6 @@ class ComplaintCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
 
-                      // Status badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -466,7 +458,6 @@ class ComplaintCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      // Location info
                       Row(
                         children: [
                           Icon(
