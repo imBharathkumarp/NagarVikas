@@ -91,7 +91,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
               color: const Color(0xFFF8F9FA),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: const Color.fromARGB(13, 0, 0, 0), 
                   blurRadius: 10,
                   offset: Offset(0, -2),
                 ),
@@ -119,7 +119,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color.fromARGB(10, 0, 0, 0), 
             blurRadius: 20,
             offset: Offset(0, 4),
           ),
@@ -130,7 +130,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
           Container(
             padding: EdgeInsets.all(screenHeight * 0.015),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 4, 204, 240).withOpacity(0.1),
+              color: const Color.fromARGB(26, 4, 204, 240), 
               shape: BoxShape.circle,
             ),
             child: Text(
@@ -176,7 +176,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color.fromARGB(10, 0, 0, 0), 
             blurRadius: 20,
             offset: Offset(0, 4),
           ),
@@ -225,7 +225,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             duration: Duration(milliseconds: 200),
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.amber.withOpacity(0.1) : Colors.transparent,
+              color: isSelected ? const Color.fromARGB(26, 255, 193, 7) : Colors.transparent, 
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -287,7 +287,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color.fromARGB(10, 0, 0, 0), 
             blurRadius: 20,
             offset: Offset(0, 4),
           ),
@@ -358,7 +358,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                 gradient: LinearGradient(
                   colors: [
                     const Color.fromARGB(255, 4, 204, 240),
-                    const Color.fromARGB(255, 4, 204, 240).withOpacity(0.8)
+                    const Color.fromARGB(204, 4, 204, 240) 
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -366,7 +366,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color.fromARGB(255, 4, 204, 240).withOpacity(0.3),
+                    color: const Color.fromARGB(77, 4, 204, 240), 
                     blurRadius: 20,
                     offset: Offset(0, 8),
                   ),
@@ -411,7 +411,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: const Color.fromARGB(26, 76, 175, 80), 
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
