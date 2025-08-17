@@ -17,7 +17,7 @@ class PieChartWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = resolved + pending + rejected;
 
-    // Handle case where total is 0 to avoid division by zero
+
     if (total == 0) {
       return AspectRatio( // Aspect Ratio
         aspectRatio: 1.3,
