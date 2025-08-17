@@ -321,7 +321,7 @@ class _ChatbotWrapperState extends State<ChatbotWrapper> {
         });
         return true;
       },
-      child: Stack(
+      child: Stack( // Stack
         children: [
           widget.child,
           // Only show chatbot when hideChat is false AND drawer is not open
@@ -334,7 +334,7 @@ class _ChatbotWrapperState extends State<ChatbotWrapper> {
 }
 
 // Add this custom notification class
-class DrawerNotification extends Notification {
+class DrawerNotification extends Notification { // Drawer Notification
   final bool isOpen;
   DrawerNotification(this.isOpen);
 }
