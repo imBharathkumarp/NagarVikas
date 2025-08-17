@@ -193,6 +193,7 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> {
     return 'Sorry, I didn\'t understand. Please try rephrasing your question or ask about reporting issues, registration, tracking complaints, support, password reset, profile, account, app update, language, or notifications.';
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -288,11 +289,13 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> {
   }
 }
 
+
 class _ChatMessage {
   final String text;
   final bool isBot;
   _ChatMessage({required this.text, required this.isBot});
 }
+
 
 // UPDATED CHATBOT WRAPPER - THIS IS THE KEY CHANGE
 class ChatbotWrapper extends StatefulWidget {
@@ -309,8 +312,10 @@ class ChatbotWrapper extends StatefulWidget {
   State<ChatbotWrapper> createState() => _ChatbotWrapperState();
 }
 
+
 class _ChatbotWrapperState extends State<ChatbotWrapper> {
   bool _isDrawerOpen = false;
+
 
   @override
   Widget build(BuildContext context) {
@@ -333,8 +338,12 @@ class _ChatbotWrapperState extends State<ChatbotWrapper> {
   }
 }
 
+
 // Add this custom notification class
 class DrawerNotification extends Notification { // Drawer Notification
   final bool isOpen;
   DrawerNotification(this.isOpen);
 }
+
+
+

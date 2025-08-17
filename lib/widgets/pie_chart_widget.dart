@@ -26,7 +26,7 @@ class PieChartWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(12), //Border Radius
             color: Colors.grey.shade100,
           ),
-          child: const Center(
+          child: const Center( // Center the text
             child: Text(
               'No complaints data available',
               style: TextStyle( // Text Style
@@ -77,4 +77,3 @@ class PieChartWidget extends StatelessWidget {
     );
   }
 }
-
