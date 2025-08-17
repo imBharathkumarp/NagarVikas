@@ -161,7 +161,7 @@ class DiscussionForumState extends State<DiscussionForum> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide:
-                                    BorderSide.none, // Remove default border
+                                    BorderSide.none,
                               ),
                               contentPadding:
                                   EdgeInsets.symmetric(horizontal: 1),
@@ -216,7 +216,7 @@ class _AnimatedBackgroundState extends State<AnimatedBackground>
           ..repeat();
     final random = Random();
     bubbles = List.generate(bubbleCount, (index) {
-      final size = random.nextDouble() * 30 + 10; // Smaller bubbles: 10-40 px
+      final size = random.nextDouble() * 30 + 10;
       return _Bubble(
         x: random.nextDouble(),
         y: random.nextDouble(),
@@ -274,7 +274,7 @@ class _BubblePainter extends CustomPainter {
       canvas.drawOval(
         Rect.fromCenter(
           center: center,
-          width: bubble.radius, // Make width = height for circles
+          width: bubble.radius,
           height: bubble.radius,
         ),
         paint,
