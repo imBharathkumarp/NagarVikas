@@ -2,6 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:provider/provider.dart';
+
+import '../theme/theme_provider.dart';
 
 /// DiscussionForum
 /// A real-time chat interface where users can post and view messages.
@@ -16,11 +19,11 @@ class DiscussionForum extends StatefulWidget {
 
 class DiscussionForumState extends State<DiscussionForum> {
   final TextEditingController _messageController =
-      TextEditingController(); // 💬 Controls text input
+  TextEditingController(); // 💬 Controls text input
   final DatabaseReference _messagesRef =
-      FirebaseDatabase.instance.ref("discussion/"); // 🔗 Firebase DB ref
+  FirebaseDatabase.instance.ref("discussion/"); // 🔗 Firebase DB ref
   final ScrollController _scrollController =
-      ScrollController(); // 📜 Scroll controller for ListView
+  ScrollController(); // 📜 Scroll controller for ListView
   String? userId;
 
   @override
@@ -46,14 +49,16 @@ class DiscussionForumState extends State<DiscussionForum> {
   }
 
   /// 🧱 Builds a single message bubble (left or right aligned)
-  Widget _buildMessage(Map<String, dynamic> messageData, bool isMe) {
+  Widget _buildMessage(Map<String, dynamic> messageData, bool isMe, ThemeProvider themeProvider) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
         padding: EdgeInsets.symmetric(vertical: 12, horizontal: 18),
         decoration: BoxDecoration(
-          color: isMe ? Colors.blueAccent : Colors.grey[300],
+          color: isMe
+              ? Colors.blueAccent
+              : (themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(10),
             topRight: Radius.circular(10),
@@ -64,7 +69,11 @@ class DiscussionForumState extends State<DiscussionForum> {
         child: Text(
           messageData["message"], // 📝 Display message
           style: TextStyle(
-              color: isMe ? Colors.white : Colors.black, fontSize: 18),
+              color: isMe
+                  ? Colors.white
+                  : (themeProvider.isDarkMode ? Colors.white : Colors.black),
+              fontSize: 18
+          ),
         ),
       ),
     );
@@ -72,126 +81,164 @@ class DiscussionForumState extends State<DiscussionForum> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // 🧭 App bar
-      appBar: AppBar(
-        elevation: 5,
-        shadowColor: Colors.black87,
-        centerTitle: true,
-        title: Text("Discussion Forum",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color.fromARGB(255, 4, 204, 240),
-      ),
-      body: Stack(
-        children: [
-          const AnimatedBackground(), // <-- Add this line
-          Column(
-            children: [
-              // 🔄 Real-time message list
-              Expanded(
-                child: StreamBuilder(
-                  stream: _messagesRef.orderByChild("timestamp").onValue,
-                  builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-                    if (!snapshot.hasData ||
-                        snapshot.data?.snapshot.value == null) {
-                      return Center(
-                          child: Text("No messages yet!")); // 💤 Empty state
-                    }
+    return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      return Scaffold(
+        backgroundColor:
+        themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
+        // 🧭 App bar
+        appBar: AppBar(
+          elevation: 5,
+          shadowColor: Colors.black87,
+          centerTitle: true,
+          title: Text(
+              "Discussion Forum",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+              )
+          ),
+          backgroundColor: const Color.fromARGB(255, 4, 204, 240),
+          iconTheme: IconThemeData(
+            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+          ),
+        ),
+        body: Stack(
+          children: [
+            const AnimatedBackground(), // Animated background with bubbles
+            Column(
+              children: [
+                // 🔄 Real-time message list
+                Expanded(
+                  child: StreamBuilder(
+                    stream: _messagesRef.orderByChild("timestamp").onValue,
+                    builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                      if (!snapshot.hasData ||
+                          snapshot.data?.snapshot.value == null) {
+                        return Center(
+                            child: Text(
+                              "No messages yet!",
+                              style: TextStyle(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black,
+                              ),
+                            )); // 💤 Empty state
+                      }
 
-                    // 🔄 Convert snapshot to list of messages
-                    Map<dynamic, dynamic> messagesMap =
-                        snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+                      // 🔄 Convert snapshot to list of messages
+                      Map<dynamic, dynamic> messagesMap = snapshot
+                          .data!.snapshot.value as Map<dynamic, dynamic>;
 
-                    List<Map<String, dynamic>> messagesList = messagesMap
-                        .entries
-                        .map((e) => {
-                              "key": e.key,
-                              ...Map<String, dynamic>.from(e.value)
-                            })
-                        .toList();
+                      List<Map<String, dynamic>> messagesList = messagesMap
+                          .entries
+                          .map((e) => {
+                        "key": e.key,
+                        ...Map<String, dynamic>.from(e.value)
+                      })
+                          .toList();
 
-                    // 🕒 Sort by timestamp (ascending)
-                    messagesList.sort(
-                        (a, b) => a["timestamp"].compareTo(b["timestamp"]));
+                      // 🕒 Sort by timestamp (ascending)
+                      messagesList.sort(
+                              (a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
-                    return ListView.builder(
-                      controller: _scrollController,
-                      itemCount: messagesList.length,
-                      itemBuilder: (context, index) {
-                        final message = messagesList[index];
-                        bool isMe = message["senderId"] == userId;
-                        return _buildMessage(
-                            message, isMe); // 🧱 Render message
-                      },
-                    );
-                  },
+                      return ListView.builder(
+                        controller: _scrollController,
+                        itemCount: messagesList.length,
+                        itemBuilder: (context, index) {
+                          final message = messagesList[index];
+                          bool isMe = message["senderId"] == userId;
+                          return _buildMessage(
+                              message, isMe, themeProvider); // 🧱 Render message
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
 
-              // 💬 Message input field & send button
-              Padding(
-                padding: EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    // ✍️ Text input field
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
+                // 💬 Message input field & send button
+                Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      // ✍️ Text input field
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _messageController,
+                              style: TextStyle(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black,
                               ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _messageController,
-                            decoration: InputDecoration(
-                              icon: Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 8.0, left: 18, right: 8, bottom: 8),
-                                child: Icon(Icons.message, color: Colors.grey),
+                              decoration: InputDecoration(
+                                icon: Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 8.0, left: 18, right: 8, bottom: 8),
+                                  child: Icon(
+                                      Icons.message,
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey
+                                  ),
+                                ),
+                                hintText: "Type a message...",
+                                hintStyle: TextStyle(
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none, // Remove default border
+                                ),
+                                contentPadding:
+                                EdgeInsets.symmetric(horizontal: 1),
+                                filled: true,
+                                fillColor: themeProvider.isDarkMode
+                                    ? Colors.grey[800]
+                                    : Colors.white,
                               ),
-                              hintText: "Type a message...",
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide:
-                                    BorderSide.none,
-                              ),
-                              contentPadding:
-                                  EdgeInsets.symmetric(horizontal: 1),
-                              filled: true,
-                              fillColor: Colors.white,
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 8),
+                      SizedBox(width: 8),
 
-                    // 🚀 Send button
-                    Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: 8.0, top: 8, right: 8),
-                      child: FloatingActionButton(
-                        onPressed: _sendMessage,
-                        backgroundColor: const Color.fromARGB(255, 7, 7, 7),
-                        child: Icon(Icons.send, color: Colors.white),
+                      // 🚀 Send button
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 8.0, top: 8, right: 8),
+                        child: FloatingActionButton(
+                          onPressed: _sendMessage,
+                          backgroundColor: const Color.fromARGB(255, 7, 7, 7),
+                          child: Icon(Icons.send, color: Colors.white),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+              ],
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
 
@@ -212,8 +259,8 @@ class _AnimatedBackgroundState extends State<AnimatedBackground>
   void initState() {
     super.initState();
     _controller =
-        AnimationController(vsync: this, duration: Duration(seconds: 20))
-          ..repeat();
+    AnimationController(vsync: this, duration: Duration(seconds: 20))
+      ..repeat();
     final random = Random();
     bubbles = List.generate(bubbleCount, (index) {
       final size = random.nextDouble() * 30 + 10;

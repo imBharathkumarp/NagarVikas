@@ -1,6 +1,9 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../theme/theme_provider.dart';
 
 /// 📝 FeedbackPage
 /// Allows users to rate the app, leave written feedback, and optionally provide suggestions.
@@ -40,6 +43,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
 
   @override
   void dispose() {
+    _feedbackController.dispose();
     _submitAnimationController.dispose();
     _ratingAnimationController.dispose();
     super.dispose();
@@ -47,67 +51,76 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: Text('Feedback'),
-        backgroundColor: const Color.fromARGB(255, 4, 204, 240),
-      ),
-      body: Column(
-        children: [
-          // Scrollable content area
-          Expanded(
-            child: SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header section with emoji and title
-                    _buildHeaderSection(),
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+    return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      return Scaffold(
+        backgroundColor: themeProvider.isDarkMode
+            ? Colors.grey[900]
+            : const Color(0xFFF8F9FA),
+        appBar: AppBar(
+          title: Text('Feedback'),
+          backgroundColor: const Color.fromARGB(255, 4, 204, 240),
+        ),
+        body: Column(
+          children: [
+            // Scrollable content area
+            Expanded(
+              child: SingleChildScrollView(
+                physics: BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header section with emoji and title
+                      _buildHeaderSection(themeProvider),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
-                    // Rating section
-                    _buildRatingSection(),
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.025),
+                      // Rating section
+                      _buildRatingSection(themeProvider),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.025),
 
-                    // Feedback section
-                    _buildFeedbackSection(),
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                      // Feedback section
+                      _buildFeedbackSection(themeProvider),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
-                    // Suggestions section
-                    SizedBox(height: 20),
-                  ],
+                      // Suggestions section
+                      _buildSuggestionsSection(themeProvider),
+                      SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // Fixed submit button at bottom
-          Container(
-            padding: EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FA),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color.fromARGB(13, 0, 0, 0), 
-                  blurRadius: 10,
-                  offset: Offset(0, -2),
-                ),
-              ],
+            // Fixed submit button at bottom
+            Container(
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[900]
+                    : const Color(0xFFF8F9FA),
+                boxShadow: [
+                  BoxShadow(
+                    color: themeProvider.isDarkMode
+                        ? Colors.black26
+                        : const Color.fromARGB(13, 0, 0, 0),
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: _buildSubmitButton(themeProvider),
+              ),
             ),
-            child: SafeArea(
-              child: _buildSubmitButton(),
-            ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   /// 🎨 Header section with welcoming design
-  Widget _buildHeaderSection() {
+  Widget _buildHeaderSection(ThemeProvider themeProvider) {
     final screenHeight = MediaQuery.of(context).size.height;
     final dynamicPadding = screenHeight * 0.02;
 
@@ -115,11 +128,13 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
       width: double.infinity,
       padding: EdgeInsets.all(dynamicPadding.clamp(16.0, 24.0)),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(10, 0, 0, 0), 
+            color: themeProvider.isDarkMode
+                ? Colors.black26
+                : const Color.fromARGB(10, 0, 0, 0),
             blurRadius: 20,
             offset: Offset(0, 4),
           ),
@@ -130,7 +145,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
           Container(
             padding: EdgeInsets.all(screenHeight * 0.015),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(26, 4, 204, 240), 
+              color: const Color.fromARGB(26, 4, 204, 240),
               shape: BoxShape.circle,
             ),
             child: Text(
@@ -144,7 +159,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             style: TextStyle(
               fontSize: screenHeight * 0.026,
               fontWeight: FontWeight.w700,
-              color: Colors.black87,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
               letterSpacing: -0.5,
             ),
           ),
@@ -153,7 +168,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             'Help us improve by sharing your experience',
             style: TextStyle(
               fontSize: screenHeight * 0.018,
-              color: Colors.grey[600],
+              color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
               fontWeight: FontWeight.w400,
             ),
             textAlign: TextAlign.center,
@@ -164,7 +179,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
   }
 
   /// ⭐ Modern rating section
-  Widget _buildRatingSection() {
+  Widget _buildRatingSection(ThemeProvider themeProvider) {
     final screenHeight = MediaQuery.of(context).size.height;
     final dynamicPadding = screenHeight * 0.02;
 
@@ -172,11 +187,13 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
       width: double.infinity,
       padding: EdgeInsets.all(dynamicPadding.clamp(16.0, 24.0)),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(10, 0, 0, 0), 
+            color: themeProvider.isDarkMode
+                ? Colors.black26
+                : const Color.fromARGB(10, 0, 0, 0),
             blurRadius: 20,
             offset: Offset(0, 4),
           ),
@@ -190,7 +207,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             style: TextStyle(
               fontSize: screenHeight * 0.02,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
             ),
           ),
           SizedBox(height: screenHeight * 0.02),
@@ -225,7 +242,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             duration: Duration(milliseconds: 200),
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isSelected ? const Color.fromARGB(26, 255, 193, 7) : Colors.transparent, 
+              color: isSelected ? const Color.fromARGB(26, 255, 193, 7) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -275,7 +292,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
   }
 
   /// 📝 Modern feedback input section
-  Widget _buildFeedbackSection() {
+  Widget _buildFeedbackSection(ThemeProvider themeProvider) {
     final screenHeight = MediaQuery.of(context).size.height;
     final dynamicPadding = screenHeight * 0.02;
 
@@ -283,11 +300,13 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
       width: double.infinity,
       padding: EdgeInsets.all(dynamicPadding.clamp(16.0, 24.0)),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(10, 0, 0, 0), 
+            color: themeProvider.isDarkMode
+                ? Colors.black26
+                : const Color.fromARGB(10, 0, 0, 0),
             blurRadius: 20,
             offset: Offset(0, 4),
           ),
@@ -301,7 +320,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             style: TextStyle(
               fontSize: screenHeight * 0.02,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
             ),
           ),
           SizedBox(height: screenHeight * 0.015),
@@ -311,12 +330,12 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             decoration: InputDecoration(
               hintText: 'Share your thoughts, suggestions, or report issues...',
               hintStyle: TextStyle(
-                color: Colors.grey[500],
+                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
                 fontSize: screenHeight * 0.017,
                 fontWeight: FontWeight.w400,
               ),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
@@ -328,7 +347,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
               contentPadding: EdgeInsets.all(screenHeight * 0.02),
             ),
             style: TextStyle(
-              color: Colors.black87,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
               fontSize: screenHeight * 0.017,
               height: 1.5,
             ),
@@ -338,9 +357,53 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
     );
   }
 
+  /// ✅ Suggestions checkbox section
+  Widget _buildSuggestionsSection(ThemeProvider themeProvider) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: themeProvider.isDarkMode
+                ? Colors.black26
+                : const Color.fromARGB(10, 0, 0, 0),
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Checkbox(
+            value: _suggestions,
+            onChanged: (bool? value) {
+              setState(() {
+                _suggestions = value ?? false;
+              });
+            },
+            activeColor: Colors.amber,
+            checkColor: themeProvider.isDarkMode ? Colors.black : Colors.white,
+          ),
+          Expanded(
+            child: Text(
+              'Would you like to give any suggestions?',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   /// 📤 Modern submit button with animation
-  Widget _buildSubmitButton() {
+  Widget _buildSubmitButton(ThemeProvider themeProvider) {
     return GestureDetector(
       onTapDown: (_) => _submitAnimationController.forward(),
       onTapUp: (_) => _submitAnimationController.reverse(),
@@ -358,7 +421,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                 gradient: LinearGradient(
                   colors: [
                     const Color.fromARGB(255, 4, 204, 240),
-                    const Color.fromARGB(204, 4, 204, 240) 
+                    const Color.fromARGB(204, 4, 204, 240)
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -366,7 +429,7 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color.fromARGB(77, 4, 204, 240), 
+                    color: const Color.fromARGB(77, 4, 204, 240),
                     blurRadius: 20,
                     offset: Offset(0, 8),
                   ),
@@ -401,73 +464,78 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(26, 76, 175, 80), 
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.check_circle,
-                    color: Colors.green[500],
-                    size: 48,
-                  ),
-                ),
-                SizedBox(height: 24),
-                Text(
-                  'Thank You!',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Your feedback helps us improve and create a better experience for everyone.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                    height: 1.4,
-                  ),
-                ),
-                SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context); // Go back to previous screen
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 4, 204, 240),
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+        return Consumer<ThemeProvider>(
+          builder: (context, themeProvider, child) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(26, 76, 175, 80),
+                        shape: BoxShape.circle,
                       ),
-                      elevation: 0,
+                      child: Icon(
+                        Icons.check_circle,
+                        color: Colors.green[500],
+                        size: 48,
+                      ),
                     ),
-                    child: Text(
-                      'Done',
+                    SizedBox(height: 24),
+                    Text(
+                      'Thank You!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Your feedback helps us improve and create a better experience for everyone.',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        height: 1.4,
                       ),
                     ),
-                  ),
+                    SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.pop(context); // Go back to previous screen
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 4, 204, 240),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Done',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
