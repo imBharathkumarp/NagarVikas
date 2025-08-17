@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:provider/provider.dart';
+
+import '../theme/theme_provider.dart';
 
 /// Modern Profile Settings Page
 /// A comprehensive profile and settings page with beautiful UI
-/// matching the app's modern design theme
+/// matching the app's modern design theme with dark mode support
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -22,7 +25,7 @@ class ProfilePageState extends State<ProfilePage>
   String userId = "Loading...";
   String phoneNumber = "Not provided";
   String joinDate = "Loading...";
-  int complaintsCount = 0; // Add this to track complaints count
+  int complaintsCount = 0;
   bool isLoading = true;
 
   // Animation controllers
@@ -34,7 +37,7 @@ class ProfilePageState extends State<ProfilePage>
     super.initState();
     _initAnimations();
     _fetchUserData();
-    _fetchComplaintsCount(); // Add this call
+    _fetchComplaintsCount();
   }
 
   @override
@@ -64,7 +67,7 @@ class ProfilePageState extends State<ProfilePage>
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         DatabaseReference userRef =
-            FirebaseDatabase.instance.ref().child('users').child(user.uid);
+        FirebaseDatabase.instance.ref().child('users').child(user.uid);
 
         final snapshot = await userRef.get();
         if (snapshot.exists) {
@@ -99,14 +102,14 @@ class ProfilePageState extends State<ProfilePage>
   Future<void> _fetchComplaintsCount() async {
     try {
       String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
-      
+
       if (currentUserId != null) {
         DatabaseReference ref = FirebaseDatabase.instance.ref('complaints/');
-        
+
         // Listen to changes in complaints for real-time updates
         ref.orderByChild("user_id").equalTo(currentUserId).onValue.listen((event) {
           final data = event.snapshot.value as Map<dynamic, dynamic>?;
-          
+
           if (mounted) {
             setState(() {
               complaintsCount = data?.length ?? 0;
@@ -142,60 +145,75 @@ class ProfilePageState extends State<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF8F9FA),
-              Color(0xFFFFFFFF),
+    return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: themeProvider.isDarkMode
+                  ? [
+                Colors.grey[900]!,
+                Colors.grey[850]!,
+              ]
+                  : [
+                const Color(0xFFF8F9FA),
+                const Color(0xFFFFFFFF),
+              ],
+            ),
+          ),
+          child: CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(themeProvider),
+              SliverToBoxAdapter(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      _buildProfileSection(themeProvider),
+                      const SizedBox(height: 20),
+                      _buildAccountSection(themeProvider),
+                      const SizedBox(height: 20),
+                      _buildSupportSection(themeProvider),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        child: CustomScrollView(
-          slivers: [
-            _buildSliverAppBar(),
-            SliverToBoxAdapter(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildProfileSection(),
-                    const SizedBox(height: 20),
-                    _buildAccountSection(),
-                    const SizedBox(height: 20),
-                    _buildSupportSection(),
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+      );
+    });
   }
 
-  Widget _buildSliverAppBar() {
+  Widget _buildSliverAppBar(ThemeProvider themeProvider) {
     return SliverAppBar(
       expandedHeight: 100,
       floating: false,
       pinned: true,
       elevation: 0,
-      backgroundColor: const Color(0xFF1565C0),
+      backgroundColor: themeProvider.isDarkMode
+          ? Colors.grey[850]
+          : const Color(0xFF1565C0),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF1565C0),
-                Color(0xFF42A5F5),
-                Color(0xFF81C784),
+              colors: themeProvider.isDarkMode
+                  ? [
+                Colors.grey[850]!,
+                Colors.grey[800]!,
+                Colors.grey[700]!,
+              ]
+                  : [
+                const Color(0xFF1565C0),
+                const Color(0xFF42A5F5),
+                const Color(0xFF81C784),
               ],
             ),
           ),
@@ -264,18 +282,18 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildProfileSection() {
+  Widget _buildProfileSection(ThemeProvider themeProvider) {
     return FadeInUp(
       duration: const Duration(milliseconds: 600),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: (themeProvider.isDarkMode ? Colors.black : Colors.grey).withOpacity(0.1),
               spreadRadius: 2,
               blurRadius: 10,
               offset: const Offset(0, 3),
@@ -320,10 +338,10 @@ class ProfilePageState extends State<ProfilePage>
                     children: [
                       Text(
                         isLoading ? "Loading..." : name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -331,7 +349,7 @@ class ProfilePageState extends State<ProfilePage>
                         isLoading ? "Loading..." : email,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -375,7 +393,7 @@ class ProfilePageState extends State<ProfilePage>
                   ),
                 ),
                 IconButton(
-                  onPressed: () => _showEditProfileDialog(),
+                  onPressed: () => _showEditProfileDialog(themeProvider),
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -401,15 +419,17 @@ class ProfilePageState extends State<ProfilePage>
                     isLoading ? "..." : joinDate,
                     Icons.calendar_today,
                     const Color(0xFF2196F3),
+                    themeProvider,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildStatCard(
                     "Complaints Filed",
-                    complaintsCount.toString(), // Use actual count instead of hardcoded "12"
+                    complaintsCount.toString(),
                     Icons.report,
                     const Color(0xFFFF9800),
+                    themeProvider,
                   ),
                 ),
               ],
@@ -420,7 +440,7 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, ThemeProvider themeProvider) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -444,7 +464,7 @@ class ProfilePageState extends State<ProfilePage>
             title,
             style: TextStyle(
               fontSize: 10,
-              color: Colors.grey[600],
+              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -454,44 +474,51 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildAccountSection() {
+  Widget _buildAccountSection(ThemeProvider themeProvider) {
     return _buildSection(
       "Account Information",
       Icons.person_outline,
       [
-        _buildInfoTile("Full Name", name, Icons.person, () => _showEditDialog("name")),
-        _buildInfoTile("Email Address", email, Icons.email, null),
-        _buildInfoTile("Phone Number", phoneNumber, Icons.phone, () => _showEditDialog("phone")),
-        _buildInfoTile("User ID", _formatUserId(userId), Icons.fingerprint, null),
+        _buildInfoTile("Full Name", name, Icons.person, () => _showEditDialog("name", themeProvider), themeProvider),
+        _buildInfoTile("Email Address", email, Icons.email, null, themeProvider),
+        _buildInfoTile("Phone Number", phoneNumber, Icons.phone, () => _showEditDialog("phone", themeProvider), themeProvider),
+        _buildInfoTile("User ID", _formatUserId(userId), Icons.fingerprint, null, themeProvider),
       ],
+      themeProvider,
     );
   }
 
-  Widget _buildSupportSection() {
+  Widget _buildSupportSection(ThemeProvider themeProvider) {
     return _buildSection(
       "Support & Security",
       Icons.help_outline,
       [
-        _buildActionTile("Change Password", Icons.lock_outline, const Color(0xFF2196F3), () {}),
-        _buildActionTile("Privacy Settings", Icons.privacy_tip_outlined, const Color(0xFF4CAF50), () {}),
-        _buildActionTile("Help Center", Icons.help_center_outlined, const Color(0xFFFF9800), () {}),
-        _buildActionTile("Report Issue", Icons.report_problem_outlined, const Color(0xFFE91E63), () {}),
-        _buildActionTile("Logout", Icons.logout_outlined, const Color(0xFFf44336), () => _showLogoutDialog()),
+        _buildActionTile("Dark Mode",
+            themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            themeProvider.isDarkMode ? const Color(0xFFFFB74D) : const Color(0xFF424242),
+                () => themeProvider.toggleTheme(),
+            themeProvider),
+        _buildActionTile("Change Password", Icons.lock_outline, const Color(0xFF2196F3), () {}, themeProvider),
+        _buildActionTile("Privacy Settings", Icons.privacy_tip_outlined, const Color(0xFF4CAF50), () {}, themeProvider),
+        _buildActionTile("Help Center", Icons.help_center_outlined, const Color(0xFFFF9800), () {}, themeProvider),
+        _buildActionTile("Report Issue", Icons.report_problem_outlined, const Color(0xFFE91E63), () {}, themeProvider),
+        _buildActionTile("Logout", Icons.logout_outlined, const Color(0xFFf44336), () => _showLogoutDialog(themeProvider), themeProvider),
       ],
+      themeProvider,
     );
   }
 
-  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+  Widget _buildSection(String title, IconData icon, List<Widget> children, ThemeProvider themeProvider) {
     return FadeInUp(
       duration: const Duration(milliseconds: 600),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: (themeProvider.isDarkMode ? Colors.black : Colors.grey).withOpacity(0.1),
               spreadRadius: 2,
               blurRadius: 10,
               offset: const Offset(0, 3),
@@ -520,10 +547,10 @@ class ProfilePageState extends State<ProfilePage>
                   const SizedBox(width: 12),
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                     ),
                   ),
                 ],
@@ -537,7 +564,7 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildInfoTile(String title, String value, IconData icon, VoidCallback? onTap) {
+  Widget _buildInfoTile(String title, String value, IconData icon, VoidCallback? onTap, ThemeProvider themeProvider) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       child: Material(
@@ -550,7 +577,7 @@ class ProfilePageState extends State<ProfilePage>
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(icon, color: Colors.grey[600], size: 20),
+                Icon(icon, color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600], size: 20),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -561,16 +588,16 @@ class ProfilePageState extends State<ProfilePage>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
+                          color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
                     ],
@@ -580,7 +607,7 @@ class ProfilePageState extends State<ProfilePage>
                   Icon(
                     Icons.edit,
                     size: 16,
-                    color: Colors.grey[400],
+                    color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400],
                   ),
               ],
             ),
@@ -589,8 +616,8 @@ class ProfilePageState extends State<ProfilePage>
       ),
     );
   }
-  
-  Widget _buildActionTile(String title, IconData icon, Color color, VoidCallback onTap) {
+
+  Widget _buildActionTile(String title, IconData icon, Color color, VoidCallback onTap, ThemeProvider themeProvider) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       child: Material(
@@ -608,17 +635,17 @@ class ProfilePageState extends State<ProfilePage>
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                     ),
                   ),
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 14,
-                  color: Colors.grey[400],
+                  color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400],
                 ),
               ],
             ),
@@ -628,19 +655,30 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  void _showEditProfileDialog() {
+  void _showEditProfileDialog(ThemeProvider themeProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.edit, color: Color(0xFF42A5F5)),
-            SizedBox(width: 12),
-            Text("Edit Profile"),
+            const Icon(Icons.edit, color: Color(0xFF42A5F5)),
+            const SizedBox(width: 12),
+            Text(
+              "Edit Profile",
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
           ],
         ),
-        content: const Text("Profile editing feature will be available in the next update."),
+        content: Text(
+          "Profile editing feature will be available in the next update.",
+          style: TextStyle(
+            color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.black87,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -651,16 +689,33 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  void _showEditDialog(String field) {
+  void _showEditDialog(String field, ThemeProvider themeProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("Edit ${field == 'name' ? 'Name' : 'Phone Number'}"),
+        title: Text(
+          "Edit ${field == 'name' ? 'Name' : 'Phone Number'}",
+          style: TextStyle(
+            color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
         content: TextField(
+          style: TextStyle(
+            color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+          ),
           decoration: InputDecoration(
             labelText: field == 'name' ? 'Full Name' : 'Phone Number',
+            labelStyle: TextStyle(
+              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            ),
             border: const OutlineInputBorder(),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey,
+              ),
+            ),
           ),
         ),
         actions: [
@@ -677,20 +732,29 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  void _showLogoutDialog() {
+  void _showLogoutDialog(ThemeProvider themeProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.logout, color: Colors.red),
-            SizedBox(width: 12),
-            Text("Logout"),
+            const Icon(Icons.logout, color: Colors.red),
+            const SizedBox(width: 12),
+            Text(
+              "Logout",
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
           ],
         ),
-        content: const Text(
+        content: Text(
           "Are you sure you want to logout from your account?",
+          style: TextStyle(
+            color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.black87,
+          ),
         ),
         actions: [
           TextButton(
