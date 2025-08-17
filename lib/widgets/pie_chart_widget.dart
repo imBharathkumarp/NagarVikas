@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 class PieChartWidget extends StatelessWidget {
   final int resolved;
   final int pending;
-  final int rejected; // Keep the parameter name as 'rejected' for backward compatibility
+  final int rejected;
 
   const PieChartWidget({
     super.key,
     required this.resolved,
     required this.pending,
-    required this.rejected, // This will actually contain inProgress data
+    required this.rejected,
   });
 
   @override
   Widget build(BuildContext context) {
     final total = resolved + pending + rejected;
-    
+
     // Handle case where total is 0 to avoid division by zero
     if (total == 0) {
       return AspectRatio(
@@ -77,3 +77,5 @@ class PieChartWidget extends StatelessWidget {
     );
   }
 }
+
+
