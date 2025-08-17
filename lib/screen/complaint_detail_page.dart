@@ -40,7 +40,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       // Fetch user data
       String userId = data['user_id'] ?? '';
       final userSnapshot =
-          await FirebaseDatabase.instance.ref('users/$userId').get();
+      await FirebaseDatabase.instance.ref('users/$userId').get();
       if (userSnapshot.exists) {
         final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
         data['user_name'] = userData['name'] ?? 'Unknown';
@@ -97,7 +97,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       // Save notification in local storage for user
       await LocalStatusStorage.saveNotification({
         'message':
-            'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} has been updated to $status.',
+        'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} has been updated to $status.',
         'timestamp': DateTime.now().toIso8601String(),
         'complaint_id': widget.complaintId,
         'status': status,
@@ -109,7 +109,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         id: DateTime.now().millisecondsSinceEpoch % 100000,
         title: 'Complaint Status Updated',
         body:
-            'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} is now $status.',
+        'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} is now $status.',
         payload: widget.complaintId,
       );
     }
@@ -117,35 +117,41 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (complaint == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Container(
-            width: 150,
-            height: 20,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          backgroundColor: const Color.fromARGB(255, 4, 204, 240),
-        ),
-        body: _buildDetailShimmer(),
-      );
-    }
-
-    final String mediaType = complaint!["media_type"]?.toLowerCase() ?? "image";
-    final String mediaUrl = (complaint!["media_url"] ?? '').toString().isEmpty
-        ? 'https://picsum.photos/250?image=9'
-        : complaint!["media_url"];
-
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      if (complaint == null) {
+        return Scaffold(
+          backgroundColor:
+          themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
+          appBar: AppBar(
+            title: Container(
+              width: 150,
+              height: 20,
+              decoration: BoxDecoration(
+                color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            backgroundColor: const Color.fromARGB(255, 4, 204, 240),
+          ),
+          body: _buildDetailShimmer(themeProvider),
+        );
+      }
+
+      final String mediaType = complaint!["media_type"]?.toLowerCase() ?? "image";
+      final String mediaUrl = (complaint!["media_url"] ?? '').toString().isEmpty
+          ? 'https://picsum.photos/250?image=9'
+          : complaint!["media_url"];
+
       return Scaffold(
         backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
+        themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
         appBar: AppBar(
-          title: Text(complaint!["issue_type"] ?? "Complaint"),
+          title: Text(
+            complaint!["issue_type"] ?? "Complaint",
+            style: TextStyle(color: Colors.white),
+          ),
           backgroundColor: const Color.fromARGB(255, 4, 204, 240),
+          iconTheme: IconThemeData(color: Colors.white),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context),
@@ -158,11 +164,13 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color:
-                    themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withAlpha((0.1 * 255).toInt()),
+                    color: themeProvider.isDarkMode
+                        ? Colors.black.withAlpha((0.3 * 255).toInt())
+                        : Colors.black.withAlpha((0.1 * 255).toInt()),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -173,22 +181,27 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: _buildMediaPreview(mediaType, mediaUrl),
+                    child: _buildMediaPreview(mediaType, mediaUrl, themeProvider),
                   ),
                   const SizedBox(height: 20),
-                  _buildInfoSection("📍 Location", complaint!["location"]),
-                  _buildInfoSection("🏙️ City", complaint!["city"]),
-                  _buildInfoSection("🗺️ State", complaint!["state"]),
+                  _buildInfoSection("📍 Location", complaint!["location"], themeProvider),
+                  _buildInfoSection("🏙️ City", complaint!["city"], themeProvider),
+                  _buildInfoSection("🗺️ State", complaint!["state"], themeProvider),
                   _buildInfoSection("📅 Date & Time",
-                      _formatTimestamp(complaint!["timestamp"])),
+                      _formatTimestamp(complaint!["timestamp"]), themeProvider),
                   _buildInfoSection("👤 User",
-                      "${complaint!["user_name"]} (${complaint!["user_email"]})"),
+                      "${complaint!["user_name"]} (${complaint!["user_email"]})", themeProvider),
                   _buildInfoSection(
-                      "📝 Description", complaint!["description"] ?? "-"),
+                      "📝 Description", complaint!["description"] ?? "-", themeProvider),
                   const SizedBox(height: 12),
-                  const Text("🔄 Update Status",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    "🔄 Update Status",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: selectedStatus,
@@ -196,13 +209,44 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: const Color.fromARGB(255, 4, 204, 240),
+                          width: 2,
+                        ),
+                      ),
                       filled: true,
-                      fillColor: Colors.grey.shade100,
+                      fillColor: themeProvider.isDarkMode
+                          ? Colors.grey[700]
+                          : Colors.grey.shade100,
+                    ),
+                    dropdownColor: themeProvider.isDarkMode
+                        ? Colors.grey[700]
+                        : Colors.white,
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                     ),
                     items: ["Pending", "In Progress", "Resolved"]
                         .map((status) => DropdownMenuItem(
-                            value: status, child: Text(status)))
+                        value: status,
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        )))
                         .toList(),
                     onChanged: (newStatus) {
                       if (newStatus != null) {
@@ -215,51 +259,73 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                   ),
                   const SizedBox(height: 20),
 
-// 🔴 Delete Button
+                  // 🔴 Delete Button
                   Center(
                     child: TextButton.icon(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        backgroundColor: themeProvider.isDarkMode
+                            ? Colors.red.withAlpha((0.1 * 255).toInt())
+                            : Colors.red.withAlpha((0.05 * 255).toInt()),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text("Delete"),
+                      label: const Text("Delete", style: TextStyle(fontWeight: FontWeight.w600)),
                       onPressed: () {
                         showDialog(
                           context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text("Confirm Deletion"),
-                            content: const Text(
-                                "Are you sure you want to delete this complaint?"),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context), // Close dialog
-                                child: const Text("No"),
+                          builder: (context) => Consumer<ThemeProvider>(
+                            builder: (context, themeProvider, child) => AlertDialog(
+                              backgroundColor: themeProvider.isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.white,
+                              title: Text(
+                                "Confirm Deletion",
+                                style: TextStyle(
+                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                ),
                               ),
-                              TextButton(
-                                onPressed: () async {
-                                  final navigator = Navigator.of(
-                                      context); // ✅ capture the safe context *before* popping
-
-                                  Navigator.pop(context); // Close dialog
-
-                                  await FirebaseDatabase.instance
-                                      .ref('complaints/${widget.complaintId}')
-                                      .remove();
-
-                                  if (!mounted) return;
-                                  // ✅ Now use the saved navigator to push replacement
-                                  navigator.pushReplacement(
-                                    MaterialPageRoute(
-                                        builder: (context) => AdminDashboard()),
-                                  );
-                                  Fluttertoast.showToast(
-                                      msg: "Deleted Successfully!");
-                                },
-                                child: const Text("Yes",
-                                    style: TextStyle(color: Colors.red)),
+                              content: Text(
+                                "Are you sure you want to delete this complaint?",
+                                style: TextStyle(
+                                  color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                                ),
                               ),
-                            ],
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text(
+                                    "No",
+                                    style: TextStyle(
+                                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    final navigator = Navigator.of(context);
+                                    Navigator.pop(context); // Close dialog
+
+                                    await FirebaseDatabase.instance
+                                        .ref('complaints/${widget.complaintId}')
+                                        .remove();
+
+                                    if (!mounted) return;
+                                    navigator.pushReplacement(
+                                      MaterialPageRoute(
+                                          builder: (context) => AdminDashboard()),
+                                    );
+                                    Fluttertoast.showToast(
+                                        msg: "Deleted Successfully!");
+                                  },
+                                  child: const Text("Yes",
+                                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -274,17 +340,19 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     });
   }
 
-  Widget _buildDetailShimmer() {
+  Widget _buildDetailShimmer(ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha((0.1 * 255).toInt()),
+              color: themeProvider.isDarkMode
+                  ? Colors.black.withAlpha((0.3 * 255).toInt())
+                  : Colors.black.withAlpha((0.1 * 255).toInt()),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -298,7 +366,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
               height: 200,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -307,36 +375,36 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
             // Info sections shimmer
             ...List.generate(
                 6,
-                (index) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 120,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-                    )),
+                    (index) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                )),
 
             // Dropdown shimmer
             Container(
               width: double.infinity,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -346,26 +414,41 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     );
   }
 
-  Widget _buildInfoSection(String title, String? value) {
+  Widget _buildInfoSection(String title, String? value, ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+            ),
+          ),
           const SizedBox(height: 4),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[700]
+                  : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[600]!
+                    : Colors.grey.shade200,
+              ),
             ),
             child: Text(
               value ?? '-',
-              style: const TextStyle(fontSize: 15),
+              style: TextStyle(
+                fontSize: 15,
+                color: themeProvider.isDarkMode ? Colors.grey[100] : Colors.black87,
+              ),
             ),
           ),
         ],
@@ -373,10 +456,22 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
     );
   }
 
-  Widget _buildMediaPreview(String type, String url) {
+  Widget _buildMediaPreview(String type, String url, ThemeProvider themeProvider) {
     final uri = Uri.tryParse(url);
     if (url.isEmpty || uri == null || !uri.isAbsolute) {
-      return const Icon(Icons.image_not_supported, size: 100);
+      return Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.image_not_supported,
+          size: 100,
+          color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400],
+        ),
+      );
     }
 
     if (type == "video") {
@@ -443,8 +538,13 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         return Container(
           height: 200,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
             borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: const Color.fromARGB(255, 4, 204, 240),
+            ),
           ),
         );
       }
@@ -460,14 +560,30 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         return Container(
           height: 200,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
             borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: const Color.fromARGB(255, 4, 204, 240),
+            ),
           ),
         );
       },
       errorBuilder: (context, error, stackTrace) {
         debugPrint("Image load failed: $error");
-        return const Icon(Icons.broken_image, size: 100);
+        return Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.broken_image,
+            size: 100,
+            color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400],
+          ),
+        );
       },
     );
   }
