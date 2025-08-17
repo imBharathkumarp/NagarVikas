@@ -1,5 +1,3 @@
-// lib/widgets/shared_issue_form.dart
-
 import 'dart:io';
 import 'package:nagarvikas/service/notification_service.dart';
 import 'package:flutter/material.dart';
@@ -125,7 +123,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
     _speech = stt.SpeechToText();
     _initializeServices();
     _descriptionController.addListener(() {
-      setState(() {}); // rebuild when text changes
+      setState(() {});
     });
     _locationController.addListener(() {
       setState(() {});
@@ -157,7 +155,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
       Fluttertoast.showToast(
           msg:
               "Location permission permanently denied. Please enable it from settings.");
-      await openAppSettings(); // from permission_handler
+      await openAppSettings();
       return;
     }
 
