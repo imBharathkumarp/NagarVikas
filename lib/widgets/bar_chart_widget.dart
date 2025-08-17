@@ -89,4 +89,3 @@ class BarChartWidget extends StatelessWidget {
     return (max + 5).ceilToDouble();
   }
 }
-
