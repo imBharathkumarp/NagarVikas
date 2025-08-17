@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-//working chatbot
 class ChatbotFloatingButton extends StatefulWidget {
   const ChatbotFloatingButton({Key? key}) : super(key: key);
 
@@ -8,7 +7,6 @@ class ChatbotFloatingButton extends StatefulWidget {
   State<ChatbotFloatingButton> createState() => _ChatbotFloatingButtonState();
 }
 
-//chatbot floating button
 class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with SingleTickerProviderStateMixin {
   bool _isChatOpen = false;
   late AnimationController _controller;
@@ -300,9 +298,9 @@ class _ChatMessage {
 class ChatbotWrapper extends StatefulWidget {
   final Widget child;
   final bool hideChat;
-  
+
   const ChatbotWrapper({
-    required this.child, 
+    required this.child,
     this.hideChat = false,
     Key? key
   }) : super(key: key);
