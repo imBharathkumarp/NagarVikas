@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+
+
 class ChatbotFloatingButton extends StatefulWidget {
   const ChatbotFloatingButton({Key? key}) : super(key: key);
 
   @override
   State<ChatbotFloatingButton> createState() => _ChatbotFloatingButtonState();
 }
+
+
 
 class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with SingleTickerProviderStateMixin {
   bool _isChatOpen = false;
@@ -137,6 +141,7 @@ class ChatbotConversationWidget extends StatefulWidget {
   @override
   State<ChatbotConversationWidget> createState() => _ChatbotConversationWidgetState();
 }
+
 
 class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> {
   final TextEditingController _controller = TextEditingController();
@@ -344,6 +349,3 @@ class DrawerNotification extends Notification { // Drawer Notification
   final bool isOpen;
   DrawerNotification(this.isOpen);
 }
-
-
-
