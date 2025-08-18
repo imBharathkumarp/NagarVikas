@@ -22,24 +22,72 @@ class DiscussionForumState extends State<DiscussionForum> {
   TextEditingController(); // 💬 Controls text input
   final DatabaseReference _messagesRef =
   FirebaseDatabase.instance.ref("discussion/"); // 🔗 Firebase DB ref
+  final DatabaseReference _usersRef =
+  FirebaseDatabase.instance.ref("users/"); // 🔗 Users DB ref
   final ScrollController _scrollController =
   ScrollController(); // 📜 Scroll controller for ListView
   String? userId;
+  String? currentUserName;
 
   @override
   void initState() {
     super.initState();
-    userId = FirebaseAuth.instance.currentUser?.uid; // 🔐 Get current user ID
+    userId = FirebaseAuth.instance.currentUser?.uid; // 🔑 Get current user ID
+    _getCurrentUserName();
+  }
+
+  /// 👤 Get current user's display name
+  void _getCurrentUserName() async {
+    if (userId != null) {
+      try {
+        final snapshot = await _usersRef.child(userId!).once();
+        if (snapshot.snapshot.value != null) {
+          final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+          setState(() {
+            currentUserName = userData['name'] ?? userData['displayName'] ?? _getDefaultName();
+          });
+        } else {
+          // If user data doesn't exist, create it with email prefix
+          final defaultName = _getDefaultName();
+
+          await _usersRef.child(userId!).set({
+            'name': defaultName,
+            'displayName': defaultName,
+            'email': FirebaseAuth.instance.currentUser?.email ?? '',
+            'createdAt': ServerValue.timestamp,
+          });
+
+          setState(() {
+            currentUserName = defaultName;
+          });
+        }
+      } catch (e) {
+        print('Error getting user name: $e');
+        setState(() {
+          currentUserName = _getDefaultName();
+        });
+      }
+    }
+  }
+
+  /// Get default name from email or generate random name
+  String _getDefaultName() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.email != null) {
+      return user!.email!.split('@')[0];
+    }
+    return 'User${Random().nextInt(1000)}';
   }
 
   /// 📤 Sends a message to Firebase Realtime Database
   void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+    if (_messageController.text.trim().isEmpty || currentUserName == null) return;
 
     _messagesRef.push().set({
-      "message": _messageController.text.trim(), // ✍️ Message text
+      "message": _messageController.text.trim(), // ✏️ Message text
       "senderId": userId, // 👤 Sender ID
-      "timestamp": ServerValue.timestamp, // 🕒 Server-side timestamp
+      "senderName": currentUserName, // 👤 Sender display name - ADDED THIS
+      "timestamp": ServerValue.timestamp, // 🕐 Server-side timestamp
     });
 
     _messageController.clear(); // 🔄 Clear input
@@ -54,26 +102,47 @@ class DiscussionForumState extends State<DiscussionForum> {
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-        decoration: BoxDecoration(
-          color: isMe
-              ? Colors.blueAccent
-              : (themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(10),
-            topRight: Radius.circular(10),
-            bottomLeft: isMe ? Radius.circular(10) : Radius.circular(0),
-            bottomRight: isMe ? Radius.circular(0) : Radius.circular(10),
-          ),
-        ),
-        child: Text(
-          messageData["message"], // 📝 Display message
-          style: TextStyle(
-              color: isMe
-                  ? Colors.white
-                  : (themeProvider.isDarkMode ? Colors.white : Colors.black),
-              fontSize: 18
-          ),
+        child: Column(
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            // Show sender name only for other people's messages
+            if (!isMe)
+              Padding(
+                padding: EdgeInsets.only(left: 8, right: 8, bottom: 2),
+                child: Text(
+                  messageData["senderName"] ?? "Unknown User", // Use senderName directly from Firebase
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            // Message bubble
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+              decoration: BoxDecoration(
+                color: isMe
+                    ? Colors.blueAccent
+                    : (themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300]),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                  bottomLeft: isMe ? Radius.circular(10) : Radius.circular(0),
+                  bottomRight: isMe ? Radius.circular(0) : Radius.circular(10),
+                ),
+              ),
+              child: Text(
+                messageData["message"], // 📝 Display message
+                style: TextStyle(
+                    color: isMe
+                        ? Colors.white
+                        : (themeProvider.isDarkMode ? Colors.white : Colors.black),
+                    fontSize: 18
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -123,7 +192,7 @@ class DiscussionForumState extends State<DiscussionForum> {
                                     ? Colors.white
                                     : Colors.black,
                               ),
-                            )); // 💤 Empty state
+                            )); // 👤 Empty state
                       }
 
                       // 🔄 Convert snapshot to list of messages
@@ -138,7 +207,7 @@ class DiscussionForumState extends State<DiscussionForum> {
                       })
                           .toList();
 
-                      // 🕒 Sort by timestamp (ascending)
+                      // 🕐 Sort by timestamp (ascending)
                       messagesList.sort(
                               (a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
@@ -161,7 +230,7 @@ class DiscussionForumState extends State<DiscussionForum> {
                   padding: EdgeInsets.all(10),
                   child: Row(
                     children: [
-                      // ✍️ Text input field
+                      // ✏️ Text input field
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
