@@ -341,7 +341,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
   }
 
   Widget _buildDetailShimmer(ThemeProvider themeProvider) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -359,60 +359,66 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image shimmer
             Container(
-              height: 200,
+              height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16), // Reduced from 20
 
             // Info sections shimmer
             ...List.generate(
-                6,
-                    (index) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+              6,
+                  (index) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                  ),
+                  const SizedBox(height: 6), // Reduced from 8
+                  Container(
+                    width: double.infinity,
+                    height: 40, // Reduced from 48
+                    decoration: BoxDecoration(
+                      color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 14),
-                  ],
-                )),
+                  ),
+                  const SizedBox(height: 12), // Reduced from 14
+                ],
+              ),
+            ),
 
             // Dropdown shimmer
             Container(
               width: double.infinity,
-              height: 48,
+              height: 40, // Reduced from 48
               decoration: BoxDecoration(
                 color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
+            // Add extra space at bottom to account for navigation/overflow
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
       ),
     );
   }
+
 
   Widget _buildInfoSection(String title, String? value, ThemeProvider themeProvider) {
     return Padding(

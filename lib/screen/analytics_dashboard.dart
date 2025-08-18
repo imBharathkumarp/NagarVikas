@@ -216,7 +216,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               ),
               const SizedBox(width: 8),
               Container(
-                width: 200,
+                width: 150,
                 height: 20,
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
@@ -229,7 +229,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
           // Shimmer for pie chart
           Container(
-            height: 200,
+            height: 150,
             width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.grey[300],
@@ -251,7 +251,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               ),
               const SizedBox(width: 8),
               Container(
-                width: 250,
+                width: 150,
                 height: 20,
                 decoration: BoxDecoration(
                   color: Colors.grey[300],
@@ -264,7 +264,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
           // Shimmer for bar chart
           Container(
-            height: 200,
+            height: 150,
             width: double.infinity,
             decoration: BoxDecoration(
               color: Colors.grey[300],

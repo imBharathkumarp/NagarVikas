@@ -130,7 +130,10 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
 
   Widget _buildDrawerHeader() {
     return Container(
-      height: 180, // Reduced height from 200 to 180
+      constraints: const BoxConstraints(
+        minHeight: 120,
+        maxHeight: 200,
+      ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -149,10 +152,11 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Padding(
-            padding: const EdgeInsets.all(16.0), // Reduced padding
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 SlideInLeft(
                   duration: const Duration(milliseconds: 800),
@@ -161,7 +165,7 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
                       Hero(
                         tag: 'app_icon',
                         child: Container(
-                          padding: const EdgeInsets.all(6), // Reduced padding
+                          padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
@@ -172,7 +176,7 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
                           ),
                           child: Image.asset(
                             'assets/app_icon.png',
-                            width: 40, // Reduced size
+                            width: 40,
                             height: 40,
                           ),
                         ),
@@ -181,39 +185,48 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              "NagarVikas",
-                              style: TextStyle(
-                                fontSize: 24, // Reduced font size
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(0, 2),
-                                    blurRadius: 4,
-                                    color: Colors.black26,
-                                  ),
-                                ],
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: const Text(
+                                "NagarVikas",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                      color: Colors.black26,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Text(
-                                'City Development App',
-                                style: TextStyle(
-                                  fontSize: 11, // Reduced font size
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Text(
+                                  'City Development App',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ),
@@ -223,40 +236,44 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
                     ],
                   ),
                 ),
-                const SizedBox(height: 15), // Reduced spacing
+                const SizedBox(height: 15),
                 SlideInLeft(
                   delay: const Duration(milliseconds: 400),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 1,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
                       ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.favorite,
-                          color: Colors.white,
-                          size: 14, // Reduced icon size
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
                         ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Made with ❤️ by Prateek Chourasia',
-                          style: TextStyle(
-                            fontSize: 11, // Reduced font size
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.favorite,
                             color: Colors.white,
-                            fontWeight: FontWeight.w500,
+                            size: 14,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 4),
+                          Text(
+                            'Made with ❤️ by Prateek Chourasia',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -267,6 +284,7 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
       ),
     );
   }
+
 
   Widget _buildLanguageSelector() {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
