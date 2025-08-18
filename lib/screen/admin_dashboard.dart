@@ -40,10 +40,6 @@ class AdminDashboardState extends State<AdminDashboard> {
       icon: Icon(Icons.analytics),
       label: 'Analytics',
     ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.logout),
-      label: 'Logout',
-    ),
   ];
 
   @override
@@ -442,62 +438,6 @@ class AdminDashboardState extends State<AdminDashboard> {
                 onPressed: () {
                   themeProvider.toggleTheme();
                 },
-              ),
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                child: PopupMenuButton<String>(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(51),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.more_vert_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  offset: const Offset(0, 50),
-                  color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-                  onSelected: (value) async {
-                    if (value == 'logout') {
-                      _showLogoutDialog();
-                    }
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    PopupMenuItem(
-                      value: 'logout',
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00BCD4).withAlpha(25),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.logout_rounded,
-                              color: Color(0xFF00BCD4),
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Logout',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
