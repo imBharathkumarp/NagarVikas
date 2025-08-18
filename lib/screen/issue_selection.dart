@@ -197,111 +197,206 @@ class IssueSelectionPageState extends State<IssueSelectionPage>
   }
 
   void _showTermsAndConditionsDialogIfNeeded() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool hasAccepted = prefs.getBool('hasAcceptedTerms') ?? false;
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool hasAccepted = prefs.getBool('hasAcceptedTerms') ?? false;
 
-    if (!hasAccepted) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return AlertDialog(
-                  backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  title: Text(
-                    "Terms & Conditions",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+  if (!hasAccepted) {
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return AlertDialog(
+                backgroundColor: themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                elevation: 10,
+                titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      color: themeProvider.isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                      size: 24,
                     ),
-                  ),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "By using this app, you agree to the following terms:\n",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        Text(
-                          "• Report issues truthfully and accurately.",
-                          style: TextStyle(
-                            color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          "• Consent to receive notifications from the app.",
-                          style: TextStyle(
-                            color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          "• Do not misuse the platform for false complaints.",
-                          style: TextStyle(
-                            color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                        Text(
-                          "• Data may be used to improve services.",
-                          style: TextStyle(
-                            color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          "If you agree, tap **Accept** to proceed.",
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic,
-                            color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(
-                        "Decline",
-                        style: TextStyle(
-                          color: themeProvider.isDarkMode ? Colors.red[300] : Colors.red,
-                        ),
+                    const SizedBox(width: 12),
+                    Text(
+                      "Terms & Conditions",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                       ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: themeProvider.isDarkMode ? Colors.teal : const Color(0xFF1565C0),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () async {
-                        await prefs.setBool('hasAcceptedTerms', true);
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      child: const Text("Accept"),
                     ),
                   ],
-                );
-              },
-            );
-          },
-        );
-      }
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: themeProvider.isDarkMode 
+                              ? Colors.teal.withOpacity(0.1) 
+                              : const Color(0xFF1565C0).withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: themeProvider.isDarkMode 
+                                ? Colors.teal.withOpacity(0.3) 
+                                : const Color(0xFF1565C0).withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          "By using this app, you agree to the following terms:",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTermItem(
+                        "Report issues truthfully and accurately.",
+                        Icons.fact_check_outlined,
+                        themeProvider,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTermItem(
+                        "Consent to receive notifications from the app.",
+                        Icons.notifications_outlined,
+                        themeProvider,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTermItem(
+                        "Do not misuse the platform for false complaints.",
+                        Icons.block_outlined,
+                        themeProvider,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildTermItem(
+                        "Data may be used to improve services.",
+                        Icons.analytics_outlined,
+                        themeProvider,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: themeProvider.isDarkMode 
+                              ? Colors.grey[800] 
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: themeProvider.isDarkMode ? Colors.white60 : Colors.black54,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Tap Accept below to proceed and start using the app.",
+                                style: TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 13,
+                                  color: themeProvider.isDarkMode ? Colors.white60 : Colors.black54,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      "Decline",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: themeProvider.isDarkMode ? Colors.red[300] : Colors.red[600],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: themeProvider.isDarkMode ? Colors.teal : const Color(0xFF1565C0),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    onPressed: () async {
+                      await prefs.setBool('hasAcceptedTerms', true);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    child: const Text(
+                      "Accept",
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
     }
   }
+}
+
+Widget _buildTermItem(String text, IconData icon, ThemeProvider themeProvider) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        margin: const EdgeInsets.only(top: 2),
+        child: Icon(
+          icon,
+          size: 16,
+          color: themeProvider.isDarkMode 
+              ? Colors.teal[300] 
+              : const Color(0xFF1565C0),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.4,
+            color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+          ),
+        ),
+      ),
+    ],
+  );
+}
 
   // Requesting Firebase Messaging notification permissions
   void requestNotificationPermission() async {
