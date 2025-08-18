@@ -44,13 +44,14 @@ class DiscussionForumState extends State<DiscussionForum> {
         if (snapshot.snapshot.value != null) {
           final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
           setState(() {
-            currentUserName = userData['displayName'] ?? _getDefaultName();
+            currentUserName = userData['name'] ?? userData['displayName'] ?? _getDefaultName();
           });
         } else {
           // If user data doesn't exist, create it with email prefix
           final defaultName = _getDefaultName();
 
           await _usersRef.child(userId!).set({
+            'name': defaultName,
             'displayName': defaultName,
             'email': FirebaseAuth.instance.currentUser?.email ?? '',
             'createdAt': ServerValue.timestamp,
@@ -85,8 +86,8 @@ class DiscussionForumState extends State<DiscussionForum> {
     _messagesRef.push().set({
       "message": _messageController.text.trim(), // ✏️ Message text
       "senderId": userId, // 👤 Sender ID
-      "senderName": currentUserName, // 👤 Sender display name
-      "timestamp": ServerValue.timestamp, // 🕒 Server-side timestamp
+      "senderName": currentUserName, // 👤 Sender display name - ADDED THIS
+      "timestamp": ServerValue.timestamp, // 🕐 Server-side timestamp
     });
 
     _messageController.clear(); // 🔄 Clear input
@@ -106,22 +107,16 @@ class DiscussionForumState extends State<DiscussionForum> {
           children: [
             // Show sender name only for other people's messages
             if (!isMe)
-              FutureBuilder<String>(
-                future: _getSenderName(messageData["senderId"]),
-                builder: (context, snapshot) {
-                  String senderName = messageData["senderName"] ?? snapshot.data ?? "Unknown User";
-                  return Padding(
-                    padding: EdgeInsets.only(left: 8, right: 8, bottom: 2),
-                    child: Text(
-                      senderName,
-                      style: TextStyle(
-                        color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                },
+              Padding(
+                padding: EdgeInsets.only(left: 8, right: 8, bottom: 2),
+                child: Text(
+                  messageData["senderName"] ?? "Unknown User", // Use senderName directly from Firebase
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             // Message bubble
             Container(
@@ -153,23 +148,6 @@ class DiscussionForumState extends State<DiscussionForum> {
     );
   }
 
-  /// Get sender name from database
-  Future<String> _getSenderName(String? senderId) async {
-    if (senderId == null) return "Unknown User";
-
-    try {
-      final snapshot = await _usersRef.child(senderId).once();
-      if (snapshot.snapshot.value != null) {
-        final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
-        return userData['displayName'] ?? "User${senderId.substring(0, 4)}";
-      }
-    } catch (e) {
-      print('Error getting sender name: $e');
-    }
-
-    return "User${senderId.substring(0, 4)}";
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
@@ -199,7 +177,7 @@ class DiscussionForumState extends State<DiscussionForum> {
             const AnimatedBackground(), // Animated background with bubbles
             Column(
               children: [
-                // 📄 Real-time message list
+                // 🔄 Real-time message list
                 Expanded(
                   child: StreamBuilder(
                     stream: _messagesRef.orderByChild("timestamp").onValue,
@@ -214,10 +192,10 @@ class DiscussionForumState extends State<DiscussionForum> {
                                     ? Colors.white
                                     : Colors.black,
                               ),
-                            )); // 💤 Empty state
+                            )); // 👤 Empty state
                       }
 
-                      // 📄 Convert snapshot to list of messages
+                      // 🔄 Convert snapshot to list of messages
                       Map<dynamic, dynamic> messagesMap = snapshot
                           .data!.snapshot.value as Map<dynamic, dynamic>;
 
@@ -229,7 +207,7 @@ class DiscussionForumState extends State<DiscussionForum> {
                       })
                           .toList();
 
-                      // 🕒 Sort by timestamp (ascending)
+                      // 🕐 Sort by timestamp (ascending)
                       messagesList.sort(
                               (a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
