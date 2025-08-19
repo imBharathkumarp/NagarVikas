@@ -690,8 +690,13 @@ class ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildToggleTile(String title, IconData icon, Color color,
-      bool isToggled, ValueChanged<bool> onToggle, ThemeProvider themeProvider) {
+  Widget _buildToggleTile(
+      String title,
+      IconData icon,
+      Color color,
+      bool isToggled,
+      ValueChanged<bool> onToggle,
+      ThemeProvider themeProvider) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       child: Material(
