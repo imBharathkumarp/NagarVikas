@@ -647,6 +647,17 @@ class DiscussionForumState extends State<DiscussionForum> with TickerProviderSta
                         messagesList.sort(
                                 (a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
+                        // Auto-scroll to bottom after messages are loaded
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (_scrollController.hasClients) {
+                            _scrollController.animateTo(
+                              _scrollController.position.maxScrollExtent + 80,
+                              duration: Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          }
+                        });
+
                         return ListView.builder(
                           controller: _scrollController,
                           itemCount: messagesList.length,
