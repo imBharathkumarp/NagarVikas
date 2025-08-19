@@ -44,6 +44,7 @@ exports.addSenderNameToMessage = functions.database
         // Update the message with sender name
         await admin.database().ref(`/discussion/${messageId}`).update({
           senderName: senderName
+          createdAt: admin.database.ServerValue.TIMESTAMP
         });
 
         console.log(`Added sender name "${senderName}" to message ${messageId}`);

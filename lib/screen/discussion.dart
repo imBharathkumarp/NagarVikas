@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -397,6 +398,7 @@ class DiscussionForumState extends State<DiscussionForum> with TickerProviderSta
       "senderId": userId, // 👤 Sender ID
       "senderName": currentUserName, // 👤 Sender display name - ADDED THIS
       "timestamp": ServerValue.timestamp, // 🕐 Server-side timestamp
+      "createdAt": ServerValue.timestamp, // 📅 Creation time for display
     });
 
     _messageController.clear(); // 🔄 Clear input
@@ -474,6 +476,39 @@ class DiscussionForumState extends State<DiscussionForum> with TickerProviderSta
 
   /// 🧱 Builds a single message bubble (left or right aligned)
   Widget _buildMessage(Map<String, dynamic> messageData, bool isMe, ThemeProvider themeProvider) {
+    // Format the time from createdAt or timestamp
+    String formatTime(dynamic timeValue) {
+      if (timeValue == null) return '';
+
+      try {
+        DateTime dateTime;
+        if (timeValue is int) {
+          dateTime = DateTime.fromMillisecondsSinceEpoch(timeValue);
+        } else {
+          return '';
+        }
+
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+        if (messageDate == today) {
+          // Today: show time only
+          return DateFormat('h:mm a').format(dateTime);
+        } else if (messageDate == today.subtract(Duration(days: 1))) {
+          // Yesterday
+          return 'Yesterday ${DateFormat('h:mm a').format(dateTime)}';
+        } else {
+          // Other days: show date and time
+          return DateFormat('MMM d, h:mm a').format(dateTime);
+        }
+      } catch (e) {
+        return '';
+      }
+    }
+
+    final timeString = formatTime(messageData["createdAt"] ?? messageData["timestamp"]);
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -486,7 +521,7 @@ class DiscussionForumState extends State<DiscussionForum> with TickerProviderSta
               Padding(
                 padding: EdgeInsets.only(left: 8, right: 8, bottom: 2),
                 child: Text(
-                  messageData["senderName"] ?? "Unknown User", // Use senderName directly from Firebase
+                  messageData["senderName"] ?? "Unknown User",
                   style: TextStyle(
                     color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
                     fontSize: 12,
@@ -508,14 +543,31 @@ class DiscussionForumState extends State<DiscussionForum> with TickerProviderSta
                   bottomRight: isMe ? Radius.circular(0) : Radius.circular(10),
                 ),
               ),
-              child: Text(
-                messageData["message"], // 📝 Display message
-                style: TextStyle(
-                    color: isMe
-                        ? Colors.white
-                        : (themeProvider.isDarkMode ? Colors.white : Colors.black),
-                    fontSize: 18
-                ),
+              child: Column(
+                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    messageData["message"], // 📝 Display message
+                    style: TextStyle(
+                        color: isMe
+                            ? Colors.white
+                            : (themeProvider.isDarkMode ? Colors.white : Colors.black),
+                        fontSize: 16
+                    ),
+                  ),
+                  if (timeString.isNotEmpty) ...[
+                    SizedBox(height: 4),
+                    Text(
+                      timeString,
+                      style: TextStyle(
+                        color: isMe
+                            ? Colors.white70
+                            : (themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
