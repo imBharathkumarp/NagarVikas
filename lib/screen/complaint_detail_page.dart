@@ -359,56 +359,82 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
           ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image shimmer
+            // Image shimmer - responsive
             Container(
-              height: 150,
+              height: MediaQuery.of(context).size.width * 0.5, // Responsive height
               width: double.infinity,
+              constraints: const BoxConstraints(
+                minHeight: 150,
+                maxHeight: 250,
+              ),
               decoration: BoxDecoration(
                 color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            const SizedBox(height: 16), // Reduced from 20
+            const SizedBox(height: 20),
 
-            // Info sections shimmer
-            ...List.generate(
-              6,
-                  (index) => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 120,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
+            // Info sections shimmer - responsive
+            ...List.generate(6, (index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title shimmer with responsive width
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.3, // 30% of screen width
+                      height: 16,
+                      constraints: const BoxConstraints(
+                        minWidth: 80,
+                        maxWidth: 150,
+                      ),
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6), // Reduced from 8
-                  Container(
-                    width: double.infinity,
-                    height: 40, // Reduced from 48
-                    decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 8),
+                    // Content shimmer - full width but with proper constraints
+                    Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12), // Reduced from 14
-                ],
-              ),
-            ),
+                  ],
+                ),
+              );
+            }),
 
-            // Dropdown shimmer
+            // Dropdown shimmer - responsive
             Container(
               width: double.infinity,
-              height: 40, // Reduced from 48
+              height: 48,
               decoration: BoxDecoration(
                 color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Delete button shimmer - centered and responsive
+            Center(
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.3,
+                height: 44,
+                constraints: const BoxConstraints(
+                  minWidth: 100,
+                  maxWidth: 150,
+                ),
+                decoration: BoxDecoration(
+                  color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             // Add extra space at bottom to account for navigation/overflow
@@ -418,7 +444,6 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       ),
     );
   }
-
 
   Widget _buildInfoSection(String title, String? value, ThemeProvider themeProvider) {
     return Padding(
