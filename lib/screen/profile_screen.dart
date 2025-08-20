@@ -5,7 +5,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
 import 'package:nagarvikas/screen/privacy_policy_page.dart';
 import '../theme/theme_provider.dart';
-// import 'help_center_page.dart';
+import 'help_center.dart';
 
 /// Modern Profile Settings Page
 /// A comprehensive profile and settings page with beautiful UI
@@ -532,10 +532,10 @@ class ProfilePageState extends State<ProfilePage>
         _buildActionTile(
             "Help Center", Icons.help_center_outlined, const Color(0xFFFF9800),
             () {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (context) => const HelpCenterPage()),
-          // );
+           Navigator.push(
+             context,
+             MaterialPageRoute(builder: (context) => const HelpCenterPage()),
+           );
         }, themeProvider),
         _buildActionTile("Report Issue", Icons.report_problem_outlined,
             const Color(0xFFE91E63), () {}, themeProvider),
