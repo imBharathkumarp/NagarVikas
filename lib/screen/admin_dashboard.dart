@@ -173,75 +173,22 @@ class AdminDashboardState extends State<AdminDashboard> {
   }
 
   // Handle bottom navigation item tap
-  void _onItemTapped(int index) {
-    if (index == 1) {
-      // Analytics
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AnalyticsDashboard()),
-      );
-    } else if (index == 2) {
-      // Logout
-      _showLogoutDialog();
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
-  }
-
-  // Show logout confirmation dialog
-  Future<void> _showLogoutDialog() async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return Consumer<ThemeProvider>(
-          builder: (context, themeProvider, child) {
-            return AlertDialog(
-              backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-              title: Text(
-                'Confirm Logout',
-                style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
-              content: Text(
-                'Are you sure you want to log out?',
-                style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                    if (!context.mounted) return;
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                    );
-                  },
-                  child: const Text(
-                    'Logout',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+ void _onItemTapped(int index) {
+  if (index == 1) {
+    // Analytics - use regular navigation instead of replacement
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AnalyticsDashboard()),
     );
+  } else {
+    // Home
+    setState(() {
+      _selectedIndex = index;
+    });
   }
+}
+
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -571,22 +518,7 @@ class AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return const Color(0xFFFF9800);
-      case 'in progress':
-        return const Color(0xFF2196F3);
-      case 'resolved':
-      case 'completed':
-        return const Color(0xFF4CAF50);
-      case 'rejected':
-      case 'cancelled':
-        return const Color(0xFFE57373);
-      default:
-        return Colors.grey[600]!;
-    }
-  }
+  
 
   List<Map<String, dynamic>> favoriteComplaints = [];
 
