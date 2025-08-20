@@ -579,7 +579,21 @@ class DiscussionForumState extends State<DiscussionForum> with TickerProviderSta
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+      if (viewInsets > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent + 80,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+
       return Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor:
         themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
         // 🧭 App bar
@@ -646,6 +660,17 @@ class DiscussionForumState extends State<DiscussionForum> with TickerProviderSta
                         // 🕐 Sort by timestamp (ascending)
                         messagesList.sort(
                                 (a, b) => a["timestamp"].compareTo(b["timestamp"]));
+
+                        // Auto-scroll to bottom after messages are loaded
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (_scrollController.hasClients) {
+                            _scrollController.animateTo(
+                              _scrollController.position.maxScrollExtent + 80,
+                              duration: Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          }
+                        });
 
                         return ListView.builder(
                           controller: _scrollController,
