@@ -22,27 +22,31 @@ class DiscussionForum extends StatefulWidget {
 class DiscussionForumState extends State<DiscussionForum>
     with TickerProviderStateMixin {
   final TextEditingController _messageController =
-      TextEditingController(); // Controls text input
+  TextEditingController(); // Controls text input
   final DatabaseReference _messagesRef =
-      FirebaseDatabase.instance.ref("discussion/"); // Firebase DB ref
+  FirebaseDatabase.instance.ref("discussion/"); // Firebase DB ref
   final DatabaseReference _usersRef =
-      FirebaseDatabase.instance.ref("users/"); // Users DB ref
+  FirebaseDatabase.instance.ref("users/"); // Users DB ref
   final ScrollController _scrollController =
-      ScrollController(); // Scroll controller for ListView
+  ScrollController(); // Scroll controller for ListView
   String? userId;
   String? currentUserName;
   bool _showDisclaimer = true;
   bool _hasAgreedToTerms = false;
   bool _showTermsDialog = false;
-  
+
   // Animation controllers for enhanced UI
   late AnimationController _sendButtonAnimationController;
   late AnimationController _messageAnimationController;
   late AnimationController _disclaimerController;
   late Animation<double> _sendButtonScaleAnimation;
   late Animation<double> _messageSlideAnimation;
-  
+
   bool _isTyping = false;
+  String? _replyingToMessageId;
+  String? _replyingToMessage;
+  String? _replyingToSender;
+  bool _isReplying = false;
 
   @override
   void initState() {
@@ -51,7 +55,7 @@ class DiscussionForumState extends State<DiscussionForum>
     _getCurrentUserName();
     _checkTermsAgreement();
     _initAnimations();
-    
+
     // Listen to text changes for typing indicator
     _messageController.addListener(() {
       setState(() {
@@ -80,7 +84,7 @@ class DiscussionForumState extends State<DiscussionForum>
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    
+
     _messageAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -204,7 +208,9 @@ class DiscussionForumState extends State<DiscussionForum>
                         style: TextStyle(
                           fontSize: isSmallScreen ? 18 : 22,
                           fontWeight: FontWeight.bold,
-                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          color: themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -215,7 +221,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 // Terms content - Flexible height
                 Flexible(
                   child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 24),
+                    margin: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 16 : 24),
                     child: SingleChildScrollView(
                       physics: BouncingScrollPhysics(),
                       child: Column(
@@ -276,7 +283,9 @@ class DiscussionForumState extends State<DiscussionForum>
                         "By clicking 'I Agree', you acknowledge that you have read and agree to abide by these terms and guidelines.",
                         style: TextStyle(
                           fontSize: isSmallScreen ? 11 : 13,
-                          color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
                           fontStyle: FontStyle.italic,
                         ),
                         textAlign: TextAlign.center,
@@ -304,7 +313,9 @@ class DiscussionForumState extends State<DiscussionForum>
                               child: Text(
                                 "Cancel",
                                 style: TextStyle(
-                                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
                                   fontSize: isSmallScreen ? 14 : 16,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -363,15 +374,19 @@ class DiscussionForumState extends State<DiscussionForum>
           ),
         ),
         SizedBox(height: isSmallScreen ? 6 : 8),
-        ...points.map((point) => Padding(
-          padding: EdgeInsets.only(left: 8, bottom: isSmallScreen ? 3 : 4),
+        ...points
+            .map((point) => Padding(
+          padding:
+          EdgeInsets.only(left: 8, bottom: isSmallScreen ? 3 : 4),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "• ",
                 style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
                   fontSize: isSmallScreen ? 12 : 14,
                 ),
               ),
@@ -379,7 +394,9 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   point,
                   style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[300]
+                        : Colors.grey[700],
                     fontSize: isSmallScreen ? 12 : 14,
                     height: 1.3,
                   ),
@@ -387,7 +404,8 @@ class DiscussionForumState extends State<DiscussionForum>
               ),
             ],
           ),
-        )).toList(),
+        ))
+            .toList(),
       ],
     );
   }
@@ -398,9 +416,12 @@ class DiscussionForumState extends State<DiscussionForum>
       try {
         final snapshot = await _usersRef.child(userId!).once();
         if (snapshot.snapshot.value != null) {
-          final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+          final userData =
+          Map<String, dynamic>.from(snapshot.snapshot.value as Map);
           setState(() {
-            currentUserName = userData['name'] ?? userData['displayName'] ?? _getDefaultName();
+            currentUserName = userData['name'] ??
+                userData['displayName'] ??
+                _getDefaultName();
           });
         } else {
           // If user data doesn't exist, create it with email prefix
@@ -433,6 +454,138 @@ class DiscussionForumState extends State<DiscussionForum>
       return user!.email!.split('@')[0];
     }
     return 'User${Random().nextInt(1000)}';
+  }
+
+  /// Sends a message to Firebase Realtime Database
+  void _sendMessage() {
+    if (_messageController.text.trim().isEmpty || currentUserName == null)
+      return;
+
+    // Animate send button
+    _sendButtonAnimationController.forward().then((_) {
+      _sendButtonAnimationController.reverse();
+    });
+
+    Map<String, dynamic> messageData = {
+      "message": _messageController.text.trim(),
+      "senderId": userId,
+      "senderName": currentUserName,
+      "timestamp": ServerValue.timestamp,
+      "createdAt": ServerValue.timestamp,
+    };
+
+    // Add reply information if replying
+    if (_isReplying && _replyingToMessageId != null) {
+      messageData["replyTo"] = _replyingToMessageId;
+      messageData["replyToMessage"] = _replyingToMessage ?? '';
+      messageData["replyToSender"] = _replyingToSender ?? 'Unknown User';
+    }
+
+    _messagesRef.push().set(messageData);
+
+    _messageController.clear();
+    _clearReply();
+    setState(() {
+      _isTyping = false;
+    });
+
+    Future.delayed(Duration(milliseconds: 300), () {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  /// Set up reply to a message
+  void _replyToMessage(String messageId, String message, String senderName) {
+    setState(() {
+      _isReplying = true;
+      _replyingToMessageId = messageId;
+      _replyingToMessage = message;
+      _replyingToSender = senderName;
+    });
+
+    // Focus on text field
+    FocusScope.of(context).requestFocus(FocusNode());
+  }
+
+  /// Clear reply state
+  void _clearReply() {
+    setState(() {
+      _isReplying = false;
+      _replyingToMessageId = null;
+      _replyingToMessage = null;
+      _replyingToSender = null;
+    });
+  }
+
+  /// Build reply indicator bar
+  Widget _buildReplyIndicator(ThemeProvider themeProvider) {
+    if (!_isReplying) return SizedBox.shrink();
+
+    return Container(
+      margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(
+            color: const Color.fromARGB(255, 4, 204, 240),
+            width: 3,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.reply,
+            size: 16,
+            color: const Color.fromARGB(255, 4, 204, 240),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Replying to ${_replyingToSender}',
+                  style: TextStyle(
+                    color: const Color.fromARGB(255, 4, 204, 240),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  _replyingToMessage ?? '',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: _clearReply,
+            child: Icon(
+              Icons.close,
+              size: 18,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[400]
+                  : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Builds the disclaimer banner
@@ -502,37 +655,6 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  /// Sends a message to Firebase Realtime Database
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty || currentUserName == null) return;
-
-    // Animate send button
-    _sendButtonAnimationController.forward().then((_) {
-      _sendButtonAnimationController.reverse();
-    });
-
-    _messagesRef.push().set({
-      "message": _messageController.text.trim(), // Message text
-      "senderId": userId, // Sender ID
-      "senderName": currentUserName, // Sender display name
-      "timestamp": ServerValue.timestamp, // Server-side timestamp
-      "createdAt": ServerValue.timestamp, // Creation time for display
-    });
-
-    _messageController.clear(); // Clear input
-    setState(() {
-      _isTyping = false;
-    });
-    
-    Future.delayed(Duration(milliseconds: 300), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
   /// Builds a single message bubble (left or right aligned)
   Widget _buildMessage(Map<String, dynamic> messageData, bool isMe, ThemeProvider themeProvider) {
     // Format the time from createdAt or timestamp
@@ -549,7 +671,8 @@ class DiscussionForumState extends State<DiscussionForum>
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
-        final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+        final messageDate =
+        DateTime(dateTime.year, dateTime.month, dateTime.day);
 
         if (messageDate == today) {
           // Today: show time only
@@ -566,7 +689,9 @@ class DiscussionForumState extends State<DiscussionForum>
       }
     }
 
-    final timeString = formatTime(messageData["createdAt"] ?? messageData["timestamp"]);
+    final timeString =
+    formatTime(messageData["createdAt"] ?? messageData["timestamp"]);
+    final hasReply = messageData["replyTo"] != null;
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 400),
@@ -579,118 +704,208 @@ class DiscussionForumState extends State<DiscussionForum>
             child: Align(
               alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
               child: Container(
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: EdgeInsets.symmetric(vertical: 2, horizontal: 12),
+                  child: Column(
+                      crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                      children: [
+                      // Show sender name only for other people's messages
+                      if (!isMe)
+                  Container(
+              margin: EdgeInsets.only(left: 12, right: 12, bottom: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _getAvatarColor(messageData["senderName"] ?? "Unknown"),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    messageData["senderName"] ?? "Unknown User",
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Message bubble with enhanced styling and reply functionality
+            GestureDetector(
+              onLongPress: () {
+                // Don't allow replying to own messages
+                if (!isMe) {
+                  _replyToMessage(
+                    messageData["key"] ?? "",
+                    messageData["message"] ?? "",
+                    messageData["senderName"] ?? "Unknown User",
+                  );
+                }
+              },
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.75,
+                ),
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  gradient: isMe
+                      ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF1976D2),
+                      Color(0xFF2196F3),
+                    ],
+                  )
+                      : null,
+                  color: isMe
+                      ? null
+                      : (themeProvider.isDarkMode
+                      ? Colors.grey[700]
+                      : Colors.grey[100]),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    topRight: Radius.circular(18),
+                    bottomLeft: isMe ? Radius.circular(18) : Radius.circular(3),
+                    bottomRight: isMe ? Radius.circular(3) : Radius.circular(18),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: themeProvider.isDarkMode
+                          ? Colors.black26
+                          : Colors.grey.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                  border: !isMe && !themeProvider.isDarkMode
+                      ? Border.all(
+                    color: Colors.grey.withOpacity(0.2),
+                    width: 0.5,
+                  )
+                      : null,
+                ),
                 child: Column(
                   crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                   children: [
-                    // Show sender name only for other people's messages
-                    if (!isMe)
+                    // Reply indicator (if this message is a reply)
+                    if (hasReply) ...[
                       Container(
-                        margin: EdgeInsets.only(left: 12, right: 12, bottom: 4),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _getAvatarColor(messageData["senderName"] ?? "Unknown"),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              messageData["senderName"] ?? "Unknown User",
-                              style: TextStyle(
-                                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    // Message bubble with enhanced styling
-                    Container(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.75,
-                      ),
-                      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                      decoration: BoxDecoration(
-                        gradient: isMe
-                            ? LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF1976D2),
-                                  Color(0xFF2196F3),
-                                ],
-                              )
-                            : null,
-                        color: isMe
-                            ? null
-                            : (themeProvider.isDarkMode 
-                                ? Colors.grey[700] 
-                                : Colors.grey[100]),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                          bottomLeft: isMe ? Radius.circular(20) : Radius.circular(6),
-                          bottomRight: isMe ? Radius.circular(6) : Radius.circular(20),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: themeProvider.isDarkMode 
-                                ? Colors.black26 
-                                : Colors.grey.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                        border: !isMe && !themeProvider.isDarkMode
-                            ? Border.all(
-                                color: Colors.grey.withOpacity(0.2),
-                                width: 0.5,
-                              )
-                            : null,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            messageData["message"], // Display message
-                            style: TextStyle(
+                        padding: EdgeInsets.all(6),
+                        margin: EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: (isMe
+                              ? Colors.white.withOpacity(0.2)
+                              : Colors.black.withOpacity(0.1)),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border(
+                            left: BorderSide(
                               color: isMe
                                   ? Colors.white
-                                  : (themeProvider.isDarkMode ? Colors.white : Colors.black87),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              height: 1.4,
+                                  : const Color.fromARGB(255, 4, 204, 240),
+                              width: 2,
                             ),
                           ),
-                          if (timeString.isNotEmpty) ...[
-                            SizedBox(height: 4),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              timeString,
+                              messageData["replyToSender"] ?? "Unknown User",
+                              style: TextStyle(
+                                color: isMe
+                                    ? Colors.white
+                                    : const Color.fromARGB(255, 4, 204, 240),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              messageData["replyToMessage"] ?? "",
                               style: TextStyle(
                                 color: isMe
                                     ? Colors.white70
-                                    : (themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                                fontSize: 11,
+                                    : (themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600]),
+                                fontSize: 12,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
-                        ],
+                        ),
                       ),
+                    ],
+
+                    // Main message text
+                    Text(
+                      messageData["message"],
+                      style: TextStyle(
+                        color: isMe
+                            ? Colors.white
+                            : (themeProvider.isDarkMode ? Colors.white : Colors.black87),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
+                    ),
+
+                    // Timestamp and reply button
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (timeString.isNotEmpty) ...[
+                          Text(
+                            timeString,
+                            style: TextStyle(
+                              color: isMe
+                                  ? Colors.white70
+                                  : (themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+
+                        // Reply button (only for other people's messages)
+                        if (!isMe) ...[
+                          SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              _replyToMessage(
+                                messageData["key"] ?? "",
+                                messageData["message"] ?? "",
+                                messageData["senderName"] ?? "Unknown User",
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(2),
+                              child: Icon(
+                                Icons.reply,
+                                size: 14,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-        );
-      },
+          ],),
+        ),),
+            ),);},
     );
   }
 
@@ -718,8 +933,8 @@ class DiscussionForumState extends State<DiscussionForum>
         appBar: AppBar(
           elevation: 0,
           centerTitle: true,
-          backgroundColor: themeProvider.isDarkMode 
-              ? Colors.grey[800] 
+          backgroundColor: themeProvider.isDarkMode
+              ? Colors.grey[800]
               : Colors.white,
           title: Column(
             children: [
@@ -737,8 +952,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: themeProvider.isDarkMode 
-                      ? Colors.grey[400] 
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
                       : Colors.grey[600],
                 ),
               ),
@@ -772,8 +987,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    themeProvider.isDarkMode 
-                        ? Colors.grey[600]! 
+                    themeProvider.isDarkMode
+                        ? Colors.grey[600]!
                         : Colors.grey[300]!,
                     Colors.transparent,
                   ],
@@ -795,12 +1010,12 @@ class DiscussionForumState extends State<DiscussionForum>
                   // Disclaimer banner
                   if (_showDisclaimer) _buildDisclaimerBanner(themeProvider),
 
-                  // Real-time message list with enhanced styling
+// Real-time message list with enhanced styling and reply functionality
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode 
-                            ? Colors.grey[900] 
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[900]
                             : Color(0xFFF8F9FA),
                       ),
                       child: StreamBuilder(
@@ -815,14 +1030,14 @@ class DiscussionForumState extends State<DiscussionForum>
                                   Container(
                                     padding: EdgeInsets.all(24),
                                     decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode 
-                                          ? Colors.grey[800] 
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[800]
                                           : Colors.white,
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: themeProvider.isDarkMode 
-                                              ? Colors.black26 
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.black26
                                               : Colors.grey.withOpacity(0.1),
                                           blurRadius: 10,
                                           offset: Offset(0, 4),
@@ -832,8 +1047,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                     child: Icon(
                                       Icons.forum_outlined,
                                       size: 48,
-                                      color: themeProvider.isDarkMode 
-                                          ? Colors.grey[400] 
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[400]
                                           : Colors.grey[500],
                                     ),
                                   ),
@@ -887,7 +1102,7 @@ class DiscussionForumState extends State<DiscussionForum>
                               final message = messagesList[index];
                               bool isMe = message["senderId"] == userId;
                               return _buildMessage(
-                                  message, isMe, themeProvider); // Render message
+                                  message, isMe, themeProvider); // Render message with reply functionality
                             },
                           );
                         },
@@ -895,17 +1110,20 @@ class DiscussionForumState extends State<DiscussionForum>
                     ),
                   ),
 
-                  // Enhanced message input field & send button
+                  // Reply indicator
+                  _buildReplyIndicator(themeProvider),
+
+                  // Enhanced message input field & send button with reply functionality
                   Container(
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode 
-                          ? Colors.grey[800] 
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]
                           : Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: themeProvider.isDarkMode 
-                              ? Colors.black26 
+                          color: themeProvider.isDarkMode
+                              ? Colors.black26
                               : Colors.grey.withOpacity(0.1),
                           blurRadius: 10,
                           offset: Offset(0, -2),
@@ -915,7 +1133,7 @@ class DiscussionForumState extends State<DiscussionForum>
                     child: SafeArea(
                       child: Row(
                         children: [
-                          // Enhanced text input field
+                          // Enhanced text input field with reply functionality
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
@@ -926,19 +1144,19 @@ class DiscussionForumState extends State<DiscussionForum>
                                 border: Border.all(
                                   color: _isTyping
                                       ? Color(0xFF2196F3)
-                                      : (themeProvider.isDarkMode 
-                                          ? Colors.grey[600]! 
-                                          : Colors.grey[300]!),
+                                      : (themeProvider.isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey[300]!),
                                   width: _isTyping ? 2 : 1,
                                 ),
                                 boxShadow: _isTyping
                                     ? [
-                                        BoxShadow(
-                                          color: Color(0xFF2196F3).withOpacity(0.2),
-                                          blurRadius: 8,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ]
+                                  BoxShadow(
+                                    color: Color(0xFF2196F3).withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ]
                                     : null,
                               ),
                               child: TextField(
@@ -957,7 +1175,9 @@ class DiscussionForumState extends State<DiscussionForum>
                                     horizontal: 20,
                                     vertical: 12,
                                   ),
-                                  hintText: "Type your message...",
+                                  hintText: _isReplying
+                                      ? "Reply to ${_replyingToSender}..."
+                                      : "Type your message...",
                                   hintStyle: TextStyle(
                                     color: themeProvider.isDarkMode
                                         ? Colors.grey[400]
@@ -968,7 +1188,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                   prefixIcon: Padding(
                                     padding: EdgeInsets.only(left: 8, right: 4),
                                     child: Icon(
-                                      Icons.chat_bubble_outline,
+                                      _isReplying ? Icons.reply : Icons.chat_bubble_outline,
                                       color: themeProvider.isDarkMode
                                           ? Colors.grey[400]
                                           : Colors.grey[500],
@@ -991,28 +1211,28 @@ class DiscussionForumState extends State<DiscussionForum>
                                   decoration: BoxDecoration(
                                     gradient: _isTyping
                                         ? LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              Color(0xFF1976D2),
-                                              Color(0xFF2196F3),
-                                            ],
-                                          )
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF1976D2),
+                                        Color(0xFF2196F3),
+                                      ],
+                                    )
                                         : null,
                                     color: !_isTyping
-                                        ? (themeProvider.isDarkMode 
-                                            ? Colors.grey[600] 
-                                            : Colors.grey[400])
+                                        ? (themeProvider.isDarkMode
+                                        ? Colors.grey[600]
+                                        : Colors.grey[400])
                                         : null,
                                     shape: BoxShape.circle,
                                     boxShadow: _isTyping
                                         ? [
-                                            BoxShadow(
-                                              color: Color(0xFF2196F3).withOpacity(0.3),
-                                              blurRadius: 8,
-                                              offset: Offset(0, 4),
-                                            ),
-                                          ]
+                                      BoxShadow(
+                                        color: Color(0xFF2196F3).withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ]
                                         : null,
                                   ),
                                   child: Material(
@@ -1074,10 +1294,10 @@ class _EnhancedAnimatedBackgroundState extends State<EnhancedAnimatedBackground>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this, 
-      duration: Duration(seconds: 25)
+        vsync: this,
+        duration: Duration(seconds: 25)
     )..repeat();
-    
+
     final random = Random();
     bubbles = List.generate(bubbleCount, (index) {
       final size = random.nextDouble() * 25 + 8;
@@ -1136,7 +1356,7 @@ class _EnhancedBubblePainter extends CustomPainter {
       final double dy = (bubble.y + progress * bubble.speed) % 1.2;
       final double dx = (bubble.x + progress * bubble.dx) % 1.0;
       final Offset center = Offset(dx * size.width, dy * size.height);
-      
+
       // Create gradient paint for more appealing bubbles
       final Paint paint = Paint()
         ..shader = RadialGradient(
@@ -1147,12 +1367,11 @@ class _EnhancedBubblePainter extends CustomPainter {
           ],
           stops: [0.0, 0.7, 1.0],
         ).createShader(Rect.fromCircle(center: center, radius: bubble.radius));
-      
+
       canvas.drawCircle(center, bubble.radius, paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-
 }
