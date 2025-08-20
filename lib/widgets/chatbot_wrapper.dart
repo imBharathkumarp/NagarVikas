@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:async';
 
 class ChatbotFloatingButton extends StatefulWidget {
   const ChatbotFloatingButton({Key? key}) : super(key: key);
@@ -280,7 +283,7 @@ class ChatbotConversationWidget extends StatefulWidget {
   State<ChatbotConversationWidget> createState() => _ChatbotConversationWidgetState();
 }
 
-class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> {
+class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> with TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _messages = [
@@ -289,12 +292,146 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> {
   ];
   bool _isTyping = false;
 
+  // Speech-to-Text related variables
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  bool _speechEnabled = false;
+  String _wordsSpoken = "";
+  double _confidenceLevel = 0;
+  late AnimationController _micAnimationController;
+  late Animation<double> _micAnimation;
+  
+  // Timer variables
+  Timer? _recordingTimer;
+  Duration _recordingDuration = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+    
+    // Initialize mic animation controller
+    _micAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _micAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(parent: _micAnimationController, curve: Curves.easeInOut),
+    );
+  }
+
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _micAnimationController.dispose();
+    _recordingTimer?.cancel();
     super.dispose();
   }
+
+  // Initialize speech-to-text
+  void _initSpeech() async {
+    _speech = stt.SpeechToText();
+    _speechEnabled = await _speech.initialize(
+      onStatus: (status) {
+        setState(() {
+          _isListening = status == 'listening';
+        });
+        
+        if (status == 'listening') {
+          _micAnimationController.repeat(reverse: true);
+          _startRecordingTimer();
+        } else {
+          _micAnimationController.stop();
+          _micAnimationController.reset();
+          _stopRecordingTimer();
+        }
+      },
+      onError: (error) {
+        setState(() {
+          _isListening = false;
+        });
+        _micAnimationController.stop();
+        _micAnimationController.reset();
+        _stopRecordingTimer();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Speech recognition error: ${error.errorMsg}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+    );
+    setState(() {});
+  }
+
+  // Start recording timer
+  void _startRecordingTimer() {
+    _recordingDuration = Duration.zero;
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _recordingDuration += const Duration(seconds: 1);
+      });
+    });
+  }
+
+  void _stopRecordingTimer() {
+  _recordingTimer?.cancel();
+  _recordingTimer = null;
+  // don’t reset here
+}
+
+  // Format duration to MM:SS format
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  // Start listening to speech
+  void _startListening() async {
+  var status = await Permission.microphone.request();
+  if (status != PermissionStatus.granted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Microphone permission is required for voice input'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+    return;
+  }
+
+  if (_speechEnabled && !_isListening) {
+    _recordingDuration = Duration.zero; // reset here at start
+    _startRecordingTimer();
+
+    await _speech.listen(
+      onResult: (result) {
+        setState(() {
+          _wordsSpoken = result.recognizedWords;
+          _confidenceLevel = result.confidence;
+          _controller.text = _wordsSpoken;
+        });
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      partialResults: true,
+      cancelOnError: false,
+      listenMode: stt.ListenMode.confirmation,
+    );
+  }
+}
+
+void _stopListening() async {
+  if (_isListening) {
+    await _speech.stop();
+    _stopRecordingTimer();
+    setState(() => _isListening = false);
+  }
+}
+
 
   void _sendMessage() async {
     final text = _controller.text.trim();
@@ -450,6 +587,49 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> {
             },
           ),
         ),
+        // Show speech recognition status when listening
+        if (_isListening)
+          Container(
+            margin: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.green, width: 1),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.mic, color: Colors.green, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _wordsSpoken.isEmpty ? "Listening..." : "\"$_wordsSpoken\"",
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // NEW: Recording timer display
+                Text(
+                  _formatDuration(_recordingDuration),
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (_confidenceLevel > 0.7)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    child: Icon(Icons.check_circle, color: Colors.green, size: 14),
+                  ),
+              ],
+            ),
+          ),
         Container(
           margin: const EdgeInsets.only(top: 8),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -466,11 +646,39 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> {
           ),
           child: Row(
             children: [
+              // Speech-to-Text Button
+              AnimatedBuilder(
+                animation: _micAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _isListening ? _micAnimation.value : 1.0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _isListening ? Colors.red : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: _isListening ? Colors.white : Colors.grey[600],
+                          size: 20,
+                        ),
+                        onPressed: _speechEnabled 
+                          ? (_isListening ? _stopListening : _startListening)
+                          : null,
+                        splashRadius: 20,
+                        tooltip: _isListening ? 'Stop listening' : 'Voice input',
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _controller,
                   decoration: const InputDecoration(
-                    hintText: "Type your message...",
+                    hintText: "Type or speak your message...",
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
