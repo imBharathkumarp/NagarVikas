@@ -4,11 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:nagarvikas/widgets/bar_chart_widget.dart';
 import 'package:nagarvikas/widgets/pie_chart_widget.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:nagarvikas/theme/theme_provider.dart';
 import 'admin_dashboard.dart';
-import 'login_page.dart';
 import 'complaint_details_page.dart';
 
 class AnalyticsDashboard extends StatefulWidget {
@@ -37,10 +35,6 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       icon: Icon(Icons.analytics),
       label: 'Analytics',
     ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.logout),
-      label: 'Logout',
-    ),
   ];
 
   @override
@@ -56,46 +50,11 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         context,
         MaterialPageRoute(builder: (context) => const AdminDashboard()),
       );
-    } else if (index == 2) { // Logout
-      _showLogoutDialog();
     } else {
       setState(() {
         _selectedIndex = index;
       });
     }
-  }
-
-  // Show logout confirmation dialog
-  Future<void> _showLogoutDialog() async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to log out?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-                if (!context.mounted) return;
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                );
-              },
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> fetchComplaintStats() async {
