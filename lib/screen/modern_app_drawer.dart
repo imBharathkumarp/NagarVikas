@@ -80,10 +80,10 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
       return Drawer(
         width: MediaQuery.of(context).size.width * 0.85,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(right: Radius.circular(25)),
-        ),
+        // Remove the shape to allow full height
         child: Container(
+          // Use full screen height
+          height: MediaQuery.of(context).size.height,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -98,24 +98,21 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
                       const Color(0xFFFFFFFF),
                     ],
             ),
-            borderRadius:
-                const BorderRadius.horizontal(right: Radius.circular(25)),
           ),
           child: Column(
             children: [
               _buildDrawerHeader(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding:
-                      const EdgeInsets.only(bottom: 10), // Add bottom padding
+                  padding: const EdgeInsets.only(bottom: 100), // Add bottom padding to account for potential bottom nav
                   child: Column(
                     children: [
                       _buildLanguageSelector(),
-                      const SizedBox(height: 5), // Reduced spacing
+                      const SizedBox(height: 5),
                       _buildMenuSection(),
-                      const SizedBox(height: 10), // Reduced spacing
+                      const SizedBox(height: 10),
                       _buildSocialMediaSection(),
-                      const SizedBox(height: 10), // Reduced spacing
+                      const SizedBox(height: 10),
                       _buildFooter(),
                     ],
                   ),
@@ -128,6 +125,7 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
     });
   }
 
+  // Rest of your existing methods remain the same...
   Widget _buildDrawerHeader() {
     return Container(
       constraints: const BoxConstraints(
@@ -143,9 +141,6 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
             Color(0xFF42A5F5),
             Color(0xFF81C784),
           ],
-        ),
-        borderRadius: BorderRadius.only(
-          topRight: Radius.circular(25),
         ),
       ),
       child: SafeArea(
