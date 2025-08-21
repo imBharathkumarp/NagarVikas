@@ -7,14 +7,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:nagarvikas/screen/profile_screen.dart';
 
 class BottomNavBar extends StatefulWidget {
-  const BottomNavBar({super.key});
+  final int initialIndex;
+  const BottomNavBar({super.key, this.initialIndex = 0});
 
   @override
   State<BottomNavBar> createState() => _BottomNavBarState();
 }
 
 class _BottomNavBarState extends State<BottomNavBar> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   final List<Widget> _pages = [
     IssueSelectionPage(),
@@ -75,7 +82,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                 ),
                 GButton(
                   icon: CupertinoIcons.profile_circled,
-                  text: 'About',
+                  text: 'Profile',
                 ),
               ],
               selectedIndex: _selectedIndex,

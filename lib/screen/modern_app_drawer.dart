@@ -17,6 +17,7 @@ import 'package:nagarvikas/screen/fun_game_screen.dart';
 import 'package:nagarvikas/screen/login_page.dart';
 
 import '../theme/theme_provider.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class ModernAppDrawer extends StatefulWidget {
   final String language;
@@ -408,8 +409,15 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
       DrawerMenuItem(
         icon: Icons.person_outline,
         title: widget.t('profile'),
-        page: ProfilePage(),
         color: const Color(0xFF4CAF50),
+        onTap: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BottomNavBar(initialIndex: 2),
+            ),
+          );
+        },
       ),
       DrawerMenuItem(
         icon: Icons.history,
