@@ -121,14 +121,14 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
               end: Alignment.bottomRight,
               colors: themeProvider.isDarkMode
                   ? [
-                      Colors.grey[850]!,
-                      Colors.grey[800]!,
-                      Colors.grey[700]!,
-                    ]
+                Colors.grey[800]!,
+                Colors.grey[700]!,
+                Colors.teal[600]!,
+              ]
                   : [
-                      const Color(0xFF1565C0),
-                      const Color(0xFF42A5F5),
-                      const Color(0xFF81C784),
+                const Color(0xFF1565C0),
+                const Color(0xFF42A5F5),
+                const Color(0xFF04CCF0),
                     ],
             ),
           ),

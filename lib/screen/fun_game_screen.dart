@@ -110,9 +110,32 @@ class _FunGameScreenState extends State<FunGameScreen> {
 
           return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 81, 190, 240),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: Colors.white, // Makes the back button white
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: themeProvider.isDarkMode
+                  ? [
+                Colors.grey[800]!,
+                Colors.grey[700]!,
+                Colors.teal[600]!,
+              ]
+                  : [
+                const Color(0xFF1565C0),
+                const Color(0xFF42A5F5),
+                const Color(0xFF04CCF0),
+              ],
+            ),
+          ),
+        ),
         title: Text('2048',
-            style: GoogleFonts.urbanist(fontWeight: FontWeight.bold)),
+            style: GoogleFonts.urbanist(fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
           IconButton(
             icon: Icon(
