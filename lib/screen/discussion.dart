@@ -25,11 +25,12 @@ class DiscussionForum extends StatefulWidget {
 class DiscussionForumState extends State<DiscussionForum>
     with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
-  final DatabaseReference _messagesRef = FirebaseDatabase.instance.ref("discussion/");
+  final DatabaseReference _messagesRef =
+      FirebaseDatabase.instance.ref("discussion/");
   final DatabaseReference _usersRef = FirebaseDatabase.instance.ref("users/");
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _imagePicker = ImagePicker();
-  
+
   String? userId;
   String? currentUserName;
   bool _showDisclaimer = true;
@@ -41,14 +42,259 @@ class DiscussionForumState extends State<DiscussionForum>
   late AnimationController _sendButtonAnimationController;
   late AnimationController _messageAnimationController;
   late AnimationController _disclaimerController;
+  late AnimationController _emojiAnimationController;
   late Animation<double> _sendButtonScaleAnimation;
   late Animation<double> _messageSlideAnimation;
+  late Animation<double> _emojiScaleAnimation;
+  final FocusNode _textFieldFocusNode = FocusNode();
 
   bool _isTyping = false;
   String? _replyingToMessageId;
   String? _replyingToMessage;
   String? _replyingToSender;
   bool _isReplying = false;
+  bool _showEmojiPicker = false;
+
+  // Emoji categories and data
+  final Map<String, List<String>> _emojiCategories = {
+    'Smileys': [
+      '😀',
+      '😃',
+      '😄',
+      '😁',
+      '😆',
+      '😅',
+      '😂',
+      '🤣',
+      '😊',
+      '😇',
+      '🙂',
+      '🙃',
+      '😉',
+      '😌',
+      '😍',
+      '🥰',
+      '😘',
+      '😗',
+      '😙',
+      '😚',
+      '😋',
+      '😛',
+      '😝',
+      '😜',
+      '🤪',
+      '🤨',
+      '🧐',
+      '🤓',
+      '😎',
+      '🤩',
+      '🥳',
+      '😏',
+      '😒',
+      '😞',
+      '😔',
+      '😟',
+      '😕',
+      '🙁',
+      '☹️',
+      '😣',
+      '😖',
+      '😫',
+      '😩',
+      '🥺',
+      '😢',
+      '😭',
+      '😤',
+      '😠',
+      '😡',
+      '🤬',
+    ],
+    'Hearts': [
+      '❤️',
+      '🧡',
+      '💛',
+      '💚',
+      '💙',
+      '💜',
+      '🖤',
+      '🤍',
+      '🤎',
+      '💔',
+      '❣️',
+      '💕',
+      '💞',
+      '💓',
+      '💗',
+      '💖',
+      '💘',
+      '💝',
+      '💟',
+    ],
+    'Gestures': [
+      '👍',
+      '👎',
+      '👌',
+      '🤌',
+      '🤏',
+      '✌️',
+      '🤞',
+      '🤟',
+      '🤘',
+      '🤙',
+      '👈',
+      '👉',
+      '👆',
+      '🖕',
+      '👇',
+      '☝️',
+      '👋',
+      '🤚',
+      '🖐',
+      '✋',
+      '🖖',
+      '👏',
+      '🙌',
+      '🤲',
+      '🤝',
+      '🙏',
+    ],
+    'Objects': [
+      '🎉',
+      '🎊',
+      '🎈',
+      '🎂',
+      '🎁',
+      '🎀',
+      '🏆',
+      '🏅',
+      '🥇',
+      '🥈',
+      '🥉',
+      '⚽',
+      '🏀',
+      '🏈',
+      '⚾',
+      '🥎',
+      '🎾',
+      '🏐',
+      '🏉',
+      '🥏',
+      '🎱',
+      '🪀',
+      '🏓',
+      '🏸',
+      '🏒',
+      '🏑',
+      '🥍',
+      '🏏',
+      '🪃',
+      '🥅',
+      '⛳',
+      '🪁',
+      '🏹',
+      '🎣',
+      '🤿',
+      '🥊',
+      '🥋',
+      '🎽',
+    ],
+    'Nature': [
+      '🌞',
+      '🌝',
+      '🌛',
+      '🌜',
+      '🌚',
+      '🌕',
+      '🌖',
+      '🌗',
+      '🌘',
+      '🌑',
+      '🌒',
+      '🌓',
+      '🌔',
+      '🌙',
+      '🌎',
+      '🌍',
+      '🌏',
+      '🪐',
+      '💫',
+      '⭐',
+      '🌟',
+      '✨',
+      '⚡',
+      '☄️',
+      '💥',
+      '🔥',
+      '🌪',
+      '🌈',
+      '☀️',
+      '🌤',
+      '⛅',
+      '🌦',
+      '🌧',
+      '⛈',
+      '🌩',
+      '🌨',
+      '❄️',
+      '☃️',
+      '⛄',
+      '🌬',
+    ],
+    'Food': [
+      '🍎',
+      '🍐',
+      '🍊',
+      '🍋',
+      '🍌',
+      '🍉',
+      '🍇',
+      '🍓',
+      '🫐',
+      '🍈',
+      '🍒',
+      '🍑',
+      '🥭',
+      '🍍',
+      '🥥',
+      '🥝',
+      '🍅',
+      '🍆',
+      '🥑',
+      '🥦',
+      '🥬',
+      '🥒',
+      '🌶',
+      '🫑',
+      '🌽',
+      '🥕',
+      '🫒',
+      '🧄',
+      '🧅',
+      '🥔',
+      '🍠',
+      '🥐',
+      '🥖',
+      '🍞',
+      '🥨',
+      '🥯',
+      '🧀',
+      '🥚',
+      '🍳',
+      '🧈',
+      '🥞',
+      '🧇',
+      '🥓',
+      '🥩',
+      '🍗',
+      '🍖',
+      '🦴',
+      '🌭',
+      '🍔',
+      '🍟',
+    ],
+  };
+
+  String _selectedEmojiCategory = 'Smileys';
 
   @override
   void initState() {
@@ -73,9 +319,11 @@ class DiscussionForumState extends State<DiscussionForum>
 
   @override
   void dispose() {
+    _textFieldFocusNode.dispose();
     _sendButtonAnimationController.dispose();
     _messageAnimationController.dispose();
     _disclaimerController.dispose();
+    _emojiAnimationController.dispose();
     super.dispose();
   }
 
@@ -96,6 +344,11 @@ class DiscussionForumState extends State<DiscussionForum>
     );
     _disclaimerController.forward();
 
+    _emojiAnimationController = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+
     _sendButtonScaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.95,
@@ -111,6 +364,14 @@ class DiscussionForumState extends State<DiscussionForum>
       parent: _messageAnimationController,
       curve: Curves.easeOutBack,
     ));
+
+    _emojiScaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _emojiAnimationController,
+      curve: Curves.elasticOut,
+    ));
   }
 
   void _hideDisclaimer() {
@@ -125,6 +386,175 @@ class DiscussionForumState extends State<DiscussionForum>
     }
   }
 
+  /// Toggle emoji picker visibility
+  void _toggleEmojiPicker() {
+    if (_showEmojiPicker) {
+      // Hide emoji picker and show keyboard
+      setState(() {
+        _showEmojiPicker = false;
+      });
+      _emojiAnimationController.reverse();
+
+      // Focus on text field to show keyboard
+      Future.delayed(Duration(milliseconds: 100), () {
+        FocusScope.of(context).requestFocus(_textFieldFocusNode);
+      });
+    } else {
+      // Hide keyboard first, then show emoji picker
+      FocusScope.of(context).unfocus();
+      Future.delayed(Duration(milliseconds: 200), () {
+        setState(() {
+          _showEmojiPicker = true;
+        });
+        _emojiAnimationController.forward();
+      });
+    }
+  }
+
+  /// Insert emoji into text field
+  void _insertEmoji(String emoji) {
+    final currentText = _messageController.text;
+    final selection = _messageController.selection;
+    final newText = currentText.replaceRange(
+      selection.start,
+      selection.end,
+      emoji,
+    );
+    _messageController.value = _messageController.value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: selection.start + emoji.length,
+      ),
+    );
+  }
+
+  /// Build emoji picker widget
+  Widget _buildEmojiPicker(ThemeProvider themeProvider) {
+    return AnimatedBuilder(
+      animation: _emojiAnimationController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _emojiScaleAnimation.value,
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            height: MediaQuery.of(context).viewInsets.bottom > 0
+                ? MediaQuery.of(context).viewInsets.bottom
+                : 280,
+            decoration: BoxDecoration(
+              color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Drag indicator
+                Container(
+                  margin: EdgeInsets.only(top: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // Category tabs
+                Container(
+                  height: 50,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    children: _emojiCategories.keys.map((category) {
+                      final isSelected = _selectedEmojiCategory == category;
+                      return Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedEmojiCategory = category;
+                            });
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Color(0xFF2196F3)
+                                  : (themeProvider.isDarkMode
+                                      ? Colors.grey[700]
+                                      : Colors.grey[200]),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : (themeProvider.isDarkMode
+                                        ? Colors.grey[300]
+                                        : Colors.grey[600]),
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+
+                // Emoji grid
+                Expanded(
+                  child: GridView.builder(
+                    padding: EdgeInsets.all(16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 8,
+                      childAspectRatio: 1,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: _emojiCategories[_selectedEmojiCategory]!.length,
+                    itemBuilder: (context, index) {
+                      final emoji =
+                          _emojiCategories[_selectedEmojiCategory]![index];
+                      return GestureDetector(
+                        onTap: () => _insertEmoji(emoji),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[700]
+                                : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              emoji,
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Check if user has agreed to terms and conditions
   void _checkTermsAgreement() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String key = 'terms_agreed_${userId ?? 'anonymous'}';
@@ -175,7 +605,7 @@ class DiscussionForumState extends State<DiscussionForum>
         source: ImageSource.gallery,
         imageQuality: 80,
       );
-      
+
       if (image == null) return;
 
       setState(() {
@@ -188,7 +618,8 @@ class DiscussionForumState extends State<DiscussionForum>
       if (imageUrl != null) {
         _sendMessage(imageUrl: imageUrl);
       } else {
-        Fluttertoast.showToast(msg: "Failed to upload image. Please try again.");
+        Fluttertoast.showToast(
+            msg: "Failed to upload image. Please try again.");
       }
     } catch (e) {
       Fluttertoast.showToast(msg: "Error picking image: $e");
@@ -236,14 +667,18 @@ class DiscussionForumState extends State<DiscussionForum>
                   title: Text(
                     'Choose from Gallery',
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   subtitle: Text(
                     'Select an image from your gallery',
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
                     ),
                   ),
                   onTap: () {
@@ -264,14 +699,18 @@ class DiscussionForumState extends State<DiscussionForum>
                   title: Text(
                     'Take Photo',
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   subtitle: Text(
                     'Capture a new photo',
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
                     ),
                   ),
                   onTap: () {
@@ -297,7 +736,7 @@ class DiscussionForumState extends State<DiscussionForum>
         source: ImageSource.camera,
         imageQuality: 80,
       );
-      
+
       if (image == null) return;
 
       setState(() {
@@ -310,7 +749,8 @@ class DiscussionForumState extends State<DiscussionForum>
       if (imageUrl != null) {
         _sendMessage(imageUrl: imageUrl);
       } else {
-        Fluttertoast.showToast(msg: "Failed to upload image. Please try again.");
+        Fluttertoast.showToast(
+            msg: "Failed to upload image. Please try again.");
       }
     } catch (e) {
       Fluttertoast.showToast(msg: "Error taking photo: $e");
@@ -326,9 +766,12 @@ class DiscussionForumState extends State<DiscussionForum>
       try {
         final snapshot = await _usersRef.child(userId!).once();
         if (snapshot.snapshot.value != null) {
-          final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+          final userData =
+              Map<String, dynamic>.from(snapshot.snapshot.value as Map);
           setState(() {
-            currentUserName = userData['name'] ?? userData['displayName'] ?? _getDefaultName();
+            currentUserName = userData['name'] ??
+                userData['displayName'] ??
+                _getDefaultName();
           });
         } else {
           final defaultName = _getDefaultName();
@@ -361,7 +804,8 @@ class DiscussionForumState extends State<DiscussionForum>
 
   // UPDATED: Send message with optional image URL
   void _sendMessage({String? imageUrl}) {
-    if ((_messageController.text.trim().isEmpty && imageUrl == null) || currentUserName == null) return;
+    if ((_messageController.text.trim().isEmpty && imageUrl == null) ||
+        currentUserName == null) return;
 
     _sendButtonAnimationController.forward().then((_) {
       _sendButtonAnimationController.reverse();
@@ -401,6 +845,14 @@ class DiscussionForumState extends State<DiscussionForum>
     setState(() {
       _isTyping = false;
     });
+
+    // Hide emoji picker after sending
+    if (_showEmojiPicker) {
+      setState(() {
+        _showEmojiPicker = false;
+      });
+      _emojiAnimationController.reverse();
+    }
 
     Future.delayed(Duration(milliseconds: 300), () {
       _scrollController.animateTo(
@@ -449,12 +901,14 @@ class DiscussionForumState extends State<DiscussionForum>
         color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
         borderRadius: BorderRadius.circular(8),
         border: Border(
-          left: BorderSide(color: const Color.fromARGB(255, 4, 204, 240), width: 3),
+          left: BorderSide(
+              color: const Color.fromARGB(255, 4, 204, 240), width: 3),
         ),
       ),
       child: Row(
         children: [
-          Icon(Icons.reply, size: 16, color: const Color.fromARGB(255, 4, 204, 240)),
+          Icon(Icons.reply,
+              size: 16, color: const Color.fromARGB(255, 4, 204, 240)),
           SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -472,7 +926,9 @@ class DiscussionForumState extends State<DiscussionForum>
                 Text(
                   _replyingToMessage ?? '',
                   style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
                     fontSize: 13,
                   ),
                   maxLines: 2,
@@ -486,7 +942,9 @@ class DiscussionForumState extends State<DiscussionForum>
             child: Icon(
               Icons.close,
               size: 18,
-              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[400]
+                  : Colors.grey[600],
             ),
           ),
         ],
@@ -540,7 +998,8 @@ class DiscussionForumState extends State<DiscussionForum>
                     onTap: _hideDisclaimer,
                     child: Container(
                       padding: EdgeInsets.all(2),
-                      child: Icon(Icons.close, size: 16, color: Colors.white.withOpacity(0.8)),
+                      child: Icon(Icons.close,
+                          size: 16, color: Colors.white.withOpacity(0.8)),
                     ),
                   ),
                 ],
@@ -553,7 +1012,8 @@ class DiscussionForumState extends State<DiscussionForum>
   }
 
   // UPDATED: Build message with image support
-  Widget _buildMessage(Map<String, dynamic> messageData, bool isMe, ThemeProvider themeProvider) {
+  Widget _buildMessage(Map<String, dynamic> messageData, bool isMe,
+      ThemeProvider themeProvider) {
     String formatTime(dynamic timeValue) {
       if (timeValue == null) return '';
 
@@ -567,7 +1027,8 @@ class DiscussionForumState extends State<DiscussionForum>
 
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
-        final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+        final messageDate =
+            DateTime(dateTime.year, dateTime.month, dateTime.day);
 
         if (messageDate == today) {
           return DateFormat('h:mm a').format(dateTime);
@@ -581,11 +1042,13 @@ class DiscussionForumState extends State<DiscussionForum>
       }
     }
 
-    final timeString = formatTime(messageData["createdAt"] ?? messageData["timestamp"]);
+    final timeString =
+        formatTime(messageData["createdAt"] ?? messageData["timestamp"]);
     final hasReply = messageData["replyTo"] != null;
     final isImageMessage = messageData["messageType"] == "image";
     final imageUrl = messageData["imageUrl"];
-    final hasText = messageData["message"] != null && messageData["message"].toString().trim().isNotEmpty;
+    final hasText = messageData["message"] != null &&
+        messageData["message"].toString().trim().isNotEmpty;
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 400),
@@ -600,7 +1063,8 @@ class DiscussionForumState extends State<DiscussionForum>
               child: Container(
                 margin: EdgeInsets.symmetric(vertical: 2, horizontal: 12),
                 child: Column(
-                  crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                   children: [
                     // Show sender name only for other people's messages
                     if (!isMe)
@@ -613,7 +1077,8 @@ class DiscussionForumState extends State<DiscussionForum>
                               width: 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: _getAvatarColor(messageData["senderName"] ?? "Unknown"),
+                                color: _getAvatarColor(
+                                    messageData["senderName"] ?? "Unknown"),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -621,7 +1086,9 @@ class DiscussionForumState extends State<DiscussionForum>
                             Text(
                               messageData["senderName"] ?? "Unknown User",
                               style: TextStyle(
-                                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.3,
@@ -654,17 +1121,24 @@ class DiscussionForumState extends State<DiscussionForum>
                               ? LinearGradient(
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
-                                  colors: [Color(0xFF1976D2), Color(0xFF2196F3)],
+                                  colors: [
+                                    Color(0xFF1976D2),
+                                    Color(0xFF2196F3)
+                                  ],
                                 )
                               : null,
                           color: isMe
                               ? null
-                              : (themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[100]),
+                              : (themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Colors.grey[100]),
                           borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(18),
                             topRight: Radius.circular(18),
-                            bottomLeft: isMe ? Radius.circular(18) : Radius.circular(3),
-                            bottomRight: isMe ? Radius.circular(3) : Radius.circular(18),
+                            bottomLeft:
+                                isMe ? Radius.circular(18) : Radius.circular(3),
+                            bottomRight:
+                                isMe ? Radius.circular(3) : Radius.circular(18),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -676,11 +1150,15 @@ class DiscussionForumState extends State<DiscussionForum>
                             ),
                           ],
                           border: !isMe && !themeProvider.isDarkMode
-                              ? Border.all(color: Colors.grey.withOpacity(0.2), width: 0.5)
+                              ? Border.all(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  width: 0.5)
                               : null,
                         ),
                         child: Column(
-                          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                          crossAxisAlignment: isMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                           children: [
                             // Reply indicator
                             if (hasReply) ...[
@@ -696,7 +1174,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                     left: BorderSide(
                                       color: isMe
                                           ? Colors.white
-                                          : const Color.fromARGB(255, 4, 204, 240),
+                                          : const Color.fromARGB(
+                                              255, 4, 204, 240),
                                       width: 2,
                                     ),
                                   ),
@@ -705,11 +1184,13 @@ class DiscussionForumState extends State<DiscussionForum>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      messageData["replyToSender"] ?? "Unknown User",
+                                      messageData["replyToSender"] ??
+                                          "Unknown User",
                                       style: TextStyle(
                                         color: isMe
                                             ? Colors.white
-                                            : const Color.fromARGB(255, 4, 204, 240),
+                                            : const Color.fromARGB(
+                                                255, 4, 204, 240),
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -758,7 +1239,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                         ),
                                       ),
                                     ),
-                                    errorWidget: (context, url, error) => Container(
+                                    errorWidget: (context, url, error) =>
+                                        Container(
                                       width: 200,
                                       height: 200,
                                       decoration: BoxDecoration(
@@ -766,9 +1248,11 @@ class DiscussionForumState extends State<DiscussionForum>
                                         borderRadius: BorderRadius.circular(14),
                                       ),
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.error_outline, color: Colors.grey[600]),
+                                          Icon(Icons.error_outline,
+                                              color: Colors.grey[600]),
                                           SizedBox(height: 4),
                                           Text(
                                             "Failed to load",
@@ -793,7 +1277,9 @@ class DiscussionForumState extends State<DiscussionForum>
                                 style: TextStyle(
                                   color: isMe
                                       ? Colors.white
-                                      : (themeProvider.isDarkMode ? Colors.white : Colors.black87),
+                                      : (themeProvider.isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87),
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   height: 1.4,
@@ -825,7 +1311,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                       _replyToMessage(
                                         messageData["key"] ?? "",
                                         messageData["message"] ?? "Image",
-                                        messageData["senderName"] ?? "Unknown User",
+                                        messageData["senderName"] ??
+                                            "Unknown User",
                                       );
                                     },
                                     child: Container(
@@ -869,7 +1356,6 @@ class DiscussionForumState extends State<DiscussionForum>
     ];
     return colors[name.hashCode % colors.length];
   }
-
 
   Widget _buildTermsDialog(ThemeProvider themeProvider) {
     return LayoutBuilder(
@@ -1082,7 +1568,8 @@ class DiscussionForumState extends State<DiscussionForum>
   }
 
   /// Build a terms section with title and bullet points
-  Widget _buildTermsSection(String title, List<String> points, ThemeProvider themeProvider, bool isSmallScreen) {
+  Widget _buildTermsSection(String title, List<String> points,
+      ThemeProvider themeProvider, bool isSmallScreen) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1097,49 +1584,125 @@ class DiscussionForumState extends State<DiscussionForum>
         SizedBox(height: isSmallScreen ? 6 : 8),
         ...points
             .map((point) => Padding(
-          padding:
-          EdgeInsets.only(left: 8, bottom: isSmallScreen ? 3 : 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "• ",
-                style: TextStyle(
-                  color: themeProvider.isDarkMode
-                      ? Colors.grey[400]
-                      : Colors.grey[600],
-                  fontSize: isSmallScreen ? 12 : 14,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  point,
-                  style: TextStyle(
-                    color: themeProvider.isDarkMode
-                        ? Colors.grey[300]
-                        : Colors.grey[700],
-                    fontSize: isSmallScreen ? 12 : 14,
-                    height: 1.3,
+                  padding:
+                      EdgeInsets.only(left: 8, bottom: isSmallScreen ? 3 : 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "• ",
+                        style: TextStyle(
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
+                          fontSize: isSmallScreen ? 12 : 14,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          point,
+                          style: TextStyle(
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[300]
+                                : Colors.grey[700],
+                            fontSize: isSmallScreen ? 12 : 14,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-        ))
+                ))
             .toList(),
       ],
     );
   }
 
-    @override
+  /// Build date separator
+  Widget _buildDateSeparator(String dateText, ThemeProvider themeProvider) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 1,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[600]
+                  : Colors.grey[300],
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[700]
+                  : Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              dateText,
+              style: TextStyle(
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[300]
+                    : Colors.grey[600],
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[600]
+                  : Colors.grey[300],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Get date string for separator
+  String _getDateString(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(Duration(days: 1));
+    final messageDate = DateTime(date.year, date.month, date.day);
+
+    if (messageDate == today) {
+      return "Today";
+    } else if (messageDate == yesterday) {
+      return "Yesterday";
+    } else if (now.difference(messageDate).inDays < 7) {
+      return DateFormat('EEEE').format(date); // Monday, Tuesday, etc.
+    } else {
+      return DateFormat('MMM d, y').format(date); // Jan 15, 2024
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
       return Scaffold(
-        backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
+// Enhanced App bar
         appBar: AppBar(
           elevation: 0,
           centerTitle: true,
-          backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          backgroundColor:
+              themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           title: Column(
             children: [
               Text(
@@ -1147,7 +1710,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1156,7 +1720,9 @@ class DiscussionForumState extends State<DiscussionForum>
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
                 ),
               ),
             ],
@@ -1183,7 +1749,9 @@ class DiscussionForumState extends State<DiscussionForum>
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                    themeProvider.isDarkMode
+                        ? Colors.grey[600]!
+                        : Colors.grey[300]!,
                     Colors.transparent,
                   ],
                 ),
@@ -1194,24 +1762,28 @@ class DiscussionForumState extends State<DiscussionForum>
         body: Stack(
           children: [
             const EnhancedAnimatedBackground(),
-
             if (_showTermsDialog)
               _buildTermsDialog(themeProvider)
             else if (_hasAgreedToTerms)
               Column(
                 children: [
+// Disclaimer banner
                   if (_showDisclaimer) _buildDisclaimerBanner(themeProvider),
 
-                  // Messages list
+// Real-time message list with date separators
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[900]
+                            : Color(0xFFF8F9FA),
                       ),
                       child: StreamBuilder(
                         stream: _messagesRef.orderByChild("timestamp").onValue,
-                        builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-                          if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+                        builder:
+                            (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                          if (!snapshot.hasData ||
+                              snapshot.data?.snapshot.value == null) {
                             return Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1219,7 +1791,9 @@ class DiscussionForumState extends State<DiscussionForum>
                                   Container(
                                     padding: EdgeInsets.all(24),
                                     decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[800]
+                                          : Colors.white,
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
@@ -1234,7 +1808,9 @@ class DiscussionForumState extends State<DiscussionForum>
                                     child: Icon(
                                       Icons.forum_outlined,
                                       size: 48,
-                                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[500],
                                     ),
                                   ),
                                   SizedBox(height: 16),
@@ -1243,7 +1819,9 @@ class DiscussionForumState extends State<DiscussionForum>
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
-                                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[300]
+                                          : Colors.grey[700],
                                     ),
                                   ),
                                   SizedBox(height: 8),
@@ -1251,7 +1829,9 @@ class DiscussionForumState extends State<DiscussionForum>
                                     "Start a conversation or share an image",
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600],
                                     ),
                                   ),
                                 ],
@@ -1259,36 +1839,85 @@ class DiscussionForumState extends State<DiscussionForum>
                             );
                           }
 
-                          Map<dynamic, dynamic> messagesMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+// Convert snapshot to list of messages
+                          Map<dynamic, dynamic> messagesMap = snapshot
+                              .data!.snapshot.value as Map<dynamic, dynamic>;
+
                           List<Map<String, dynamic>> messagesList = messagesMap
                               .entries
-                              .map((e) => {"key": e.key, ...Map<String, dynamic>.from(e.value)})
+                              .map((e) => {
+                                    "key": e.key,
+                                    ...Map<String, dynamic>.from(e.value)
+                                  })
                               .toList();
 
-                          messagesList.sort((a, b) => a["timestamp"].compareTo(b["timestamp"]));
+// Sort by timestamp (ascending)
+                          messagesList.sort((a, b) =>
+                              a["timestamp"].compareTo(b["timestamp"]));
 
-                          return ListView.builder(
+// Group messages by date and create widgets with separators
+                          List<Widget> messageWidgets = [];
+                          String? lastDateString;
+
+                          for (int i = 0; i < messagesList.length; i++) {
+                            final message = messagesList[i];
+                            bool isMe = message["senderId"] == userId;
+
+// Get message date
+                            DateTime? messageDate;
+                            try {
+                              final timestamp =
+                                  message["createdAt"] ?? message["timestamp"];
+                              if (timestamp is int) {
+                                messageDate =
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                        timestamp);
+                              }
+                            } catch (e) {
+                              print('Error parsing date: $e');
+                            }
+
+// Add date separator if date changed and message date exists
+                            if (messageDate != null) {
+                              final dateString = _getDateString(messageDate);
+                              if (dateString != lastDateString) {
+                                messageWidgets.add(_buildDateSeparator(
+                                    dateString, themeProvider));
+                                lastDateString = dateString;
+                              }
+
+                              // Add message only if we have a valid date
+                              messageWidgets.add(
+                                  _buildMessage(message, isMe, themeProvider));
+                            }
+                          }
+
+                          return ListView(
                             controller: _scrollController,
                             padding: EdgeInsets.symmetric(vertical: 8),
-                            itemCount: messagesList.length,
-                            itemBuilder: (context, index) {
-                              final message = messagesList[index];
-                              bool isMe = message["senderId"] == userId;
-                              return _buildMessage(message, isMe, themeProvider);
-                            },
+                            children: messageWidgets.isNotEmpty
+                                ? messageWidgets
+                                : messagesList.map((message) {
+                                    bool isMe = message["senderId"] == userId;
+                                    return _buildMessage(
+                                        message, isMe, themeProvider);
+                                  }).toList(),
                           );
                         },
                       ),
                     ),
                   ),
 
+// Reply indicator
                   _buildReplyIndicator(themeProvider),
 
-                  // Enhanced input section with image upload
+// Enhanced message input field & send button with emoji picker
                   Container(
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]
+                          : Colors.white,
                       boxShadow: [
                         BoxShadow(
                           color: themeProvider.isDarkMode
@@ -1302,13 +1931,17 @@ class DiscussionForumState extends State<DiscussionForum>
                     child: SafeArea(
                       child: Row(
                         children: [
-                          // Image upload button
+// Image upload button
                           Container(
                             decoration: BoxDecoration(
-                              color: themeProvider.isDarkMode ? Colors.grey[700] : Color(0xFFF5F5F5),
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Color(0xFFF5F5F5),
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(
-                                color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!,
                                 width: 1,
                               ),
                             ),
@@ -1333,7 +1966,9 @@ class DiscussionForumState extends State<DiscussionForum>
                                         )
                                       : Icon(
                                           Icons.image,
-                                          color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[500],
                                           size: 24,
                                         ),
                                 ),
@@ -1342,22 +1977,67 @@ class DiscussionForumState extends State<DiscussionForum>
                           ),
                           SizedBox(width: 12),
 
-                          // Text input field
+                          // Emoji button
+                          GestureDetector(
+                            onTap: () {
+                              // Always hide keyboard first, then toggle emoji picker
+                              FocusScope.of(context).unfocus();
+                              Future.delayed(Duration(milliseconds: 100), () {
+                                _toggleEmojiPicker();
+                              });
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: _showEmojiPicker
+                                    ? Color(0xFF2196F3).withOpacity(0.1)
+                                    : (themeProvider.isDarkMode
+                                        ? Colors.grey[700]
+                                        : Colors.grey[100]),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _showEmojiPicker
+                                      ? Color(0xFF2196F3)
+                                      : Colors.transparent,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Icon(
+                                _showEmojiPicker
+                                    ? Icons.keyboard
+                                    : Icons.emoji_emotions_outlined,
+                                color: _showEmojiPicker
+                                    ? Color(0xFF2196F3)
+                                    : (themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600]),
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+
+                          // Enhanced text input field
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode ? Colors.grey[700] : Color(0xFFF5F5F5),
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[700]
+                                    : Color(0xFFF5F5F5),
                                 borderRadius: BorderRadius.circular(24),
                                 border: Border.all(
                                   color: _isTyping
                                       ? Color(0xFF2196F3)
-                                      : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
+                                      : (themeProvider.isDarkMode
+                                          ? Colors.grey[600]!
+                                          : Colors.grey[300]!),
                                   width: _isTyping ? 2 : 1,
                                 ),
                                 boxShadow: _isTyping
                                     ? [
                                         BoxShadow(
-                                          color: Color(0xFF2196F3).withOpacity(0.2),
+                                          color: Color(0xFF2196F3)
+                                              .withOpacity(0.2),
                                           blurRadius: 8,
                                           offset: Offset(0, 2),
                                         ),
@@ -1366,28 +2046,48 @@ class DiscussionForumState extends State<DiscussionForum>
                               ),
                               child: TextField(
                                 controller: _messageController,
+                                focusNode: _textFieldFocusNode,
+                                onTap: () {
+                                  // Hide emoji picker when text field is tapped
+                                  if (_showEmojiPicker) {
+                                    setState(() {
+                                      _showEmojiPicker = false;
+                                    });
+                                    _emojiAnimationController.reverse();
+                                  }
+                                },
                                 style: TextStyle(
-                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: null,
-                                textCapitalization: TextCapitalization.sentences,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
                                 decoration: InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 12),
                                   hintText: _isReplying
                                       ? "Reply to ${_replyingToSender}..."
                                       : "Type a message or share an image...",
                                   hintStyle: TextStyle(
-                                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[500],
                                     fontWeight: FontWeight.w500,
                                   ),
                                   border: InputBorder.none,
                                   prefixIcon: Padding(
                                     padding: EdgeInsets.only(left: 8, right: 4),
                                     child: Icon(
-                                      _isReplying ? Icons.reply : Icons.chat_bubble_outline,
-                                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                      _isReplying
+                                          ? Icons.reply
+                                          : Icons.chat_bubble_outline,
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[500],
                                       size: 20,
                                     ),
                                   ),
@@ -1409,17 +2109,23 @@ class DiscussionForumState extends State<DiscussionForum>
                                         ? LinearGradient(
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
-                                            colors: [Color(0xFF1976D2), Color(0xFF2196F3)],
+                                            colors: [
+                                              Color(0xFF1976D2),
+                                              Color(0xFF2196F3)
+                                            ],
                                           )
                                         : null,
                                     color: !_isTyping
-                                        ? (themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[400])
+                                        ? (themeProvider.isDarkMode
+                                            ? Colors.grey[600]
+                                            : Colors.grey[400])
                                         : null,
                                     shape: BoxShape.circle,
                                     boxShadow: _isTyping
                                         ? [
                                             BoxShadow(
-                                              color: Color(0xFF2196F3).withOpacity(0.3),
+                                              color: Color(0xFF2196F3)
+                                                  .withOpacity(0.3),
                                               blurRadius: 8,
                                               offset: Offset(0, 4),
                                             ),
@@ -1430,13 +2136,18 @@ class DiscussionForumState extends State<DiscussionForum>
                                     color: Colors.transparent,
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(28),
-                                      onTap: _isTyping ? _sendMessage : null,
+                                      onTap: _isTyping
+                                          ? () => _sendMessage()
+                                          : null,
                                       child: Container(
                                         width: 56,
                                         height: 56,
-                                        decoration: BoxDecoration(shape: BoxShape.circle),
+                                        decoration: BoxDecoration(
+                                            shape: BoxShape.circle),
                                         child: Icon(
-                                          _isTyping ? Icons.send_rounded : Icons.send_outlined,
+                                          _isTyping
+                                              ? Icons.send_rounded
+                                              : Icons.send_outlined,
                                           color: Colors.white,
                                           size: _isTyping ? 24 : 20,
                                         ),
@@ -1451,6 +2162,8 @@ class DiscussionForumState extends State<DiscussionForum>
                       ),
                     ),
                   ),
+                  // Emoji picker below input field
+                  if (_showEmojiPicker) _buildEmojiPicker(themeProvider),
                 ],
               )
             else
@@ -1539,7 +2252,8 @@ class EnhancedAnimatedBackground extends StatefulWidget {
   const EnhancedAnimatedBackground({super.key});
 
   @override
-  State<EnhancedAnimatedBackground> createState() => _EnhancedAnimatedBackgroundState();
+  State<EnhancedAnimatedBackground> createState() =>
+      _EnhancedAnimatedBackgroundState();
 }
 
 class _EnhancedAnimatedBackgroundState extends State<EnhancedAnimatedBackground>
@@ -1551,10 +2265,9 @@ class _EnhancedAnimatedBackgroundState extends State<EnhancedAnimatedBackground>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-        vsync: this,
-        duration: Duration(seconds: 25)
-    )..repeat();
+    _controller =
+        AnimationController(vsync: this, duration: Duration(seconds: 25))
+          ..repeat();
 
     final random = Random();
     bubbles = List.generate(bubbleCount, (index) {
@@ -1632,4 +2345,3 @@ class _EnhancedBubblePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
