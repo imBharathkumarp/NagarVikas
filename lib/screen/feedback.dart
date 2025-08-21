@@ -57,8 +57,34 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             ? Colors.grey[900]
             : const Color(0xFFF8F9FA),
         appBar: AppBar(
-          title: Text('Feedback'),
-          backgroundColor: const Color.fromARGB(255, 4, 204, 240),
+          title: Text(
+            'Feedback',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: IconThemeData(
+            color: Colors.white, // Makes the back button white
+          ),
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: themeProvider.isDarkMode
+                    ? [
+                  Colors.grey[800]!,
+                  Colors.grey[700]!,
+                  Colors.teal[600]!,
+                ]
+                    : [
+                  const Color(0xFF1565C0),
+                  const Color(0xFF42A5F5),
+                  const Color(0xFF04CCF0),
+                ],
+              ),
+            ),
+          ),
         ),
         body: Column(
           children: [

@@ -10,7 +10,7 @@ class ReferAndEarnPage extends StatelessWidget {
   void _copyAndShareReferralCode(BuildContext context) {
     // Copy to clipboard
     Clipboard.setData(ClipboardData(text: referralCode));
-    
+
     // Show confirmation message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -38,39 +38,56 @@ class ReferAndEarnPage extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         // Theme-aware colors
-        final backgroundColor = themeProvider.isDarkMode 
-            ? Colors.grey[900]! 
+        final backgroundColor = themeProvider.isDarkMode
+            ? Colors.grey[900]!
             : const Color(0xFFF8F9FA);
-        
-        final cardColor = themeProvider.isDarkMode 
-            ? Colors.grey[800]! 
+
+        final cardColor = themeProvider.isDarkMode
+            ? Colors.grey[800]!
             : Colors.white;
-            
-        final textColor = themeProvider.isDarkMode 
-            ? Colors.white 
+
+        final textColor = themeProvider.isDarkMode
+            ? Colors.white
             : Colors.black87;
-            
-        final subtitleColor = themeProvider.isDarkMode 
-            ? Colors.grey[300] 
+
+        final subtitleColor = themeProvider.isDarkMode
+            ? Colors.grey[300]
             : Colors.grey[700];
-            
+
         final primaryColor = const Color.fromARGB(255, 4, 204, 240);
         final accentColor = Colors.deepPurpleAccent;
 
         return Scaffold(
           backgroundColor: backgroundColor,
           appBar: AppBar(
-            title: const Text(
-              "Refer & Earn",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            title: Text(
+              'Refer & Earn',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: IconThemeData(
+              color: Colors.white, // Makes the back button white
+            ),
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: themeProvider.isDarkMode
+                      ? [
+                    Colors.grey[800]!,
+                    Colors.grey[700]!,
+                    Colors.teal[600]!,
+                  ]
+                      : [
+                    const Color(0xFF1565C0),
+                    const Color(0xFF42A5F5),
+                    const Color(0xFF04CCF0),
+                  ],
+                ),
               ),
             ),
-            backgroundColor: primaryColor,
-            elevation: 0,
-            iconTheme: const IconThemeData(color: Colors.white),
-            systemOverlayStyle: SystemUiOverlayStyle.light,
           ),
           body: SingleChildScrollView(
             child: Padding(
@@ -79,7 +96,7 @@ class ReferAndEarnPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 20),
-                  
+
                   // Hero Section Card
                   Container(
                     width: double.infinity,
@@ -89,7 +106,7 @@ class ReferAndEarnPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: themeProvider.isDarkMode 
+                          color: themeProvider.isDarkMode
                               ? Colors.black.withOpacity(0.3)
                               : Colors.grey.withOpacity(0.1),
                           spreadRadius: 2,
@@ -124,9 +141,9 @@ class ReferAndEarnPage extends StatelessWidget {
                             color: Colors.white,
                           ),
                         ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         // Title
                         Text(
                           "Invite Your Friends!",
@@ -136,9 +153,9 @@ class ReferAndEarnPage extends StatelessWidget {
                             color: textColor,
                           ),
                         ),
-                        
+
                         const SizedBox(height: 12),
-                        
+
                         // Description
                         Text(
                           "Earn rewards by referring your friends to NagarVikas. Share your referral code and start earning amazing benefits today!",
@@ -153,9 +170,9 @@ class ReferAndEarnPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Referral Code Card
                   Container(
                     width: double.infinity,
@@ -165,7 +182,7 @@ class ReferAndEarnPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: themeProvider.isDarkMode 
+                          color: themeProvider.isDarkMode
                               ? Colors.black.withOpacity(0.3)
                               : Colors.grey.withOpacity(0.1),
                           spreadRadius: 2,
@@ -202,9 +219,9 @@ class ReferAndEarnPage extends StatelessWidget {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         // Referral Code Display
                         Container(
                           width: double.infinity,
@@ -255,9 +272,9 @@ class ReferAndEarnPage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         // Share Button
                         SizedBox(
                           width: double.infinity,
@@ -285,9 +302,9 @@ class ReferAndEarnPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // How It Works Section
                   Container(
                     width: double.infinity,
@@ -297,7 +314,7 @@ class ReferAndEarnPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: themeProvider.isDarkMode 
+                          color: themeProvider.isDarkMode
                               ? Colors.black.withOpacity(0.3)
                               : Colors.grey.withOpacity(0.1),
                           spreadRadius: 2,
@@ -335,9 +352,9 @@ class ReferAndEarnPage extends StatelessWidget {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 20),
-                        
+
                         // Steps
                         _buildStepItem(1, "Share", "Share your referral code with friends", Icons.share, primaryColor, subtitleColor),
                         _buildStepItem(2, "Sign Up", "Friends sign up using your code", Icons.person_add, primaryColor, subtitleColor),
@@ -345,7 +362,7 @@ class ReferAndEarnPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 30),
                 ],
               ),

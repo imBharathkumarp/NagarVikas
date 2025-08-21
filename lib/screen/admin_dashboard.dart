@@ -212,7 +212,10 @@ class AdminDashboardState extends State<AdminDashboard> {
                 Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF66BCF1), Color(0xFF3A8EDB)],
+                      colors: [
+                        Color(0xFF00BCD4),
+                        Color(0xFF0097A7),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

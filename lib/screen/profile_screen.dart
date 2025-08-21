@@ -42,7 +42,7 @@ class ProfilePageState extends State<ProfilePage>
     _initAnimations();
     _fetchUserData();
     _fetchComplaintsCount();
-    _initFirebaseRef(); 
+    _initFirebaseRef();
   }
 
   // Firebase
@@ -52,7 +52,7 @@ class ProfilePageState extends State<ProfilePage>
     _userRef = FirebaseDatabase.instance.ref().child('users').child(user.uid);
   }
   }
-  
+
 
   @override
   void dispose() {
@@ -154,7 +154,7 @@ Future<void> _updateUserData(String field, String value) async {
     if (user != null) {
       // Update in Firebase Realtime Database
       await _userRef.update({field: value});
-      
+
       // Update local state
       setState(() {
         if (field == 'name') {
@@ -163,7 +163,7 @@ Future<void> _updateUserData(String field, String value) async {
           phoneNumber = value;
         }
       });
-      
+
       Fluttertoast.showToast(
         msg: "${field == 'name' ? 'Name' : 'Phone number'} updated successfully!",
         backgroundColor: Colors.green,
@@ -266,14 +266,14 @@ bool _isValidPhoneNumber(String phone) {
               end: Alignment.bottomRight,
               colors: themeProvider.isDarkMode
                   ? [
-                      Colors.grey[850]!,
-                      Colors.grey[800]!,
-                      Colors.grey[700]!,
-                    ]
+                Colors.grey[800]!,
+                Colors.grey[700]!,
+                Colors.teal[600]!,
+              ]
                   : [
-                      const Color(0xFF1565C0),
-                      const Color(0xFF42A5F5),
-                      const Color(0xFF81C784),
+                const Color(0xFF1565C0),
+                const Color(0xFF42A5F5),
+                const Color(0xFF04CCF0),
                     ],
             ),
           ),
@@ -1005,7 +1005,7 @@ bool _isValidPhoneNumber(String phone) {
 
   void _showEditDialog(String field, ThemeProvider themeProvider) {
   final TextEditingController controller = TextEditingController();
-  
+
   // Set initial value
   if (field == 'name') {
     controller.text = name != "Loading..." ? name : "";
@@ -1065,7 +1065,7 @@ bool _isValidPhoneNumber(String phone) {
         ElevatedButton(
           onPressed: () async {
             String value = controller.text.trim();
-            
+
             // Validation
             if (value.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -1076,7 +1076,7 @@ bool _isValidPhoneNumber(String phone) {
               );
               return;
             }
-            
+
             if (field == 'phone') {
               if (!_isValidPhoneNumber(value)) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1088,7 +1088,7 @@ bool _isValidPhoneNumber(String phone) {
                 return;
               }
             }
-            
+
             if (field == 'name' && value.length < 2) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -1098,10 +1098,10 @@ bool _isValidPhoneNumber(String phone) {
               );
               return;
             }
-            
+
             // Close dialog first
             Navigator.pop(context);
-            
+
             // Update the data in Firebase
             await _updateUserData(field, value);
           },
@@ -1109,7 +1109,7 @@ bool _isValidPhoneNumber(String phone) {
             backgroundColor: const Color(0xFF42A5F5),
           ),
           child: const Text(
-            "Save", 
+            "Save",
             style: TextStyle(color: Colors.white),
           ),
         ),

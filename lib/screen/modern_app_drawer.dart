@@ -102,7 +102,7 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
           ),
           child: Column(
             children: [
-              _buildDrawerHeader(),
+              _buildDrawerHeader(themeProvider),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.only(bottom: 100), // Add bottom padding to account for potential bottom nav
@@ -126,21 +126,26 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
     });
   }
 
-  // Rest of your existing methods remain the same...
-  Widget _buildDrawerHeader() {
+  Widget _buildDrawerHeader(ThemeProvider themeProvider) {
     return Container(
       constraints: const BoxConstraints(
         minHeight: 120,
         maxHeight: 200,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1565C0),
-            Color(0xFF42A5F5),
-            Color(0xFF81C784),
+          colors: themeProvider.isDarkMode
+              ? [
+            Colors.grey[800]!,
+            Colors.grey[700]!,
+            Colors.teal[600]!,
+          ]
+              : [
+            const Color(0xFF1565C0),
+            const Color(0xFF42A5F5),
+            const Color(0xFF81C784),
           ],
         ),
       ),

@@ -353,24 +353,47 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.teal,
-            title: Text("Analytics Dashboard", style: GoogleFonts.poppins()),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded),
-                onPressed: fetchComplaintStats,
-                tooltip: 'Refresh Data',
+            appBar: AppBar(
+              toolbarHeight: 80,
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              iconTheme: const IconThemeData(
+                color: Colors.white,
               ),
-              IconButton(
-                icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
-                onPressed: () {
-                  themeProvider.toggleTheme();
-                },
+              actionsIconTheme: const IconThemeData(
+                color: Colors.white,
               ),
-            ],
-          ),
-          body: isLoading
+              title: Text(
+                "Analytics Dashboard",
+                style: GoogleFonts.poppins(color: Colors.white),
+              ),
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF00BCD4),
+                      Color(0xFF0097A7),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: fetchComplaintStats,
+                  tooltip: 'Refresh Data',
+                ),
+                IconButton(
+                  icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                  onPressed: () {
+                    themeProvider.toggleTheme();
+                  },
+                ),
+              ],
+            ),
+            body: isLoading
               ? _buildShimmerDashboard()
               : RefreshIndicator(
             onRefresh: fetchComplaintStats,

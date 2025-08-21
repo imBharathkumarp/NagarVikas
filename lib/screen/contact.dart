@@ -15,7 +15,7 @@ class ContactUsPage extends StatefulWidget {
   State<ContactUsPage> createState() => _ContactUsPageState();
 }
 
-class _ContactUsPageState extends State<ContactUsPage> 
+class _ContactUsPageState extends State<ContactUsPage>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -303,8 +303,8 @@ class _ContactUsPageState extends State<ContactUsPage>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: themeProvider.isDarkMode 
-                    ? Colors.grey[400] 
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
                     : Colors.grey[600],
                 height: 1.5,
                 fontWeight: FontWeight.w500,
@@ -410,8 +410,8 @@ class _ContactUsPageState extends State<ContactUsPage>
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: themeProvider.isDarkMode 
-                              ? Colors.white 
+                          color: themeProvider.isDarkMode
+                              ? Colors.white
                               : Colors.black87,
                         ),
                       ),
@@ -421,8 +421,8 @@ class _ContactUsPageState extends State<ContactUsPage>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: themeProvider.isDarkMode 
-                              ? Colors.grey[400] 
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[400]
                               : Colors.grey[600],
                         ),
                       ),
@@ -506,8 +506,8 @@ class _ContactUsPageState extends State<ContactUsPage>
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: themeProvider.isDarkMode 
-                            ? Colors.white 
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
                             : Colors.black87,
                       ),
                     ),
@@ -516,8 +516,8 @@ class _ContactUsPageState extends State<ContactUsPage>
                       'Stay updated with our latest news',
                       style: TextStyle(
                         fontSize: 14,
-                        color: themeProvider.isDarkMode 
-                            ? Colors.grey[400] 
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[400]
                             : Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
@@ -531,7 +531,7 @@ class _ContactUsPageState extends State<ContactUsPage>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode 
+              color: themeProvider.isDarkMode
                   ? Colors.grey[700]?.withOpacity(0.5)
                   : Colors.grey[50],
               borderRadius: BorderRadius.circular(16),
@@ -541,8 +541,8 @@ class _ContactUsPageState extends State<ContactUsPage>
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: themeProvider.isDarkMode 
-                      ? Colors.grey[400] 
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
                       : Colors.grey[600],
                   size: 20,
                 ),
@@ -552,8 +552,8 @@ class _ContactUsPageState extends State<ContactUsPage>
                   style: TextStyle(
                     fontSize: 14,
                     fontStyle: FontStyle.italic,
-                    color: themeProvider.isDarkMode 
-                        ? Colors.grey[400] 
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
                         : Colors.grey[600],
                   ),
                 ),

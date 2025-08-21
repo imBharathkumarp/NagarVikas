@@ -11,26 +11,37 @@ class AboutAppPage extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-          backgroundColor: themeProvider.isDarkMode 
-              ? Colors.grey[900] 
+          backgroundColor: themeProvider.isDarkMode
+              ? Colors.grey[900]
               : Colors.grey[50],
           appBar: AppBar(
-            title: FadeIn(
-              child: Text(
-                'About NagarVikas',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
+            title: Text(
+              'About NagarVikas',
+              style: TextStyle(color: Colors.white),
             ),
-            centerTitle: true,
-            backgroundColor: themeProvider.isDarkMode 
-                ? Colors.grey[800] 
-                : const Color(0xFF1565C0),
+            backgroundColor: Colors.transparent,
             elevation: 0,
             iconTheme: IconThemeData(
-              color: themeProvider.isDarkMode ? Colors.white : Colors.white,
+              color: Colors.white, // Makes the back button white
+            ),
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: themeProvider.isDarkMode
+                      ? [
+                    Colors.grey[800]!,
+                    Colors.grey[700]!,
+                    Colors.teal[600]!,
+                  ]
+                      : [
+                    const Color(0xFF1565C0),
+                    const Color(0xFF42A5F5),
+                    const Color(0xFF04CCF0),
+                  ],
+                ),
+              ),
             ),
           ),
           body: SingleChildScrollView(
@@ -72,7 +83,7 @@ class AboutAppPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: themeProvider.isDarkMode 
+            color: themeProvider.isDarkMode
                 ? Colors.black.withOpacity(0.4)
                 : Colors.grey.withOpacity(0.2),
             blurRadius: 10,
@@ -84,13 +95,13 @@ class AboutAppPage extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 40,
-            backgroundColor: themeProvider.isDarkMode 
+            backgroundColor: themeProvider.isDarkMode
                 ? Colors.teal[800]
                 : const Color(0xFF1565C0).withOpacity(0.2),
             child: Icon(
               Icons.verified_user,
               size: 40,
-              color: themeProvider.isDarkMode 
+              color: themeProvider.isDarkMode
                   ? Colors.teal[200]
                   : const Color(0xFF1565C0),
             ),
@@ -152,7 +163,7 @@ class AboutAppPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: themeProvider.isDarkMode 
+            color: themeProvider.isDarkMode
                 ? Colors.black.withOpacity(0.4)
                 : Colors.grey.withOpacity(0.2),
             blurRadius: 10,
@@ -180,14 +191,14 @@ class AboutAppPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode 
+                    color: themeProvider.isDarkMode
                         ? Colors.teal[800]!.withOpacity(0.3)
                         : const Color(0xFF1565C0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     feature['icon'] as IconData,
-                    color: themeProvider.isDarkMode 
+                    color: themeProvider.isDarkMode
                         ? Colors.teal[200]
                         : const Color(0xFF1565C0),
                   ),
@@ -232,7 +243,7 @@ class AboutAppPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: themeProvider.isDarkMode 
+            color: themeProvider.isDarkMode
                 ? Colors.black.withOpacity(0.4)
                 : Colors.grey.withOpacity(0.2),
             blurRadius: 10,
@@ -294,7 +305,7 @@ class AboutAppPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: themeProvider.isDarkMode 
+            color: themeProvider.isDarkMode
                 ? color.withOpacity(0.2)
                 : color.withOpacity(0.1),
             shape: BoxShape.circle,
@@ -302,7 +313,7 @@ class AboutAppPage extends StatelessWidget {
           child: Icon(
             icon,
             size: 30,
-            color: themeProvider.isDarkMode 
+            color: themeProvider.isDarkMode
                 ? color.withOpacity(0.8)
                 : color,
           ),
@@ -328,7 +339,7 @@ class AboutAppPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: themeProvider.isDarkMode 
+            color: themeProvider.isDarkMode
                 ? Colors.black.withOpacity(0.4)
                 : Colors.grey.withOpacity(0.2),
             blurRadius: 10,
@@ -400,7 +411,7 @@ class AboutAppPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: themeProvider.isDarkMode 
+          color: themeProvider.isDarkMode
               ? Colors.grey[700]!.withOpacity(0.5)
               : Colors.grey[100]!.withOpacity(0.5),
           borderRadius: BorderRadius.circular(10),
@@ -409,7 +420,7 @@ class AboutAppPage extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: themeProvider.isDarkMode 
+              color: themeProvider.isDarkMode
                   ? Colors.teal[200]
                   : const Color(0xFF1565C0),
             ),
