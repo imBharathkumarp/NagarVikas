@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,13 +6,15 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../theme/theme_provider.dart';
 
-/// DiscussionForum
-/// A real-time chat interface where users can post and view messages.
-/// Uses Firebase Realtime Database for message storage.
-
+/// DiscussionForum with Image Sharing
+/// Enhanced real-time chat interface with image upload and full-screen viewing capabilities
 class DiscussionForum extends StatefulWidget {
   const DiscussionForum({super.key});
 
@@ -21,19 +24,18 @@ class DiscussionForum extends StatefulWidget {
 
 class DiscussionForumState extends State<DiscussionForum>
     with TickerProviderStateMixin {
-  final TextEditingController _messageController =
-  TextEditingController(); // Controls text input
-  final DatabaseReference _messagesRef =
-  FirebaseDatabase.instance.ref("discussion/"); // Firebase DB ref
-  final DatabaseReference _usersRef =
-  FirebaseDatabase.instance.ref("users/"); // Users DB ref
-  final ScrollController _scrollController =
-  ScrollController(); // Scroll controller for ListView
+  final TextEditingController _messageController = TextEditingController();
+  final DatabaseReference _messagesRef = FirebaseDatabase.instance.ref("discussion/");
+  final DatabaseReference _usersRef = FirebaseDatabase.instance.ref("users/");
+  final ScrollController _scrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
+  
   String? userId;
   String? currentUserName;
   bool _showDisclaimer = true;
   bool _hasAgreedToTerms = false;
   bool _showTermsDialog = false;
+  bool _isUploading = false; // For image upload status
 
   // Animation controllers for enhanced UI
   late AnimationController _sendButtonAnimationController;
@@ -51,19 +53,17 @@ class DiscussionForumState extends State<DiscussionForum>
   @override
   void initState() {
     super.initState();
-    userId = FirebaseAuth.instance.currentUser?.uid; // Get current user ID
+    userId = FirebaseAuth.instance.currentUser?.uid;
     _getCurrentUserName();
     _checkTermsAgreement();
     _initAnimations();
 
-    // Listen to text changes for typing indicator
     _messageController.addListener(() {
       setState(() {
         _isTyping = _messageController.text.trim().isNotEmpty;
       });
     });
 
-    // Auto-hide disclaimer after 5 seconds
     Future.delayed(Duration(seconds: 5), () {
       if (mounted && _showDisclaimer && _hasAgreedToTerms) {
         _hideDisclaimer();
@@ -125,7 +125,6 @@ class DiscussionForumState extends State<DiscussionForum>
     }
   }
 
-  /// Check if user has agreed to terms and conditions
   void _checkTermsAgreement() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String key = 'terms_agreed_${userId ?? 'anonymous'}';
@@ -137,7 +136,6 @@ class DiscussionForumState extends State<DiscussionForum>
     });
   }
 
-  /// Save terms agreement to local storage
   void _agreeToTerms() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String key = 'terms_agreed_${userId ?? 'anonymous'}';
@@ -149,7 +147,730 @@ class DiscussionForumState extends State<DiscussionForum>
     });
   }
 
-  /// Build terms and conditions dialog
+  // NEW: Upload image to Cloudinary (reusing your existing method)
+  Future<String?> _uploadToCloudinary(File file) async {
+    const cloudName = 'dved2q851';
+    const uploadPreset = 'flutter_uploads';
+    final url = 'https://api.cloudinary.com/v1_1/$cloudName/image/upload';
+
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path),
+        'upload_preset': uploadPreset,
+      });
+      final response = await Dio().post(url, data: formData);
+      return response.data['secure_url'];
+    } catch (e) {
+      print('Upload error: $e');
+      return null;
+    }
+  }
+
+  // NEW: Pick and upload image
+  Future<void> _pickAndUploadImage() async {
+    if (_isUploading) return;
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+      
+      if (image == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final imageFile = File(image.path);
+      final imageUrl = await _uploadToCloudinary(imageFile);
+
+      if (imageUrl != null) {
+        _sendMessage(imageUrl: imageUrl);
+      } else {
+        Fluttertoast.showToast(msg: "Failed to upload image. Please try again.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error picking image: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  // NEW: Show image selection bottom sheet
+  void _showImageOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF2196F3).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.photo_library, color: Color(0xFF2196F3)),
+                  ),
+                  title: Text(
+                    'Choose from Gallery',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Select an image from your gallery',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndUploadImage();
+                  },
+                ),
+                SizedBox(height: 10),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF4CAF50).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.camera_alt, color: Color(0xFF4CAF50)),
+                  ),
+                  title: Text(
+                    'Take Photo',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Capture a new photo',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _takePhoto();
+                  },
+                ),
+                SizedBox(height: 10),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // NEW: Take photo with camera
+  Future<void> _takePhoto() async {
+    if (_isUploading) return;
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+      
+      if (image == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final imageFile = File(image.path);
+      final imageUrl = await _uploadToCloudinary(imageFile);
+
+      if (imageUrl != null) {
+        _sendMessage(imageUrl: imageUrl);
+      } else {
+        Fluttertoast.showToast(msg: "Failed to upload image. Please try again.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error taking photo: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  void _getCurrentUserName() async {
+    if (userId != null) {
+      try {
+        final snapshot = await _usersRef.child(userId!).once();
+        if (snapshot.snapshot.value != null) {
+          final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+          setState(() {
+            currentUserName = userData['name'] ?? userData['displayName'] ?? _getDefaultName();
+          });
+        } else {
+          final defaultName = _getDefaultName();
+          await _usersRef.child(userId!).set({
+            'name': defaultName,
+            'displayName': defaultName,
+            'email': FirebaseAuth.instance.currentUser?.email ?? '',
+            'createdAt': ServerValue.timestamp,
+          });
+          setState(() {
+            currentUserName = defaultName;
+          });
+        }
+      } catch (e) {
+        print('Error getting user name: $e');
+        setState(() {
+          currentUserName = _getDefaultName();
+        });
+      }
+    }
+  }
+
+  String _getDefaultName() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.email != null) {
+      return user!.email!.split('@')[0];
+    }
+    return 'User${Random().nextInt(1000)}';
+  }
+
+  // UPDATED: Send message with optional image URL
+  void _sendMessage({String? imageUrl}) {
+    if ((_messageController.text.trim().isEmpty && imageUrl == null) || currentUserName == null) return;
+
+    _sendButtonAnimationController.forward().then((_) {
+      _sendButtonAnimationController.reverse();
+    });
+
+    Map<String, dynamic> messageData = {
+      "senderId": userId,
+      "senderName": currentUserName,
+      "timestamp": ServerValue.timestamp,
+      "createdAt": ServerValue.timestamp,
+    };
+
+    // Add message text if present
+    if (_messageController.text.trim().isNotEmpty) {
+      messageData["message"] = _messageController.text.trim();
+    }
+
+    // Add image URL if present
+    if (imageUrl != null) {
+      messageData["imageUrl"] = imageUrl;
+      messageData["messageType"] = "image";
+    } else {
+      messageData["messageType"] = "text";
+    }
+
+    // Add reply information if replying
+    if (_isReplying && _replyingToMessageId != null) {
+      messageData["replyTo"] = _replyingToMessageId;
+      messageData["replyToMessage"] = _replyingToMessage ?? '';
+      messageData["replyToSender"] = _replyingToSender ?? 'Unknown User';
+    }
+
+    _messagesRef.push().set(messageData);
+
+    _messageController.clear();
+    _clearReply();
+    setState(() {
+      _isTyping = false;
+    });
+
+    Future.delayed(Duration(milliseconds: 300), () {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  void _replyToMessage(String messageId, String message, String senderName) {
+    setState(() {
+      _isReplying = true;
+      _replyingToMessageId = messageId;
+      _replyingToMessage = message;
+      _replyingToSender = senderName;
+    });
+    FocusScope.of(context).requestFocus(FocusNode());
+  }
+
+  void _clearReply() {
+    setState(() {
+      _isReplying = false;
+      _replyingToMessageId = null;
+      _replyingToMessage = null;
+      _replyingToSender = null;
+    });
+  }
+
+  // NEW: Full screen image viewer
+  void _showFullScreenImage(String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullScreenImageViewer(imageUrl: imageUrl),
+      ),
+    );
+  }
+
+  Widget _buildReplyIndicator(ThemeProvider themeProvider) {
+    if (!_isReplying) return SizedBox.shrink();
+
+    return Container(
+      margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: const Color.fromARGB(255, 4, 204, 240), width: 3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.reply, size: 16, color: const Color.fromARGB(255, 4, 204, 240)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Replying to ${_replyingToSender}',
+                  style: TextStyle(
+                    color: const Color.fromARGB(255, 4, 204, 240),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  _replyingToMessage ?? '',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: _clearReply,
+            child: Icon(
+              Icons.close,
+              size: 18,
+              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisclaimerBanner(ThemeProvider themeProvider) {
+    return AnimatedBuilder(
+      animation: _disclaimerController,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, -50 * (1 - _disclaimerController.value)),
+          child: Opacity(
+            opacity: _disclaimerController.value,
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF2196F3).withOpacity(0.9),
+                    Color(0xFF2196F3).withOpacity(0.7),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 18, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Be respectful • No inappropriate images • Keep discussions constructive",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _hideDisclaimer,
+                    child: Container(
+                      padding: EdgeInsets.all(2),
+                      child: Icon(Icons.close, size: 16, color: Colors.white.withOpacity(0.8)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // UPDATED: Build message with image support
+  Widget _buildMessage(Map<String, dynamic> messageData, bool isMe, ThemeProvider themeProvider) {
+    String formatTime(dynamic timeValue) {
+      if (timeValue == null) return '';
+
+      try {
+        DateTime dateTime;
+        if (timeValue is int) {
+          dateTime = DateTime.fromMillisecondsSinceEpoch(timeValue);
+        } else {
+          return '';
+        }
+
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+        if (messageDate == today) {
+          return DateFormat('h:mm a').format(dateTime);
+        } else if (messageDate == today.subtract(Duration(days: 1))) {
+          return 'Yesterday ${DateFormat('h:mm a').format(dateTime)}';
+        } else {
+          return DateFormat('MMM d, h:mm a').format(dateTime);
+        }
+      } catch (e) {
+        return '';
+      }
+    }
+
+    final timeString = formatTime(messageData["createdAt"] ?? messageData["timestamp"]);
+    final hasReply = messageData["replyTo"] != null;
+    final isImageMessage = messageData["messageType"] == "image";
+    final imageUrl = messageData["imageUrl"];
+    final hasText = messageData["message"] != null && messageData["message"].toString().trim().isNotEmpty;
+
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 400),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(isMe ? (1 - value) * 50 : (value - 1) * 50, 0),
+          child: Opacity(
+            opacity: value,
+            child: Align(
+              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                margin: EdgeInsets.symmetric(vertical: 2, horizontal: 12),
+                child: Column(
+                  crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    // Show sender name only for other people's messages
+                    if (!isMe)
+                      Container(
+                        margin: EdgeInsets.only(left: 12, right: 12, bottom: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: _getAvatarColor(messageData["senderName"] ?? "Unknown"),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              messageData["senderName"] ?? "Unknown User",
+                              style: TextStyle(
+                                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    // Message bubble
+                    GestureDetector(
+                      onLongPress: () {
+                        if (!isMe) {
+                          _replyToMessage(
+                            messageData["key"] ?? "",
+                            messageData["message"] ?? "Image",
+                            messageData["senderName"] ?? "Unknown User",
+                          );
+                        }
+                      },
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          vertical: isImageMessage ? 4 : 8,
+                          horizontal: isImageMessage ? 4 : 12,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: isMe
+                              ? LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [Color(0xFF1976D2), Color(0xFF2196F3)],
+                                )
+                              : null,
+                          color: isMe
+                              ? null
+                              : (themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[100]),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(18),
+                            topRight: Radius.circular(18),
+                            bottomLeft: isMe ? Radius.circular(18) : Radius.circular(3),
+                            bottomRight: isMe ? Radius.circular(3) : Radius.circular(18),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.black26
+                                  : Colors.grey.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                          border: !isMe && !themeProvider.isDarkMode
+                              ? Border.all(color: Colors.grey.withOpacity(0.2), width: 0.5)
+                              : null,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                          children: [
+                            // Reply indicator
+                            if (hasReply) ...[
+                              Container(
+                                padding: EdgeInsets.all(6),
+                                margin: EdgeInsets.only(bottom: 6),
+                                decoration: BoxDecoration(
+                                  color: (isMe
+                                      ? Colors.white.withOpacity(0.2)
+                                      : Colors.black.withOpacity(0.1)),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: isMe
+                                          ? Colors.white
+                                          : const Color.fromARGB(255, 4, 204, 240),
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      messageData["replyToSender"] ?? "Unknown User",
+                                      style: TextStyle(
+                                        color: isMe
+                                            ? Colors.white
+                                            : const Color.fromARGB(255, 4, 204, 240),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      messageData["replyToMessage"] ?? "",
+                                      style: TextStyle(
+                                        color: isMe
+                                            ? Colors.white70
+                                            : (themeProvider.isDarkMode
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600]),
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            // Image content
+                            if (isImageMessage && imageUrl != null) ...[
+                              GestureDetector(
+                                onTap: () => _showFullScreenImage(imageUrl),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    width: 200,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      width: 200,
+                                      height: 200,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFF2196F3),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) => Container(
+                                      width: 200,
+                                      height: 200,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.error_outline, color: Colors.grey[600]),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            "Failed to load",
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (hasText) SizedBox(height: 8),
+                            ],
+
+                            // Text message content
+                            if (hasText) ...[
+                              Text(
+                                messageData["message"],
+                                style: TextStyle(
+                                  color: isMe
+                                      ? Colors.white
+                                      : (themeProvider.isDarkMode ? Colors.white : Colors.black87),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+
+                            // Timestamp and reply button
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (timeString.isNotEmpty) ...[
+                                  Text(
+                                    timeString,
+                                    style: TextStyle(
+                                      color: isMe
+                                          ? Colors.white70
+                                          : (themeProvider.isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600]),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                                if (!isMe) ...[
+                                  SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () {
+                                      _replyToMessage(
+                                        messageData["key"] ?? "",
+                                        messageData["message"] ?? "Image",
+                                        messageData["senderName"] ?? "Unknown User",
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.all(2),
+                                      child: Icon(
+                                        Icons.reply,
+                                        size: 14,
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Color _getAvatarColor(String name) {
+    final colors = [
+      Colors.red[400]!,
+      Colors.blue[400]!,
+      Colors.green[400]!,
+      Colors.orange[400]!,
+      Colors.purple[400]!,
+      Colors.teal[400]!,
+      Colors.indigo[400]!,
+      Colors.pink[400]!,
+    ];
+    return colors[name.hashCode % colors.length];
+  }
+
+
   Widget _buildTermsDialog(ThemeProvider themeProvider) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -410,532 +1131,15 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  /// Get current user's display name
-  void _getCurrentUserName() async {
-    if (userId != null) {
-      try {
-        final snapshot = await _usersRef.child(userId!).once();
-        if (snapshot.snapshot.value != null) {
-          final userData =
-          Map<String, dynamic>.from(snapshot.snapshot.value as Map);
-          setState(() {
-            currentUserName = userData['name'] ??
-                userData['displayName'] ??
-                _getDefaultName();
-          });
-        } else {
-          // If user data doesn't exist, create it with email prefix
-          final defaultName = _getDefaultName();
-
-          await _usersRef.child(userId!).set({
-            'name': defaultName,
-            'displayName': defaultName,
-            'email': FirebaseAuth.instance.currentUser?.email ?? '',
-            'createdAt': ServerValue.timestamp,
-          });
-
-          setState(() {
-            currentUserName = defaultName;
-          });
-        }
-      } catch (e) {
-        print('Error getting user name: $e');
-        setState(() {
-          currentUserName = _getDefaultName();
-        });
-      }
-    }
-  }
-
-  /// Get default name from email or generate random name
-  String _getDefaultName() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user?.email != null) {
-      return user!.email!.split('@')[0];
-    }
-    return 'User${Random().nextInt(1000)}';
-  }
-
-  /// Sends a message to Firebase Realtime Database
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty || currentUserName == null)
-      return;
-
-    // Animate send button
-    _sendButtonAnimationController.forward().then((_) {
-      _sendButtonAnimationController.reverse();
-    });
-
-    Map<String, dynamic> messageData = {
-      "message": _messageController.text.trim(),
-      "senderId": userId,
-      "senderName": currentUserName,
-      "timestamp": ServerValue.timestamp,
-      "createdAt": ServerValue.timestamp,
-    };
-
-    // Add reply information if replying
-    if (_isReplying && _replyingToMessageId != null) {
-      messageData["replyTo"] = _replyingToMessageId;
-      messageData["replyToMessage"] = _replyingToMessage ?? '';
-      messageData["replyToSender"] = _replyingToSender ?? 'Unknown User';
-    }
-
-    _messagesRef.push().set(messageData);
-
-    _messageController.clear();
-    _clearReply();
-    setState(() {
-      _isTyping = false;
-    });
-
-    Future.delayed(Duration(milliseconds: 300), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  /// Set up reply to a message
-  void _replyToMessage(String messageId, String message, String senderName) {
-    setState(() {
-      _isReplying = true;
-      _replyingToMessageId = messageId;
-      _replyingToMessage = message;
-      _replyingToSender = senderName;
-    });
-
-    // Focus on text field
-    FocusScope.of(context).requestFocus(FocusNode());
-  }
-
-  /// Clear reply state
-  void _clearReply() {
-    setState(() {
-      _isReplying = false;
-      _replyingToMessageId = null;
-      _replyingToMessage = null;
-      _replyingToSender = null;
-    });
-  }
-
-  /// Build reply indicator bar
-  Widget _buildReplyIndicator(ThemeProvider themeProvider) {
-    if (!_isReplying) return SizedBox.shrink();
-
-    return Container(
-      margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-        border: Border(
-          left: BorderSide(
-            color: const Color.fromARGB(255, 4, 204, 240),
-            width: 3,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.reply,
-            size: 16,
-            color: const Color.fromARGB(255, 4, 204, 240),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Replying to ${_replyingToSender}',
-                  style: TextStyle(
-                    color: const Color.fromARGB(255, 4, 204, 240),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  _replyingToMessage ?? '',
-                  style: TextStyle(
-                    color: themeProvider.isDarkMode
-                        ? Colors.grey[400]
-                        : Colors.grey[600],
-                    fontSize: 13,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: _clearReply,
-            child: Icon(
-              Icons.close,
-              size: 18,
-              color: themeProvider.isDarkMode
-                  ? Colors.grey[400]
-                  : Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds the disclaimer banner
-  Widget _buildDisclaimerBanner(ThemeProvider themeProvider) {
-    return AnimatedBuilder(
-      animation: _disclaimerController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, -50 * (1 - _disclaimerController.value)),
-          child: Opacity(
-            opacity: _disclaimerController.value,
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF2196F3).withOpacity(0.9),
-                    Color(0xFF2196F3).withOpacity(0.7),
-                  ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Be respectful • No abusive language • Keep discussions constructive",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _hideDisclaimer,
-                    child: Container(
-                      padding: EdgeInsets.all(2),
-                      child: Icon(
-                        Icons.close,
-                        size: 16,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Builds a single message bubble (left or right aligned)
-  Widget _buildMessage(Map<String, dynamic> messageData, bool isMe, ThemeProvider themeProvider) {
-    // Format the time from createdAt or timestamp
-    String formatTime(dynamic timeValue) {
-      if (timeValue == null) return '';
-
-      try {
-        DateTime dateTime;
-        if (timeValue is int) {
-          dateTime = DateTime.fromMillisecondsSinceEpoch(timeValue);
-        } else {
-          return '';
-        }
-
-        final now = DateTime.now();
-        final today = DateTime(now.year, now.month, now.day);
-        final messageDate =
-        DateTime(dateTime.year, dateTime.month, dateTime.day);
-
-        if (messageDate == today) {
-          // Today: show time only
-          return DateFormat('h:mm a').format(dateTime);
-        } else if (messageDate == today.subtract(Duration(days: 1))) {
-          // Yesterday
-          return 'Yesterday ${DateFormat('h:mm a').format(dateTime)}';
-        } else {
-          // Other days: show date and time
-          return DateFormat('MMM d, h:mm a').format(dateTime);
-        }
-      } catch (e) {
-        return '';
-      }
-    }
-
-    final timeString =
-    formatTime(messageData["createdAt"] ?? messageData["timestamp"]);
-    final hasReply = messageData["replyTo"] != null;
-
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 400),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(isMe ? (1 - value) * 50 : (value - 1) * 50, 0),
-          child: Opacity(
-            opacity: value,
-            child: Align(
-              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                  margin: EdgeInsets.symmetric(vertical: 2, horizontal: 12),
-                  child: Column(
-                      crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                      children: [
-                      // Show sender name only for other people's messages
-                      if (!isMe)
-                  Container(
-              margin: EdgeInsets.only(left: 12, right: 12, bottom: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _getAvatarColor(messageData["senderName"] ?? "Unknown"),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    messageData["senderName"] ?? "Unknown User",
-                    style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Message bubble with enhanced styling and reply functionality
-            GestureDetector(
-              onLongPress: () {
-                // Don't allow replying to own messages
-                if (!isMe) {
-                  _replyToMessage(
-                    messageData["key"] ?? "",
-                    messageData["message"] ?? "",
-                    messageData["senderName"] ?? "Unknown User",
-                  );
-                }
-              },
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.75,
-                ),
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                decoration: BoxDecoration(
-                  gradient: isMe
-                      ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF1976D2),
-                      Color(0xFF2196F3),
-                    ],
-                  )
-                      : null,
-                  color: isMe
-                      ? null
-                      : (themeProvider.isDarkMode
-                      ? Colors.grey[700]
-                      : Colors.grey[100]),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(18),
-                    topRight: Radius.circular(18),
-                    bottomLeft: isMe ? Radius.circular(18) : Radius.circular(3),
-                    bottomRight: isMe ? Radius.circular(3) : Radius.circular(18),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: themeProvider.isDarkMode
-                          ? Colors.black26
-                          : Colors.grey.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                  border: !isMe && !themeProvider.isDarkMode
-                      ? Border.all(
-                    color: Colors.grey.withOpacity(0.2),
-                    width: 0.5,
-                  )
-                      : null,
-                ),
-                child: Column(
-                  crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                  children: [
-                    // Reply indicator (if this message is a reply)
-                    if (hasReply) ...[
-                      Container(
-                        padding: EdgeInsets.all(6),
-                        margin: EdgeInsets.only(bottom: 6),
-                        decoration: BoxDecoration(
-                          color: (isMe
-                              ? Colors.white.withOpacity(0.2)
-                              : Colors.black.withOpacity(0.1)),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border(
-                            left: BorderSide(
-                              color: isMe
-                                  ? Colors.white
-                                  : const Color.fromARGB(255, 4, 204, 240),
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              messageData["replyToSender"] ?? "Unknown User",
-                              style: TextStyle(
-                                color: isMe
-                                    ? Colors.white
-                                    : const Color.fromARGB(255, 4, 204, 240),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              messageData["replyToMessage"] ?? "",
-                              style: TextStyle(
-                                color: isMe
-                                    ? Colors.white70
-                                    : (themeProvider.isDarkMode
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600]),
-                                fontSize: 12,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    // Main message text
-                    Text(
-                      messageData["message"],
-                      style: TextStyle(
-                        color: isMe
-                            ? Colors.white
-                            : (themeProvider.isDarkMode ? Colors.white : Colors.black87),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4,
-                      ),
-                    ),
-
-                    // Timestamp and reply button
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (timeString.isNotEmpty) ...[
-                          Text(
-                            timeString,
-                            style: TextStyle(
-                              color: isMe
-                                  ? Colors.white70
-                                  : (themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-
-                        // Reply button (only for other people's messages)
-                        if (!isMe) ...[
-                          SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              _replyToMessage(
-                                messageData["key"] ?? "",
-                                messageData["message"] ?? "",
-                                messageData["senderName"] ?? "Unknown User",
-                              );
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(2),
-                              child: Icon(
-                                Icons.reply,
-                                size: 14,
-                                color: themeProvider.isDarkMode
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],),
-        ),),
-            ),);},
-    );
-  }
-
-  /// Generate consistent color for user avatars
-  Color _getAvatarColor(String name) {
-    final colors = [
-      Colors.red[400]!,
-      Colors.blue[400]!,
-      Colors.green[400]!,
-      Colors.orange[400]!,
-      Colors.purple[400]!,
-      Colors.teal[400]!,
-      Colors.indigo[400]!,
-      Colors.pink[400]!,
-    ];
-    return colors[name.hashCode % colors.length];
-  }
-
-  @override
+    @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
       return Scaffold(
         backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
-        // Enhanced App bar
         appBar: AppBar(
           elevation: 0,
           centerTitle: true,
-          backgroundColor: themeProvider.isDarkMode
-              ? Colors.grey[800]
-              : Colors.white,
+          backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           title: Column(
             children: [
               Text(
@@ -948,13 +1152,11 @@ class DiscussionForumState extends State<DiscussionForum>
                 ),
               ),
               Text(
-                "Share your thoughts",
+                "Share your thoughts & images",
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: themeProvider.isDarkMode
-                      ? Colors.grey[400]
-                      : Colors.grey[600],
+                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
                 ),
               ),
             ],
@@ -968,14 +1170,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: themeProvider.isDarkMode
-                    ? [
-                        Colors.grey[800]!,
-                        Colors.grey[700]!,
-                      ]
-                    : [
-                        Colors.white,
-                        Color(0xFFF8F9FA),
-                      ],
+                    ? [Colors.grey[800]!, Colors.grey[700]!]
+                    : [Colors.white, Color(0xFFF8F9FA)],
               ),
             ),
           ),
@@ -987,9 +1183,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    themeProvider.isDarkMode
-                        ? Colors.grey[600]!
-                        : Colors.grey[300]!,
+                    themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
                     Colors.transparent,
                   ],
                 ),
@@ -999,30 +1193,25 @@ class DiscussionForumState extends State<DiscussionForum>
         ),
         body: Stack(
           children: [
-            const EnhancedAnimatedBackground(), // Enhanced animated background
+            const EnhancedAnimatedBackground(),
 
-            // Show terms dialog or main content
             if (_showTermsDialog)
               _buildTermsDialog(themeProvider)
             else if (_hasAgreedToTerms)
               Column(
                 children: [
-                  // Disclaimer banner
                   if (_showDisclaimer) _buildDisclaimerBanner(themeProvider),
 
-// Real-time message list with enhanced styling and reply functionality
+                  // Messages list
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode
-                            ? Colors.grey[900]
-                            : Color(0xFFF8F9FA),
+                        color: themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
                       ),
                       child: StreamBuilder(
                         stream: _messagesRef.orderByChild("timestamp").onValue,
                         builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-                          if (!snapshot.hasData ||
-                              snapshot.data?.snapshot.value == null) {
+                          if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
                             return Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1030,9 +1219,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                   Container(
                                     padding: EdgeInsets.all(24),
                                     decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[800]
-                                          : Colors.white,
+                                      color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
@@ -1047,9 +1234,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                     child: Icon(
                                       Icons.forum_outlined,
                                       size: 48,
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[400]
-                                          : Colors.grey[500],
+                                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
                                     ),
                                   ),
                                   SizedBox(height: 16),
@@ -1058,19 +1243,15 @@ class DiscussionForumState extends State<DiscussionForum>
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[300]
-                                          : Colors.grey[700],
+                                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
                                     ),
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    "Be the first to start the conversation",
+                                    "Start a conversation or share an image",
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[400]
-                                          : Colors.grey[600],
+                                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
                                     ),
                                   ),
                                 ],
@@ -1078,21 +1259,13 @@ class DiscussionForumState extends State<DiscussionForum>
                             );
                           }
 
-                          // Convert snapshot to list of messages
-                          Map<dynamic, dynamic> messagesMap = snapshot
-                              .data!.snapshot.value as Map<dynamic, dynamic>;
-
+                          Map<dynamic, dynamic> messagesMap = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
                           List<Map<String, dynamic>> messagesList = messagesMap
                               .entries
-                              .map((e) => {
-                            "key": e.key,
-                            ...Map<String, dynamic>.from(e.value)
-                          })
+                              .map((e) => {"key": e.key, ...Map<String, dynamic>.from(e.value)})
                               .toList();
 
-                          // Sort by timestamp (ascending)
-                          messagesList.sort(
-                                  (a, b) => a["timestamp"].compareTo(b["timestamp"]));
+                          messagesList.sort((a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
                           return ListView.builder(
                             controller: _scrollController,
@@ -1101,8 +1274,7 @@ class DiscussionForumState extends State<DiscussionForum>
                             itemBuilder: (context, index) {
                               final message = messagesList[index];
                               bool isMe = message["senderId"] == userId;
-                              return _buildMessage(
-                                  message, isMe, themeProvider); // Render message with reply functionality
+                              return _buildMessage(message, isMe, themeProvider);
                             },
                           );
                         },
@@ -1110,16 +1282,13 @@ class DiscussionForumState extends State<DiscussionForum>
                     ),
                   ),
 
-                  // Reply indicator
                   _buildReplyIndicator(themeProvider),
 
-                  // Enhanced message input field & send button with reply functionality
+                  // Enhanced input section with image upload
                   Container(
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode
-                          ? Colors.grey[800]
-                          : Colors.white,
+                      color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
                       boxShadow: [
                         BoxShadow(
                           color: themeProvider.isDarkMode
@@ -1133,55 +1302,84 @@ class DiscussionForumState extends State<DiscussionForum>
                     child: SafeArea(
                       child: Row(
                         children: [
-                          // Enhanced text input field with reply functionality
+                          // Image upload button
+                          Container(
+                            decoration: BoxDecoration(
+                              color: themeProvider.isDarkMode ? Colors.grey[700] : Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: _isUploading ? null : _showImageOptions,
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  child: _isUploading
+                                      ? Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF2196F3),
+                                            ),
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.image,
+                                          color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                          size: 24,
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+
+                          // Text input field
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode
-                                    ? Colors.grey[700]
-                                    : Color(0xFFF5F5F5),
+                                color: themeProvider.isDarkMode ? Colors.grey[700] : Color(0xFFF5F5F5),
                                 borderRadius: BorderRadius.circular(24),
                                 border: Border.all(
                                   color: _isTyping
                                       ? Color(0xFF2196F3)
-                                      : (themeProvider.isDarkMode
-                                      ? Colors.grey[600]!
-                                      : Colors.grey[300]!),
+                                      : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
                                   width: _isTyping ? 2 : 1,
                                 ),
                                 boxShadow: _isTyping
                                     ? [
-                                  BoxShadow(
-                                    color: Color(0xFF2196F3).withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ]
+                                        BoxShadow(
+                                          color: Color(0xFF2196F3).withOpacity(0.2),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ]
                                     : null,
                               ),
                               child: TextField(
                                 controller: _messageController,
                                 style: TextStyle(
-                                  color: themeProvider.isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87,
+                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: null,
                                 textCapitalization: TextCapitalization.sentences,
                                 decoration: InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12,
-                                  ),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                   hintText: _isReplying
                                       ? "Reply to ${_replyingToSender}..."
-                                      : "Type your message...",
+                                      : "Type a message or share an image...",
                                   hintStyle: TextStyle(
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[500],
+                                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
                                     fontWeight: FontWeight.w500,
                                   ),
                                   border: InputBorder.none,
@@ -1189,9 +1387,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                     padding: EdgeInsets.only(left: 8, right: 4),
                                     child: Icon(
                                       _isReplying ? Icons.reply : Icons.chat_bubble_outline,
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[400]
-                                          : Colors.grey[500],
+                                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
                                       size: 20,
                                     ),
                                   ),
@@ -1201,7 +1397,7 @@ class DiscussionForumState extends State<DiscussionForum>
                           ),
                           SizedBox(width: 12),
 
-                          // Enhanced send button
+                          // Send button
                           AnimatedBuilder(
                             animation: _sendButtonScaleAnimation,
                             builder: (context, child) {
@@ -1211,28 +1407,23 @@ class DiscussionForumState extends State<DiscussionForum>
                                   decoration: BoxDecoration(
                                     gradient: _isTyping
                                         ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF1976D2),
-                                        Color(0xFF2196F3),
-                                      ],
-                                    )
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [Color(0xFF1976D2), Color(0xFF2196F3)],
+                                          )
                                         : null,
                                     color: !_isTyping
-                                        ? (themeProvider.isDarkMode
-                                        ? Colors.grey[600]
-                                        : Colors.grey[400])
+                                        ? (themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[400])
                                         : null,
                                     shape: BoxShape.circle,
                                     boxShadow: _isTyping
                                         ? [
-                                      BoxShadow(
-                                        color: Color(0xFF2196F3).withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ]
+                                            BoxShadow(
+                                              color: Color(0xFF2196F3).withOpacity(0.3),
+                                              blurRadius: 8,
+                                              offset: Offset(0, 4),
+                                            ),
+                                          ]
                                         : null,
                                   ),
                                   child: Material(
@@ -1243,9 +1434,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                       child: Container(
                                         width: 56,
                                         height: 56,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                        ),
+                                        decoration: BoxDecoration(shape: BoxShape.circle),
                                         child: Icon(
                                           _isTyping ? Icons.send_rounded : Icons.send_outlined,
                                           color: Colors.white,
@@ -1266,9 +1455,7 @@ class DiscussionForumState extends State<DiscussionForum>
               )
             else
               Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF2196F3),
-                ),
+                child: CircularProgressIndicator(color: Color(0xFF2196F3)),
               ),
           ],
         ),
@@ -1277,6 +1464,77 @@ class DiscussionForumState extends State<DiscussionForum>
   }
 }
 
+// NEW: Full-screen image viewer widget
+class FullScreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImageViewer({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                onPressed: () {
+                  // Add download functionality if needed
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Download feature coming soon!"),
+                      backgroundColor: Color(0xFF2196F3),
+                    ),
+                  );
+                },
+                icon: Icon(Icons.download, color: Colors.white),
+              ),
+            ],
+          ),
+          body: Center(
+            child: PhotoView(
+              imageProvider: CachedNetworkImageProvider(imageUrl),
+              backgroundDecoration: BoxDecoration(color: Colors.black),
+              minScale: PhotoViewComputedScale.contained,
+              maxScale: PhotoViewComputedScale.covered * 3,
+              heroAttributes: PhotoViewHeroAttributes(tag: imageUrl),
+              loadingBuilder: (context, event) => Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF2196F3),
+                  strokeWidth: 2,
+                ),
+              ),
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.white, size: 48),
+                    SizedBox(height: 16),
+                    Text(
+                      "Failed to load image",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text("Go Back"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Keep your existing animated background classes
 class EnhancedAnimatedBackground extends StatefulWidget {
   const EnhancedAnimatedBackground({super.key});
 
@@ -1357,7 +1615,6 @@ class _EnhancedBubblePainter extends CustomPainter {
       final double dx = (bubble.x + progress * bubble.dx) % 1.0;
       final Offset center = Offset(dx * size.width, dy * size.height);
 
-      // Create gradient paint for more appealing bubbles
       final Paint paint = Paint()
         ..shader = RadialGradient(
           colors: [
@@ -1375,3 +1632,4 @@ class _EnhancedBubblePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+
