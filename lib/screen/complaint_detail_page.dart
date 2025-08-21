@@ -45,9 +45,11 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
         final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
         data['user_name'] = userData['name'] ?? 'Unknown';
         data['user_email'] = userData['email'] ?? 'N/A';
+        data['user_phone'] = userData['phone'] ?? 'Not Provided';
       } else {
         data['user_name'] = 'Unknown';
         data['user_email'] = 'N/A';
+        data['user_phone'] = 'Not Provided';
       }
 
       setState(() {
@@ -191,6 +193,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                       _formatTimestamp(complaint!["timestamp"]), themeProvider),
                   _buildInfoSection("👤 User",
                       "${complaint!["user_name"]} (${complaint!["user_email"]})", themeProvider),
+                  _buildInfoSection("📱 Phone", complaint!["user_phone"], themeProvider),
                   _buildInfoSection(
                       "📝 Description", complaint!["description"] ?? "-", themeProvider),
                   const SizedBox(height: 12),
