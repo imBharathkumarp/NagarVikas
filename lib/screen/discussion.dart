@@ -315,9 +315,18 @@ class DiscussionForumState extends State<DiscussionForum>
       });
     });
 
-    Future.delayed(Duration(seconds: 5), () {
-      if (mounted && _showDisclaimer && _hasAgreedToTerms) {
-        _hideDisclaimer();
+    // Auto-scroll to bottom when new messages arrive
+    _messagesRef.orderByChild("timestamp").limitToLast(1).onChildAdded.listen((event) {
+      if (mounted) {
+        Future.delayed(Duration(milliseconds: 500), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent + 80,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
       }
     });
   }
@@ -866,11 +875,13 @@ class DiscussionForumState extends State<DiscussionForum>
     }
 
     Future.delayed(Duration(milliseconds: 300), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 80,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -2075,17 +2086,32 @@ class DiscussionForumState extends State<DiscussionForum>
                             }
                           }
 
-                          return ListView(
-                            controller: _scrollController,
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            children: messageWidgets.isNotEmpty
-                                ? messageWidgets
-                                : messagesList.map((message) {
-                                    bool isMe = message["senderId"] == userId;
-                                    return _buildMessage(
-                                        message, isMe, themeProvider);
-                                  }).toList(),
-                          );
+                              final listView = ListView(
+                                controller: _scrollController,
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                children: messageWidgets.isNotEmpty
+                                    ? messageWidgets
+                                    : messagesList.map((message) {
+                                  bool isMe = message["senderId"] == userId;
+                                  return _buildMessage(
+                                      message, isMe, themeProvider);
+                                }).toList(),
+                              );
+
+                              // Ensure we scroll to bottom after build completes
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (_scrollController.hasClients) {
+                                  Future.delayed(Duration(milliseconds: 100), () {
+                                    if (_scrollController.hasClients) {
+                                      _scrollController.jumpTo(
+                                        _scrollController.position.maxScrollExtent,
+                                      );
+                                    }
+                                  });
+                                }
+                              });
+
+                              return listView;
                         },
                       ),
                     ),
