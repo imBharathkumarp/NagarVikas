@@ -28,6 +28,7 @@ class AdminDashboardState extends State<AdminDashboard> {
   List<Map<String, dynamic>> complaints = [];
   List<Map<String, dynamic>> filteredComplaints = [];
   TextEditingController searchController = TextEditingController();
+  String selectedStatus = 'All';
   StreamSubscription? _complaintsSubscription;
 
   // Bottom navigation items
@@ -149,10 +150,20 @@ class AdminDashboardState extends State<AdminDashboard> {
   }
 
   void _searchComplaints(String query) {
+    _applyFilters();
+  }
+
+  void _applyFilters() {
+    String query = searchController.text.toLowerCase();
     setState(() {
       filteredComplaints = complaints.where((complaint) {
-        return complaint.values.any((value) =>
-            value.toString().toLowerCase().contains(query.toLowerCase()));
+        final matchesStatus = selectedStatus == 'All' ||
+            complaint['status'].toString().toLowerCase() ==
+                selectedStatus.toLowerCase();
+        final matchesQuery = query.isEmpty ||
+            complaint.values.any((value) =>
+                value.toString().toLowerCase().contains(query));
+        return matchesStatus && matchesQuery;
       }).toList();
     });
   }
@@ -676,58 +687,61 @@ class AdminDashboardState extends State<AdminDashboard> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode
-                        ? Colors.grey[800]
-                        : Colors.grey[50],
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: themeProvider.isDarkMode
-                          ? Colors.grey[700]!
-                          : Colors.grey[200]!,
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: themeProvider.isDarkMode
-                            ? Colors.black26
-                            : Colors.black.withAlpha(8),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                      BoxShadow(
-                        color: themeProvider.isDarkMode
-                            ? Colors.black12
-                            : Colors.black.withAlpha(5),
-                        blurRadius: 1,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: searchController,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      color: themeProvider.isDarkMode
-                          ? Colors.white
-                          : const Color(0xFF1A1A1A),
-                      height: 1.4,
-                    ),
-                    decoration: InputDecoration(
-                      prefixIcon: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: Icon(
-                          Icons.search_rounded,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
                           color: themeProvider.isDarkMode
-                              ? Colors.grey[400]
-                              : Colors.grey[600],
-                          size: 22,
+                              ? Colors.grey[800]
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[700]!
+                                : Colors.grey[200]!,
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.black26
+                                  : Colors.black.withAlpha(8),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                            BoxShadow(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.black12
+                                  : Colors.black.withAlpha(5),
+                              blurRadius: 1,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
-                      ),
-                      suffixIcon: searchController.text.isNotEmpty
-                          ? Container(
+                        child: TextField(
+                          controller: searchController,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            color: themeProvider.isDarkMode
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A),
+                            height: 1.4,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Container(
+                              padding: const EdgeInsets.all(12),
+                              child: Icon(
+                                Icons.search_rounded,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                                size: 22,
+                              ),
+                            ),
+                            suffixIcon: searchController.text.isNotEmpty
+                                ? Container(
                               padding: const EdgeInsets.all(12),
                               child: GestureDetector(
                                 onTap: () {
@@ -743,30 +757,100 @@ class AdminDashboardState extends State<AdminDashboard> {
                                 ),
                               ),
                             )
-                          : null,
-                      hintText: "Search complaints...",
-                      hintStyle: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: themeProvider.isDarkMode
-                            ? Colors.grey[400]
-                            : Colors.grey[500],
-                        height: 1.4,
+                                : null,
+                            hintText: "Search complaints...",
+                            hintStyle: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[500],
+                              height: 1.4,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            isDense: false,
+                          ),
+                          cursorColor: const Color(0xFF4CAF50),
+                          cursorWidth: 2,
+                          cursorHeight: 20,
+                          onChanged: _searchComplaints,
+                        ),
                       ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      isDense: false,
                     ),
-                    cursorColor: const Color(0xFF4CAF50),
-                    cursorWidth: 2,
-                    cursorHeight: 20,
-                    onChanged: _searchComplaints,
-                  ),
+                    const SizedBox(width: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[700]!
+                              : Colors.grey[200]!,
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: themeProvider.isDarkMode
+                                ? Colors.black26
+                                : Colors.black.withAlpha(8),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                          BoxShadow(
+                            color: themeProvider.isDarkMode
+                                ? Colors.black12
+                                : Colors.black.withAlpha(5),
+                            blurRadius: 1,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedStatus,
+                          icon: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          borderRadius: BorderRadius.circular(16),
+                          items: ['All', 'Pending', 'In Progress', 'Resolved']
+                              .map((status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(
+                              status,
+                              style: TextStyle(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ))
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                selectedStatus = value;
+                              });
+                              _applyFilters();
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Expanded(
