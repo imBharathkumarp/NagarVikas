@@ -29,6 +29,8 @@ class ProfilePageState extends State<ProfilePage>
   String joinDate = "Loading...";
   int complaintsCount = 0;
   bool isLoading = true;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late DatabaseReference _userRef;
 
   // Animation controllers
   late AnimationController _animationController;
@@ -40,7 +42,17 @@ class ProfilePageState extends State<ProfilePage>
     _initAnimations();
     _fetchUserData();
     _fetchComplaintsCount();
+    _initFirebaseRef(); 
   }
+
+  // Firebase
+  void _initFirebaseRef() {
+  User? user = _auth.currentUser;
+  if (user != null) {
+    _userRef = FirebaseDatabase.instance.ref().child('users').child(user.uid);
+  }
+  }
+  
 
   @override
   void dispose() {
@@ -65,41 +77,41 @@ class ProfilePageState extends State<ProfilePage>
 
   /// Fetches user data from Firebase Authentication and Realtime Database
   Future<void> _fetchUserData() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        DatabaseReference userRef =
-            FirebaseDatabase.instance.ref().child('users').child(user.uid);
+  try {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DatabaseReference userRef =
+          FirebaseDatabase.instance.ref().child('users').child(user.uid);
 
-        final snapshot = await userRef.get();
-        if (snapshot.exists) {
-          Map<dynamic, dynamic>? data =
-              snapshot.value as Map<dynamic, dynamic>?;
-          setState(() {
-            name = data?['name'] ?? "User";
-            email = user.email ?? "No email";
-            userId = user.uid;
-            phoneNumber = data?['phone'] ?? user.phoneNumber ?? "Not provided";
-            joinDate = _formatJoinDate(user.metadata.creationTime);
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            name = user.displayName ?? "User";
-            email = user.email ?? "No email";
-            userId = user.uid;
-            phoneNumber = user.phoneNumber ?? "Not provided";
-            joinDate = _formatJoinDate(user.metadata.creationTime);
-            isLoading = false;
-          });
-        }
+      final snapshot = await userRef.get();
+      if (snapshot.exists) {
+        Map<dynamic, dynamic>? data =
+            snapshot.value as Map<dynamic, dynamic>?;
+        setState(() {
+          name = data?['name'] ?? "User";
+          email = user.email ?? "No email";
+          userId = user.uid;
+          phoneNumber = data?['phone'] ?? "Not provided";  // 👈 THIS LINE
+          joinDate = _formatJoinDate(user.metadata.creationTime);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          name = user.displayName ?? "User";
+          email = user.email ?? "No email";
+          userId = user.uid;
+          phoneNumber = "Not provided";  // 👈 AND THIS LINE TOO
+          joinDate = _formatJoinDate(user.metadata.creationTime);
+          isLoading = false;
+        });
       }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
     }
+  } catch (e) {
+    setState(() {
+      isLoading = false;
+    });
   }
+}
 
   /// Fetches the count of complaints filed by the current user
   Future<void> _fetchComplaintsCount() async {
@@ -133,6 +145,48 @@ class ProfilePageState extends State<ProfilePage>
       }
     }
   }
+
+
+  // Update User Data in Firebase
+Future<void> _updateUserData(String field, String value) async {
+  try {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      // Update in Firebase Realtime Database
+      await _userRef.update({field: value});
+      
+      // Update local state
+      setState(() {
+        if (field == 'name') {
+          name = value;
+        } else if (field == 'phone') {
+          phoneNumber = value;
+        }
+      });
+      
+      Fluttertoast.showToast(
+        msg: "${field == 'name' ? 'Name' : 'Phone number'} updated successfully!",
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+    }
+  } catch (e) {
+    print('Error updating $field: $e'); // For debugging
+    Fluttertoast.showToast(
+      msg: "Error updating ${field == 'name' ? 'name' : 'phone number'}: ${e.toString()}",
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+      toastLength: Toast.LENGTH_LONG,
+    );
+  }
+}
+
+// Make sure your phone validation method is correct:
+bool _isValidPhoneNumber(String phone) {
+  // Remove any spaces or special characters
+  phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+  return phone.length == 10 && RegExp(r'^[0-9]{10}$').hasMatch(phone);
+}
 
   String _formatJoinDate(DateTime? date) {
     if (date == null) return "Unknown";
@@ -961,51 +1015,119 @@ class ProfilePageState extends State<ProfilePage>
   }
 
   void _showEditDialog(String field, ThemeProvider themeProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          "Edit ${field == 'name' ? 'Name' : 'Phone Number'}",
-          style: TextStyle(
-            color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-          ),
-        ),
-        content: TextField(
-          style: TextStyle(
-            color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-          ),
-          decoration: InputDecoration(
-            labelText: field == 'name' ? 'Full Name' : 'Phone Number',
-            labelStyle: TextStyle(
-              color: themeProvider.isDarkMode
-                  ? Colors.grey[400]
-                  : Colors.grey[600],
-            ),
-            border: const OutlineInputBorder(),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(
-                color:
-                    themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey,
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Save"),
-          ),
-        ],
-      ),
-    );
+  final TextEditingController controller = TextEditingController();
+  
+  // Set initial value
+  if (field == 'name') {
+    controller.text = name != "Loading..." ? name : "";
+  } else if (field == 'phone') {
+    controller.text = phoneNumber != "Not provided" ? phoneNumber : "";
   }
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        "Edit ${field == 'name' ? 'Name' : 'Phone Number'}",
+        style: TextStyle(
+          color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+        ),
+      ),
+      content: TextField(
+        controller: controller,
+        keyboardType: field == 'phone' ? TextInputType.phone : TextInputType.text,
+        maxLength: field == 'phone' ? 10 : null,
+        style: TextStyle(
+          color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+        ),
+        decoration: InputDecoration(
+          labelText: field == 'name' ? 'Full Name' : 'Phone Number (10 digits)',
+          labelStyle: TextStyle(
+            color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+          ),
+          hintText: field == 'phone' ? 'Enter 10-digit phone number' : 'Enter your full name',
+          hintStyle: TextStyle(
+            color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[500],
+          ),
+          border: const OutlineInputBorder(),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey,
+            ),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFF42A5F5), width: 2),
+          ),
+          counterText: field == 'phone' ? null : '', // Hide counter for name field
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            "Cancel",
+            style: TextStyle(
+              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            String value = controller.text.trim();
+            
+            // Validation
+            if (value.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${field == 'name' ? 'Name' : 'Phone number'} cannot be empty'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+            
+            if (field == 'phone') {
+              if (!_isValidPhoneNumber(value)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid 10-digit phone number'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+            }
+            
+            if (field == 'name' && value.length < 2) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Name must be at least 2 characters long'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+            
+            // Close dialog first
+            Navigator.pop(context);
+            
+            // Update the data in Firebase
+            await _updateUserData(field, value);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF42A5F5),
+          ),
+          child: const Text(
+            "Save", 
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   void _showLogoutDialog(ThemeProvider themeProvider) {
     showDialog(
