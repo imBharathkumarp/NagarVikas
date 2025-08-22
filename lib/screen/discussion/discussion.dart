@@ -244,7 +244,7 @@ class DiscussionForumState extends State<DiscussionForum>
                   ),
                 ),
                 SizedBox(height: 25),
-                
+
                 // Title
                 Text(
                   'Share Media',
@@ -255,7 +255,7 @@ class DiscussionForumState extends State<DiscussionForum>
                   ),
                 ),
                 SizedBox(height: 25),
-                
+
                 // Media options grid
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -271,7 +271,7 @@ class DiscussionForumState extends State<DiscussionForum>
                       },
                       themeProvider: themeProvider,
                     ),
-                    
+
                     // Gallery Photo
                     _buildMediaOption(
                       icon: Icons.photo_library,
@@ -283,7 +283,7 @@ class DiscussionForumState extends State<DiscussionForum>
                       },
                       themeProvider: themeProvider,
                     ),
-                    
+
                     // Video Camera
                     _buildMediaOption(
                       icon: Icons.videocam,
@@ -295,7 +295,7 @@ class DiscussionForumState extends State<DiscussionForum>
                       },
                       themeProvider: themeProvider,
                     ),
-                    
+
                     // Gallery Video
                     _buildMediaOption(
                       icon: Icons.video_library,
@@ -446,7 +446,7 @@ class DiscussionForumState extends State<DiscussionForum>
       });
 
       final videoFile = File(video.path);
-      
+
       // Check file size (50MB limit)
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
@@ -492,7 +492,7 @@ class DiscussionForumState extends State<DiscussionForum>
       });
 
       final videoFile = File(video.path);
-      
+
       // Check file size (50MB limit)
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
@@ -667,8 +667,56 @@ class DiscussionForumState extends State<DiscussionForum>
     });
   }
 
+  /// Delete message
+  void _deleteMessage(String messageId) {
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return AlertDialog(
+            backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            title: Text(
+              'Delete Message',
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Are you sure you want to delete this message? This action cannot be undone.',
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  _messagesRef.child(messageId).remove();
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   /// Show edit/delete options for own messages
-  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider) {
+  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider, bool hasMedia) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -694,6 +742,31 @@ class DiscussionForumState extends State<DiscussionForum>
               leading: Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
+                  color: Color(0xFF4CAF50).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.reply, color: Color(0xFF4CAF50)),
+              ),
+              title: Text(
+                'Reply to Message',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _replyToMessage(
+                  messageId,
+                  message.isNotEmpty ? message : (hasMedia ? "Media" : "Message"),
+                  currentUserName ?? "You",
+                );
+              },
+            ),
+            if (!hasMedia) ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
                   color: Color(0xFF2196F3).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -709,6 +782,27 @@ class DiscussionForumState extends State<DiscussionForum>
               onTap: () {
                 Navigator.pop(context);
                 _startEditingMessage(messageId, message);
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.delete, color: Colors.red),
+              ),
+              title: Text(
+                'Delete Message',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _deleteMessage(messageId);
               },
             ),
           ],

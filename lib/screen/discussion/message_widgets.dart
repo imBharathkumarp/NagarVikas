@@ -15,7 +15,7 @@ class MessageWidgets {
     Function(String) onImageTap,
     Function(String) onVideoTap,
     Function(String, String, String) onReply,
-    Function(String, String, ThemeProvider) onMessageOptions,
+      Function(String, String, ThemeProvider, bool) onMessageOptions,
   ) {
     final timeString = ForumLogic.formatTime(
         messageData["createdAt"] ?? messageData["timestamp"]);
@@ -77,14 +77,16 @@ class MessageWidgets {
                     // Message bubble
                     GestureDetector(
                       onLongPress: () {
-                        if (isMe && messageData["message"] != null) {
-                          // Show edit options for own messages
+                        if (isMe) {
+                          // Show reply/edit/delete options for own messages
                           onMessageOptions(
                             messageData["key"] ?? "",
                             messageData["message"] ?? "",
                             themeProvider,
+                            isImageMessage || isVideoMessage,
                           );
-                        } else if (!isMe) {
+                        } else {
+                          // Show reply option for other messages
                           onReply(
                             messageData["key"] ?? "",
                             messageData["message"] ?? (isImageMessage ? "Image" : isVideoMessage ? "Video" : "Message"),
@@ -158,8 +160,7 @@ class MessageWidgets {
                                     left: BorderSide(
                                       color: isMe
                                           ? Colors.white
-                                          : const Color.fromARGB(
-                                              255, 4, 204, 240),
+                                          : const Color.fromARGB(255, 4, 204, 240),
                                       width: 2,
                                     ),
                                   ),
@@ -394,29 +395,26 @@ class MessageWidgets {
                                     ),
                                   ),
                                 ],
-                                if (!isMe) ...[
-                                  SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () {
-                                      onReply(
-                                        messageData["key"] ?? "",
-                                        messageData["message"] ?? (isImageMessage ? "Image" : isVideoMessage ? "Video" : "Message"),
-                                        messageData["senderName"] ??
-                                            "Unknown User",
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(2),
-                                      child: Icon(
-                                        Icons.reply,
-                                        size: 14,
-                                        color: themeProvider.isDarkMode
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600],
-                                      ),
+                                SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () {
+                                    onReply(
+                                      messageData["key"] ?? "",
+                                      messageData["message"] ?? (isImageMessage ? "Image" : isVideoMessage ? "Video" : "Message"),
+                                      messageData["senderName"] ?? "Unknown User",
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.all(2),
+                                    child: Icon(
+                                      Icons.reply,
+                                      size: 14,
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600],
                                     ),
                                   ),
-                                ],
+                                ),
                               ],
                             ),
                           ],
@@ -1071,7 +1069,7 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
         _isInitialized = true;
       });
       _controller.play();
-      
+
       // Auto-hide controls after 3 seconds
       Future.delayed(Duration(seconds: 3), () {
         if (mounted) {
