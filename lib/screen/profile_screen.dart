@@ -447,21 +447,6 @@ bool _isValidPhoneNumber(String phone) {
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => _showEditProfileDialog(themeProvider),
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF42A5F5).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.edit,
-                      color: Color(0xFF42A5F5),
-                      size: 20,
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 20),
