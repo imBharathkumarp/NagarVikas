@@ -927,9 +927,19 @@ class AdminDashboardState extends State<AdminDashboard> {
             onTap: _onItemTapped,
             type: BottomNavigationBarType.fixed,
             backgroundColor:
-                themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
+            themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
             elevation: 10,
             selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const DiscussionForum(isAdmin: true),
+              ));
+            },
+            backgroundColor: const Color(0xFF00BCD4),
+            child: const Icon(Icons.forum, color: Colors.white),
+            tooltip: 'Discussion Forum',
           ),
         );
       },
