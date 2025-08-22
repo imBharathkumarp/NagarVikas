@@ -55,6 +55,11 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _isReplying = false;
   bool _showEmojiPicker = false;
 
+  // Edit message functionality
+  bool _isEditing = false;
+  String? _editingMessageId;
+  String? _originalMessage;
+
   // Emoji categories and data
   final Map<String, List<String>> _emojiCategories = {
     'Smileys': [
@@ -310,9 +315,18 @@ class DiscussionForumState extends State<DiscussionForum>
       });
     });
 
-    Future.delayed(Duration(seconds: 5), () {
-      if (mounted && _showDisclaimer && _hasAgreedToTerms) {
-        _hideDisclaimer();
+    // Auto-scroll to bottom when new messages arrive
+    _messagesRef.orderByChild("timestamp").limitToLast(1).onChildAdded.listen((event) {
+      if (mounted) {
+        Future.delayed(Duration(milliseconds: 500), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent + 80,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
       }
     });
   }
@@ -804,6 +818,12 @@ class DiscussionForumState extends State<DiscussionForum>
 
   // UPDATED: Send message with optional image URL
   void _sendMessage({String? imageUrl}) {
+    // Handle editing case
+    if (_isEditing) {
+      _saveEditedMessage();
+      return;
+    }
+
     if ((_messageController.text.trim().isEmpty && imageUrl == null) ||
         currentUserName == null) return;
 
@@ -855,11 +875,13 @@ class DiscussionForumState extends State<DiscussionForum>
     }
 
     Future.delayed(Duration(milliseconds: 300), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 80,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -887,6 +909,66 @@ class DiscussionForumState extends State<DiscussionForum>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => FullScreenImageViewer(imageUrl: imageUrl),
+      ),
+    );
+  }
+
+  /// Build edit indicator
+  Widget _buildEditIndicator(ThemeProvider themeProvider) {
+    if (!_isEditing) return SizedBox.shrink();
+
+    return Container(
+      margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: Colors.orange, width: 3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.edit, size: 16, color: Colors.orange),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Editing message',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  _originalMessage ?? '',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: _cancelEditing,
+            child: Icon(
+              Icons.close,
+              size: 18,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[400]
+                  : Colors.grey[600],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1011,6 +1093,96 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
+  /// Start editing a message
+  void _startEditingMessage(String messageId, String message) {
+    setState(() {
+      _isEditing = true;
+      _editingMessageId = messageId;
+      _originalMessage = message;
+      _messageController.text = message;
+    });
+    FocusScope.of(context).requestFocus(_textFieldFocusNode);
+  }
+
+  /// Cancel editing
+  void _cancelEditing() {
+    setState(() {
+      _isEditing = false;
+      _editingMessageId = null;
+      _originalMessage = null;
+      _messageController.clear();
+    });
+  }
+
+  /// Save edited message
+  void _saveEditedMessage() {
+    if (_editingMessageId == null || _messageController.text.trim().isEmpty) return;
+
+    _messagesRef.child(_editingMessageId!).update({
+      "message": _messageController.text.trim(),
+      "editedAt": ServerValue.timestamp,
+      "isEdited": true,
+    });
+
+    setState(() {
+      _isEditing = false;
+      _editingMessageId = null;
+      _originalMessage = null;
+      _messageController.clear();
+      _isTyping = false;
+    });
+  }
+
+  /// Show edit/delete options for own messages
+  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF2196F3).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.edit, color: Color(0xFF2196F3)),
+              ),
+              title: Text(
+                'Edit Message',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _startEditingMessage(messageId, message);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // UPDATED: Build message with image support
   Widget _buildMessage(Map<String, dynamic> messageData, bool isMe,
       ThemeProvider themeProvider) {
@@ -1100,7 +1272,14 @@ class DiscussionForumState extends State<DiscussionForum>
                     // Message bubble
                     GestureDetector(
                       onLongPress: () {
-                        if (!isMe) {
+                        if (isMe && messageData["message"] != null) {
+                          // Show edit options for own messages
+                          _showMessageOptions(
+                            messageData["key"] ?? "",
+                            messageData["message"] ?? "",
+                            themeProvider,
+                          );
+                        } else if (!isMe) {
                           _replyToMessage(
                             messageData["key"] ?? "",
                             messageData["message"] ?? "Image",
@@ -1298,9 +1477,24 @@ class DiscussionForumState extends State<DiscussionForum>
                                       color: isMe
                                           ? Colors.white70
                                           : (themeProvider.isDarkMode
-                                              ? Colors.grey[400]
-                                              : Colors.grey[600]),
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600]),
                                       fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                                if (messageData["isEdited"] == true) ...[
+                                  SizedBox(width: 4),
+                                  Text(
+                                    "(edited)",
+                                    style: TextStyle(
+                                      color: isMe
+                                          ? Colors.white70
+                                          : (themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600]),
+                                      fontSize: 10,
+                                      fontStyle: FontStyle.italic,
                                     ),
                                   ),
                                 ],
@@ -1892,24 +2086,40 @@ class DiscussionForumState extends State<DiscussionForum>
                             }
                           }
 
-                          return ListView(
-                            controller: _scrollController,
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            children: messageWidgets.isNotEmpty
-                                ? messageWidgets
-                                : messagesList.map((message) {
-                                    bool isMe = message["senderId"] == userId;
-                                    return _buildMessage(
-                                        message, isMe, themeProvider);
-                                  }).toList(),
-                          );
+                              final listView = ListView(
+                                controller: _scrollController,
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                children: messageWidgets.isNotEmpty
+                                    ? messageWidgets
+                                    : messagesList.map((message) {
+                                  bool isMe = message["senderId"] == userId;
+                                  return _buildMessage(
+                                      message, isMe, themeProvider);
+                                }).toList(),
+                              );
+
+                              // Ensure we scroll to bottom after build completes
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (_scrollController.hasClients) {
+                                  Future.delayed(Duration(milliseconds: 100), () {
+                                    if (_scrollController.hasClients) {
+                                      _scrollController.jumpTo(
+                                        _scrollController.position.maxScrollExtent,
+                                      );
+                                    }
+                                  });
+                                }
+                              });
+
+                              return listView;
                         },
                       ),
                     ),
                   ),
 
-// Reply indicator
+// Reply and edit indicators
                   _buildReplyIndicator(themeProvider),
+                  _buildEditIndicator(themeProvider),
 
 // Enhanced message input field & send button with emoji picker
                   Container(
@@ -1955,146 +2165,133 @@ class DiscussionForumState extends State<DiscussionForum>
                                   height: 48,
                                   child: _isUploading
                                       ? Center(
-                                          child: SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Color(0xFF2196F3),
-                                            ),
-                                          ),
-                                        )
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Color(0xFF2196F3),
+                                      ),
+                                    ),
+                                  )
                                       : Icon(
-                                          Icons.image,
-                                          color: themeProvider.isDarkMode
-                                              ? Colors.grey[400]
-                                              : Colors.grey[500],
-                                          size: 24,
-                                        ),
+                                    Icons.image,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[500],
+                                    size: 24,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                           SizedBox(width: 12),
 
-                          // Emoji button
-                          GestureDetector(
-                            onTap: () {
-                              // Always hide keyboard first, then toggle emoji picker
-                              FocusScope.of(context).unfocus();
-                              Future.delayed(Duration(milliseconds: 100), () {
-                                _toggleEmojiPicker();
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: _showEmojiPicker
-                                    ? Color(0xFF2196F3).withOpacity(0.1)
-                                    : (themeProvider.isDarkMode
-                                        ? Colors.grey[700]
-                                        : Colors.grey[100]),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _showEmojiPicker
-                                      ? Color(0xFF2196F3)
-                                      : Colors.transparent,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Icon(
-                                _showEmojiPicker
-                                    ? Icons.keyboard
-                                    : Icons.emoji_emotions_outlined,
-                                color: _showEmojiPicker
-                                    ? Color(0xFF2196F3)
-                                    : (themeProvider.isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600]),
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-
                           // Enhanced text input field
                           Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode
-                                    ? Colors.grey[700]
-                                    : Color(0xFFF5F5F5),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: _isTyping
-                                      ? Color(0xFF2196F3)
-                                      : (themeProvider.isDarkMode
-                                          ? Colors.grey[600]!
-                                          : Colors.grey[300]!),
-                                  width: _isTyping ? 2 : 1,
-                                ),
-                                boxShadow: _isTyping
-                                    ? [
-                                        BoxShadow(
-                                          color: Color(0xFF2196F3)
-                                              .withOpacity(0.2),
-                                          blurRadius: 8,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ]
-                                    : null,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: (_isTyping || _isEditing)
+                                    ? Color(0xFF2196F3)
+                                    : (themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!),
+                                width: (_isTyping || _isEditing) ? 2 : 1,
                               ),
-                              child: TextField(
-                                controller: _messageController,
-                                focusNode: _textFieldFocusNode,
-                                onTap: () {
-                                  // Hide emoji picker when text field is tapped
-                                  if (_showEmojiPicker) {
-                                    setState(() {
-                                      _showEmojiPicker = false;
-                                    });
-                                    _emojiAnimationController.reverse();
-                                  }
-                                },
-                                style: TextStyle(
-                                  color: themeProvider.isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                              boxShadow: (_isTyping || _isEditing)
+                                  ? [
+                                BoxShadow(
+                                  color: Color(0xFF2196F3)
+                                      .withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
                                 ),
-                                maxLines: null,
-                                textCapitalization:
-                                    TextCapitalization.sentences,
-                                decoration: InputDecoration(
-                                  contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 12),
-                                  hintText: _isReplying
-                                      ? "Reply to ${_replyingToSender}..."
-                                      : "Type a message or share an image...",
-                                  hintStyle: TextStyle(
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[500],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  border: InputBorder.none,
-                                  prefixIcon: Padding(
-                                    padding: EdgeInsets.only(left: 8, right: 4),
-                                    child: Icon(
-                                      _isReplying
-                                          ? Icons.reply
-                                          : Icons.chat_bubble_outline,
+                              ]
+                                  : null,
+                            ),
+                            child: Row(
+                              children: [
+                                // Text field
+                                Expanded(
+                                  child: TextField(
+                                    controller: _messageController,
+                                    focusNode: _textFieldFocusNode,
+                                    onTap: () {
+                                      // Hide emoji picker when text field is tapped
+                                      if (_showEmojiPicker) {
+                                        setState(() {
+                                          _showEmojiPicker = false;
+                                        });
+                                        _emojiAnimationController.reverse();
+                                      }
+                                    },
+                                    style: TextStyle(
                                       color: themeProvider.isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: null,
+                                    textCapitalization:
+                                    TextCapitalization.sentences,
+                                    decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 12),
+                                      hintText: _isEditing
+                                          ? "Edit your message..."
+                                          : (_isReplying
+                                          ? "Reply to ${_replyingToSender}..."
+                                          : "Type a message..."),
+                                      hintStyle: TextStyle(
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[500],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      border: InputBorder.none,
+                                    ),
+                                  ),
+                                ),
+                                // Emoji button inside text field
+                                GestureDetector(
+                                  onTap: () {
+                                    FocusScope.of(context).unfocus();
+                                    Future.delayed(Duration(milliseconds: 100), () {
+                                      _toggleEmojiPicker();
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: EdgeInsets.only(right: 8),
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: _showEmojiPicker
+                                          ? Color(0xFF2196F3).withOpacity(0.1)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Icon(
+                                      _showEmojiPicker
+                                          ? Icons.keyboard
+                                          : Icons.emoji_emotions_outlined,
+                                      color: _showEmojiPicker
+                                          ? Color(0xFF2196F3)
+                                          : (themeProvider.isDarkMode
                                           ? Colors.grey[400]
-                                          : Colors.grey[500],
+                                          : Colors.grey[600]),
                                       size: 20,
                                     ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
+                        ),
                           SizedBox(width: 12),
 
                           // Send button
@@ -2105,7 +2302,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                 scale: _sendButtonScaleAnimation.value,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    gradient: _isTyping
+                                    gradient: (_isTyping || _isEditing)
                                         ? LinearGradient(
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
@@ -2115,13 +2312,13 @@ class DiscussionForumState extends State<DiscussionForum>
                                             ],
                                           )
                                         : null,
-                                    color: !_isTyping
+                                    color: !(_isTyping || _isEditing)
                                         ? (themeProvider.isDarkMode
-                                            ? Colors.grey[600]
-                                            : Colors.grey[400])
+                                        ? Colors.grey[600]
+                                        : Colors.grey[400])
                                         : null,
                                     shape: BoxShape.circle,
-                                    boxShadow: _isTyping
+                                    boxShadow: (_isTyping || _isEditing)
                                         ? [
                                             BoxShadow(
                                               color: Color(0xFF2196F3)
@@ -2136,7 +2333,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                     color: Colors.transparent,
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(28),
-                                      onTap: _isTyping
+                                      onTap: (_isTyping || _isEditing)
                                           ? () => _sendMessage()
                                           : null,
                                       child: Container(
@@ -2145,11 +2342,13 @@ class DiscussionForumState extends State<DiscussionForum>
                                         decoration: BoxDecoration(
                                             shape: BoxShape.circle),
                                         child: Icon(
-                                          _isTyping
+                                          _isEditing
+                                              ? Icons.check
+                                              : (_isTyping
                                               ? Icons.send_rounded
-                                              : Icons.send_outlined,
+                                              : Icons.send_outlined),
                                           color: Colors.white,
-                                          size: _isTyping ? 24 : 20,
+                                          size: (_isTyping || _isEditing) ? 24 : 20,
                                         ),
                                       ),
                                     ),
