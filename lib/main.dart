@@ -272,345 +272,207 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: isDarkMode 
-          ? const Color(0xFF0A0E1A) 
-          : const Color(0xFFF8FAFC),
+      backgroundColor: isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
       drawer: _buildModernDrawer(context, isDarkMode, screenWidth, screenHeight),
 
-      // Main Body
-      body: Stack(
-        children: [
-          // Enhanced Background with gradient overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: isDarkMode
-                  ? const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFF0A0E1A),
-                        Color(0xFF1A1F2E),
-                        Color(0xFF0A0E1A),
-                      ],
-                      stops: [0.0, 0.5, 1.0],
-                    )
-                  : const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFF8FAFC),
-                        Color(0xFFEEF2FF),
-                        Color(0xFFF8FAFC),
-                      ],
-                      stops: [0.0, 0.5, 1.0],
-                    ),
-            ),
+      // Main Body with matching login design
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDarkMode
+                ? [Colors.grey[900]!, Colors.grey[850]!]
+                : [const Color(0xFFF8F9FA), const Color(0xFFFFFFFF)],
           ),
-
-          // Floating orb backgrounds with blur effect
-          if (!isDarkMode) ...[
-            Positioned(
-              top: screenHeight * 0.05,
-              right: -screenWidth * 0.15,
-              child: Container(
-                width: screenWidth * 0.6,
-                height: screenWidth * 0.6,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.blue.withOpacity(0.15),
-                      Colors.purple.withOpacity(0.08),
-                      Colors.transparent,
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: screenHeight * 0.15,
-              left: -screenWidth * 0.15,
-              child: Container(
-                width: screenWidth * 0.55,
-                height: screenWidth * 0.55,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.purple.withOpacity(0.12),
-                      Colors.pink.withOpacity(0.06),
-                      Colors.transparent,
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ] else ...[
-            Positioned(
-              top: screenHeight * 0.08,
-              right: -screenWidth * 0.2,
-              child: Container(
-                width: screenWidth * 0.7,
-                height: screenWidth * 0.7,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.teal.withOpacity(0.15),
-                      Colors.cyan.withOpacity(0.08),
-                      Colors.transparent,
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: screenHeight * 0.2,
-              left: -screenWidth * 0.2,
-              child: Container(
-                width: screenWidth * 0.6,
-                height: screenWidth * 0.6,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.indigo.withOpacity(0.12),
-                      Colors.purple.withOpacity(0.06),
-                      Colors.transparent,
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ],
-
-          // Scrollable Content
-          SingleChildScrollView(
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.07, vertical: screenHeight * 0.08),
-            child: Column(
-              children: [
-                // Enhanced Logo Container with hero animation
-                FadeInDown(
-                  duration: const Duration(milliseconds: 800),
-                  child: Stack(
-                    children: [
-                      // Floating background circle
-                      Positioned.fill(
-                        child: Container(
-                          margin: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: isDarkMode
-                                  ? [
-                                      Colors.teal.withOpacity(0.1),
-                                      Colors.cyan.withOpacity(0.05),
-                                      Colors.transparent,
-                                    ]
-                                  : [
-                                      Colors.purple.withOpacity(0.08),
-                                      Colors.blue.withOpacity(0.04),
-                                      Colors.transparent,
-                                    ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Main container
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-                        margin: const EdgeInsets.symmetric(horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: isDarkMode 
-                              ? Colors.white.withOpacity(0.08)
-                              : Colors.white.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(40),
-                          border: isDarkMode
-                              ? Border.all(color: Colors.white.withOpacity(0.15), width: 1.5)
-                              : Border.all(color: Colors.white.withOpacity(0.8), width: 2),
-                          boxShadow: isDarkMode
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.4),
-                                    blurRadius: 40,
-                                    spreadRadius: 0,
-                                    offset: const Offset(0, 20),
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.teal.withOpacity(0.15),
-                                    blurRadius: 60,
-                                    spreadRadius: 0,
-                                    offset: const Offset(0, 0),
-                                  ),
-                                ]
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.06),
-                                    blurRadius: 40,
-                                    spreadRadius: 0,
-                                    offset: const Offset(0, 20),
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.purple.withOpacity(0.1),
-                                    blurRadius: 80,
-                                    spreadRadius: 0,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                        ),
-                        child: Column(
-                          children: [
-                            // Icon with floating effect
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isDarkMode
-                                    ? Colors.teal.withOpacity(0.15)
-                                    : Colors.purple.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isDarkMode
-                                      ? Colors.teal.withOpacity(0.3)
-                                      : Colors.purple.withOpacity(0.2),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Image.asset(
-                                'assets/mobileprofile.png',
-                                width: screenWidth * 0.45,
-                                height: screenHeight * 0.18,
-                                fit: BoxFit.contain,
-                                color: isDarkMode ? Colors.white.withOpacity(0.95) : null,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            // Welcome text
-                            Text(
-                              "Welcome!",
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.055,
-                                fontWeight: FontWeight.w700,
-                                color: isDarkMode 
-                                    ? Colors.white.withOpacity(0.9)
-                                    : Colors.grey[800],
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Let's make your community better",
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.038,
-                                fontWeight: FontWeight.w500,
-                                color: isDarkMode 
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: screenHeight * 0.04),
-
-                // Enhanced Text Container with glassmorphism effect
-                FadeInUp(
-                  duration: const Duration(milliseconds: 1000),
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: isDarkMode 
-                          ? Colors.white.withOpacity(0.08)
-                          : Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: isDarkMode 
-                            ? Colors.white.withOpacity(0.15)
-                            : Colors.white.withOpacity(0.8),
-                        width: 1.5,
-                      ),
-                      boxShadow: isDarkMode
-                          ? [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.4),
-                                blurRadius: 35,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 20),
-                              ),
-                              BoxShadow(
-                                color: Colors.teal.withOpacity(0.1),
-                                blurRadius: 60,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 0),
-                              ),
-                            ]
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
-                                blurRadius: 35,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 20),
-                              ),
-                              BoxShadow(
-                                color: Colors.purple.withOpacity(0.08),
-                                blurRadius: 60,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                    ),
+              horizontal: screenWidth * 0.08, 
+              vertical: screenHeight * 0.05
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 100,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Enhanced Welcome Header
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 800),
                     child: Column(
                       children: [
-                        ShaderMask(
-                          shaderCallback: (bounds) => LinearGradient(
-                            colors: isDarkMode
-                                ? [Colors.white, Colors.grey[300]!]
-                                : [Colors.deepPurple, Colors.purple],
-                          ).createShader(bounds),
-                          child: Text(
-                            "Facing Civic Issues?",
+                        Text(
+                          "Welcome!",
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.08,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Let's make your community better",
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.04,
+                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: screenHeight * 0.04),
+
+                  // Enhanced Logo Container with consistent styling
+                  ZoomIn(
+                    duration: const Duration(milliseconds: 1000),
+                    child: Container(
+                      padding: const EdgeInsets.all(40),
+                      decoration: BoxDecoration(
+                        color: isDarkMode 
+                            ? Colors.grey[800]?.withOpacity(0.8)
+                            : Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: isDarkMode 
+                              ? Colors.grey[700]!
+                              : Colors.grey[200]!,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDarkMode
+                                ? Colors.black.withOpacity(0.3)
+                                : Colors.black.withOpacity(0.08),
+                            blurRadius: 20,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // App Icon with gradient background
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: isDarkMode
+                                    ? [Colors.teal.withOpacity(0.3), Colors.teal.withOpacity(0.1)]
+                                    : [const Color(0xFF1565C0).withOpacity(0.1), const Color(0xFF42A5F5).withOpacity(0.05)],
+                              ),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isDarkMode
+                                    ? Colors.teal.withOpacity(0.3)
+                                    : const Color(0xFF1565C0).withOpacity(0.2),
+                                width: 2,
+                              ),
+                            ),
+                            child: Image.asset(
+                              'assets/mobileprofile.png',
+                              width: screenWidth * 0.35,
+                              height: screenWidth * 0.35,
+                              fit: BoxFit.contain,
+                              color: isDarkMode ? Colors.white.withOpacity(0.9) : null,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Tagline
+                          Text(
+                            "Your Civic Voice",
                             style: TextStyle(
-                              fontSize: screenWidth * 0.075,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1.2,
-                              letterSpacing: -0.5,
+                              fontSize: screenWidth * 0.045,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode 
+                                  ? Colors.white.withOpacity(0.9)
+                                  : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: screenHeight * 0.04),
+
+                  // Enhanced Description Card
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 1000),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: isDarkMode 
+                            ? Colors.grey[800]?.withOpacity(0.6)
+                            : Colors.white.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isDarkMode 
+                              ? Colors.grey[700]!
+                              : Colors.grey[200]!,
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDarkMode
+                                ? Colors.black.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.05),
+                            blurRadius: 15,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Gradient title
+                          ShaderMask(
+                            shaderCallback: (bounds) => LinearGradient(
+                              colors: isDarkMode
+                                  ? [Colors.teal[300]!, Colors.teal[100]!]
+                                  : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                            ).createShader(bounds),
+                            child: Text(
+                              "Facing Civic Issues?",
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.06,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                height: 1.2,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            "Register your complaint now and get it resolved quickly with our efficient system. Your voice matters in building a better community.",
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.w500,
+                              color: isDarkMode
+                                  ? Colors.grey[300]
+                                  : Colors.grey[700],
+                              height: 1.5,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Register your complaint now and get it resolved quickly with our efficient system. Your voice matters in building a better community.",
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.043,
-                            fontWeight: FontWeight.w500,
-                            color: isDarkMode
-                                ? Colors.grey[300]
-                                : Colors.grey[700],
-                            height: 1.6,
-                            letterSpacing: 0.2,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
 
-      // Enhanced Bottom CTA with modern styling
+      // Enhanced Bottom CTA with matching design
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
@@ -623,28 +485,22 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
               return Transform.scale(
                 scale: _buttonScaleAnimation.value,
                 child: Container(
-                  height: screenHeight * 0.07,
+                  width: double.infinity,
+                  height: 50,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: isDarkMode
-                        ? const LinearGradient(
-                            colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : const LinearGradient(
-                            colors: [Color(0xFF7C3AED), Color(0xFF8B5CF6)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                    gradient: LinearGradient(
+                      colors: isDarkMode
+                          ? [Colors.teal, Colors.teal[300]!]
+                          : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
                         color: isDarkMode 
                             ? Colors.teal.withOpacity(0.3)
-                            : Colors.purple.withOpacity(0.3),
-                        blurRadius: 20,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 8),
+                            : const Color(0xFF1565C0).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -655,30 +511,29 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                       shadowColor: Colors.transparent,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)
+                        borderRadius: BorderRadius.circular(12)
                       ),
                       elevation: 0,
                     ),
                     child: _isLoading
                         ? const SizedBox(
-                            width: 24,
-                            height: 24,
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
+                              strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : Row(
+                        : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.rocket_launch_rounded, size: 22),
-                              const SizedBox(width: 12),
+                              Icon(Icons.rocket_launch_rounded, size: 20),
+                              SizedBox(width: 8),
                               Text(
                                 "Get Started",
                                 style: TextStyle(
-                                  fontSize: screenWidth * 0.046,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -695,24 +550,20 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
 
   Widget _buildModernDrawer(BuildContext context, bool isDarkMode, double screenWidth, double screenHeight) {
     return Drawer(
-      backgroundColor: isDarkMode ? const Color(0xFF1A1F2E) : Colors.white,
+      backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
       child: Column(
         children: [
-          // Enhanced Header with gradient
+          // Enhanced Header with matching gradient
           Container(
             height: screenHeight * 0.22,
             decoration: BoxDecoration(
-              gradient: isDarkMode
-                  ? const LinearGradient(
-                      colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : const LinearGradient(
-                      colors: [Color(0xFF7C3AED), Color(0xFF8B5CF6)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+              gradient: LinearGradient(
+                colors: isDarkMode
+                    ? [Colors.teal, Colors.teal[300]!]
+                    : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
             child: SafeArea(
               child: Padding(
@@ -759,19 +610,19 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
           
           const SizedBox(height: 24),
 
-          // Enhanced Dark Mode Toggle
+          // Enhanced Dark Mode Toggle with consistent styling
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Consumer<ThemeProvider>(
               builder: (context, themeProvider, _) => Container(
                 decoration: BoxDecoration(
                   color: isDarkMode 
-                      ? Colors.white.withOpacity(0.05)
+                      ? Colors.grey[700]?.withOpacity(0.5)
                       : Colors.grey[50],
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isDarkMode 
-                        ? Colors.white.withOpacity(0.1)
+                        ? Colors.grey[600]!
                         : Colors.grey[200]!,
                   ),
                 ),
@@ -797,18 +648,20 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                   secondary: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? Colors.teal.withOpacity(0.2)
-                          : Colors.deepPurple.withOpacity(0.1),
+                      gradient: LinearGradient(
+                        colors: isDarkMode
+                            ? [Colors.teal.withOpacity(0.2), Colors.teal.withOpacity(0.1)]
+                            : [const Color(0xFF1565C0).withOpacity(0.1), const Color(0xFF42A5F5).withOpacity(0.05)],
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.dark_mode_rounded,
-                      color: isDarkMode ? Colors.teal[300] : Colors.deepPurple,
+                      color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
                       size: 22,
                     ),
                   ),
-                  activeColor: isDarkMode ? Colors.teal : Colors.deepPurple,
+                  activeColor: isDarkMode ? Colors.teal : const Color(0xFF1565C0),
                 ),
               ),
             ),
@@ -816,15 +669,13 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
 
           const SizedBox(height: 16),
 
-          // Enhanced Logout Button
+          // Enhanced Logout Button with consistent styling
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Container(
               decoration: BoxDecoration(
-                color: isDarkMode 
-                    ? Colors.red.withOpacity(0.1)
-                    : Colors.red.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.red.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: Colors.red.withOpacity(0.2),
                 ),
