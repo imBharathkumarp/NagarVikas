@@ -1,0 +1,1200 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../../theme/theme_provider.dart';
+import 'emoji_picker.dart';
+import 'forum_logic.dart';
+import 'forum_animations.dart';
+import 'message_widgets.dart';
+
+/// DiscussionForum with Image and Video Sharing
+/// Enhanced real-time chat interface with image/video upload and full-screen viewing capabilities
+class DiscussionForum extends StatefulWidget {
+  const DiscussionForum({super.key});
+
+  @override
+  DiscussionForumState createState() => DiscussionForumState();
+}
+
+class DiscussionForumState extends State<DiscussionForum>
+    with TickerProviderStateMixin {
+  final TextEditingController _messageController = TextEditingController();
+  final DatabaseReference _messagesRef =
+      FirebaseDatabase.instance.ref("discussion/");
+  final DatabaseReference _usersRef = FirebaseDatabase.instance.ref("users/");
+  final ScrollController _scrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
+
+  String? userId;
+  String? currentUserName;
+  bool _showDisclaimer = true;
+  bool _hasAgreedToTerms = false;
+  bool _showTermsDialog = false;
+  bool _isUploading = false;
+
+  // Animation controllers for enhanced UI
+  late AnimationController _sendButtonAnimationController;
+  late AnimationController _messageAnimationController;
+  late AnimationController _disclaimerController;
+  late AnimationController _emojiAnimationController;
+  late Animation<double> _sendButtonScaleAnimation;
+  late Animation<double> _messageSlideAnimation;
+  late Animation<double> _emojiScaleAnimation;
+  final FocusNode _textFieldFocusNode = FocusNode();
+
+  bool _isTyping = false;
+  String? _replyingToMessageId;
+  String? _replyingToMessage;
+  String? _replyingToSender;
+  bool _isReplying = false;
+  bool _showEmojiPicker = false;
+
+  // Edit message functionality
+  bool _isEditing = false;
+  String? _editingMessageId;
+  String? _originalMessage;
+
+  String _selectedEmojiCategory = 'Smileys';
+
+  @override
+  void initState() {
+    super.initState();
+    userId = FirebaseAuth.instance.currentUser?.uid;
+    ForumLogic.getCurrentUserName(
+      userId,
+      _usersRef,
+      (name) => setState(() => currentUserName = name),
+    );
+    _checkTermsAgreement();
+    ForumAnimations.initAnimations(
+      this,
+      (controllers) {
+        _sendButtonAnimationController = controllers['sendButton']!;
+        _messageAnimationController = controllers['message']!;
+        _disclaimerController = controllers['disclaimer']!;
+        _emojiAnimationController = controllers['emoji']!;
+      },
+      (animations) {
+        _sendButtonScaleAnimation = animations['sendButtonScale']!;
+        _messageSlideAnimation = animations['messageSlide']!;
+        _emojiScaleAnimation = animations['emojiScale']!;
+      },
+    );
+
+    _messageController.addListener(() {
+      setState(() {
+        _isTyping = _messageController.text.trim().isNotEmpty;
+      });
+    });
+
+    // Auto-scroll to bottom when new messages arrive
+    _messagesRef.orderByChild("timestamp").limitToLast(1).onChildAdded.listen((event) {
+      if (mounted) {
+        Future.delayed(Duration(milliseconds: 500), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent + 80,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _textFieldFocusNode.dispose();
+    _sendButtonAnimationController.dispose();
+    _messageAnimationController.dispose();
+    _disclaimerController.dispose();
+    _emojiAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _hideDisclaimer() {
+    if (_showDisclaimer) {
+      _disclaimerController.reverse().then((_) {
+        if (mounted) {
+          setState(() {
+            _showDisclaimer = false;
+          });
+        }
+      });
+    }
+  }
+
+  /// Toggle emoji picker visibility
+  void _toggleEmojiPicker() {
+    if (_showEmojiPicker) {
+      setState(() {
+        _showEmojiPicker = false;
+      });
+      _emojiAnimationController.reverse();
+      Future.delayed(Duration(milliseconds: 100), () {
+        FocusScope.of(context).requestFocus(_textFieldFocusNode);
+      });
+    } else {
+      FocusScope.of(context).unfocus();
+      Future.delayed(Duration(milliseconds: 200), () {
+        setState(() {
+          _showEmojiPicker = true;
+        });
+        _emojiAnimationController.forward();
+      });
+    }
+  }
+
+  /// Insert emoji into text field
+  void _insertEmoji(String emoji) {
+    final currentText = _messageController.text;
+    final selection = _messageController.selection;
+    final newText = currentText.replaceRange(
+      selection.start,
+      selection.end,
+      emoji,
+    );
+    _messageController.value = _messageController.value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: selection.start + emoji.length,
+      ),
+    );
+  }
+
+  /// Check if user has agreed to terms and conditions
+  void _checkTermsAgreement() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String key = 'terms_agreed_${userId ?? 'anonymous'}';
+    bool hasAgreed = prefs.getBool(key) ?? false;
+
+    setState(() {
+      _hasAgreedToTerms = hasAgreed;
+      _showTermsDialog = !hasAgreed;
+    });
+  }
+
+  void _agreeToTerms() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String key = 'terms_agreed_${userId ?? 'anonymous'}';
+    await prefs.setBool(key, true);
+
+    setState(() {
+      _hasAgreedToTerms = true;
+      _showTermsDialog = false;
+    });
+  }
+
+  // Upload media to Cloudinary (supports both images and videos)
+  Future<String?> _uploadToCloudinary(File file, {bool isVideo = false}) async {
+    const cloudName = 'dved2q851';
+    const uploadPreset = 'flutter_uploads';
+    final url = 'https://api.cloudinary.com/v1_1/$cloudName/${isVideo ? 'video' : 'image'}/upload';
+
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path),
+        'upload_preset': uploadPreset,
+        if (isVideo) 'resource_type': 'video',
+      });
+      final response = await Dio().post(url, data: formData);
+      return response.data['secure_url'];
+    } catch (e) {
+      print('Upload error: $e');
+      return null;
+    }
+  }
+
+  // NEW: Show media selection bottom sheet (WhatsApp-like)
+  void _showMediaOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+            ),
+            padding: EdgeInsets.only(
+              top: 20,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(context).padding.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: 25),
+                
+                // Title
+                Text(
+                  'Share Media',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 25),
+                
+                // Media options grid
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Camera Photo
+                    _buildMediaOption(
+                      icon: Icons.camera_alt,
+                      label: 'Camera',
+                      color: Color(0xFF4CAF50),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _takePhoto();
+                      },
+                      themeProvider: themeProvider,
+                    ),
+                    
+                    // Gallery Photo
+                    _buildMediaOption(
+                      icon: Icons.photo_library,
+                      label: 'Photo',
+                      color: Color(0xFF2196F3),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickImage();
+                      },
+                      themeProvider: themeProvider,
+                    ),
+                    
+                    // Video Camera
+                    _buildMediaOption(
+                      icon: Icons.videocam,
+                      label: 'Video',
+                      color: Color(0xFFFF5722),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _recordVideo();
+                      },
+                      themeProvider: themeProvider,
+                    ),
+                    
+                    // Gallery Video
+                    _buildMediaOption(
+                      icon: Icons.video_library,
+                      label: 'Gallery',
+                      color: Color(0xFF9C27B0),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickVideo();
+                      },
+                      themeProvider: themeProvider,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Build media option widget
+  Widget _buildMediaOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    required ThemeProvider themeProvider,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(
+                color: color.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 28,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Pick image from gallery
+  Future<void> _pickImage() async {
+    if (_isUploading) return;
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final imageFile = File(image.path);
+      final imageUrl = await _uploadToCloudinary(imageFile, isVideo: false);
+
+      if (imageUrl != null) {
+        _sendMessage(mediaUrl: imageUrl, mediaType: "image");
+      } else {
+        Fluttertoast.showToast(
+            msg: "Failed to upload image. Please try again.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error picking image: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  // Take photo with camera
+  Future<void> _takePhoto() async {
+    if (_isUploading) return;
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final imageFile = File(image.path);
+      final imageUrl = await _uploadToCloudinary(imageFile, isVideo: false);
+
+      if (imageUrl != null) {
+        _sendMessage(mediaUrl: imageUrl, mediaType: "image");
+      } else {
+        Fluttertoast.showToast(
+            msg: "Failed to upload image. Please try again.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error taking photo: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  // Pick video from gallery
+  Future<void> _pickVideo() async {
+    if (_isUploading) return;
+
+    try {
+      final XFile? video = await _imagePicker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: Duration(minutes: 5), // 5 minute limit
+      );
+
+      if (video == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final videoFile = File(video.path);
+      
+      // Check file size (50MB limit)
+      final fileSize = await videoFile.length();
+      if (fileSize > 50 * 1024 * 1024) {
+        Fluttertoast.showToast(
+            msg: "Video file too large. Please choose a smaller file (max 50MB).");
+        setState(() {
+          _isUploading = false;
+        });
+        return;
+      }
+
+      final videoUrl = await _uploadToCloudinary(videoFile, isVideo: true);
+
+      if (videoUrl != null) {
+        _sendMessage(mediaUrl: videoUrl, mediaType: "video");
+      } else {
+        Fluttertoast.showToast(
+            msg: "Failed to upload video. Please try again.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error picking video: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  // Record video with camera
+  Future<void> _recordVideo() async {
+    if (_isUploading) return;
+
+    try {
+      final XFile? video = await _imagePicker.pickVideo(
+        source: ImageSource.camera,
+        maxDuration: Duration(minutes: 5), // 5 minute limit
+      );
+
+      if (video == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final videoFile = File(video.path);
+      
+      // Check file size (50MB limit)
+      final fileSize = await videoFile.length();
+      if (fileSize > 50 * 1024 * 1024) {
+        Fluttertoast.showToast(
+            msg: "Video file too large. Please record a shorter video (max 50MB).");
+        setState(() {
+          _isUploading = false;
+        });
+        return;
+      }
+
+      final videoUrl = await _uploadToCloudinary(videoFile, isVideo: true);
+
+      if (videoUrl != null) {
+        _sendMessage(mediaUrl: videoUrl, mediaType: "video");
+      } else {
+        Fluttertoast.showToast(
+            msg: "Failed to upload video. Please try again.");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error recording video: $e");
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  // Show image in full screen
+  void _showFullScreenImage(String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullScreenImageViewer(imageUrl: imageUrl),
+      ),
+    );
+  }
+
+  // Show video in full screen
+  void _showFullScreenVideo(String videoUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullScreenVideoViewer(videoUrl: videoUrl),
+      ),
+    );
+  }
+
+  // UPDATED: Send message with optional media URL and type
+  void _sendMessage({String? mediaUrl, String? mediaType}) {
+    // Handle editing case
+    if (_isEditing) {
+      _saveEditedMessage();
+      return;
+    }
+
+    if ((_messageController.text.trim().isEmpty && mediaUrl == null) ||
+        currentUserName == null) return;
+
+    _sendButtonAnimationController.forward().then((_) {
+      _sendButtonAnimationController.reverse();
+    });
+
+    Map<String, dynamic> messageData = {
+      "senderId": userId,
+      "senderName": currentUserName,
+      "timestamp": ServerValue.timestamp,
+      "createdAt": ServerValue.timestamp,
+    };
+
+    // Add message text if present
+    if (_messageController.text.trim().isNotEmpty) {
+      messageData["message"] = _messageController.text.trim();
+    }
+
+    // Add media URL and type if present
+    if (mediaUrl != null && mediaType != null) {
+      messageData["mediaUrl"] = mediaUrl;
+      messageData["messageType"] = mediaType;
+    } else {
+      messageData["messageType"] = "text";
+    }
+
+    // Add reply information if replying
+    if (_isReplying && _replyingToMessageId != null) {
+      messageData["replyTo"] = _replyingToMessageId;
+      messageData["replyToMessage"] = _replyingToMessage ?? '';
+      messageData["replyToSender"] = _replyingToSender ?? 'Unknown User';
+    }
+
+    _messagesRef.push().set(messageData);
+
+    _messageController.clear();
+    _clearReply();
+    setState(() {
+      _isTyping = false;
+    });
+
+    // Hide emoji picker after sending
+    if (_showEmojiPicker) {
+      setState(() {
+        _showEmojiPicker = false;
+      });
+      _emojiAnimationController.reverse();
+    }
+
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 80,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _replyToMessage(String messageId, String message, String senderName) {
+    setState(() {
+      _isReplying = true;
+      _replyingToMessageId = messageId;
+      _replyingToMessage = message;
+      _replyingToSender = senderName;
+    });
+    FocusScope.of(context).requestFocus(FocusNode());
+  }
+
+  void _clearReply() {
+    setState(() {
+      _isReplying = false;
+      _replyingToMessageId = null;
+      _replyingToMessage = null;
+      _replyingToSender = null;
+    });
+  }
+
+  /// Start editing a message
+  void _startEditingMessage(String messageId, String message) {
+    setState(() {
+      _isEditing = true;
+      _editingMessageId = messageId;
+      _originalMessage = message;
+      _messageController.text = message;
+    });
+    FocusScope.of(context).requestFocus(_textFieldFocusNode);
+  }
+
+  /// Cancel editing
+  void _cancelEditing() {
+    setState(() {
+      _isEditing = false;
+      _editingMessageId = null;
+      _originalMessage = null;
+      _messageController.clear();
+    });
+  }
+
+  /// Save edited message
+  void _saveEditedMessage() {
+    if (_editingMessageId == null || _messageController.text.trim().isEmpty) return;
+
+    _messagesRef.child(_editingMessageId!).update({
+      "message": _messageController.text.trim(),
+      "editedAt": ServerValue.timestamp,
+      "isEdited": true,
+    });
+
+    setState(() {
+      _isEditing = false;
+      _editingMessageId = null;
+      _originalMessage = null;
+      _messageController.clear();
+      _isTyping = false;
+    });
+  }
+
+  /// Show edit/delete options for own messages
+  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF2196F3).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.edit, color: Color(0xFF2196F3)),
+              ),
+              title: Text(
+                'Edit Message',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _startEditingMessage(messageId, message);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      return Scaffold(
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
+        appBar: AppBar(
+          elevation: 0,
+          centerTitle: true,
+          backgroundColor:
+              themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          title: Column(
+            children: [
+              Text(
+                "Discussion Forum",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                "Share your thoughts, images & videos",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          iconTheme: IconThemeData(
+            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+          ),
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: themeProvider.isDarkMode
+                    ? [Colors.grey[800]!, Colors.grey[700]!]
+                    : [Colors.white, Color(0xFFF8F9FA)],
+              ),
+            ),
+          ),
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    themeProvider.isDarkMode
+                        ? Colors.grey[600]!
+                        : Colors.grey[300]!,
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        body: Stack(
+          children: [
+            const EnhancedAnimatedBackground(),
+            if (_showTermsDialog)
+              MessageWidgets.buildTermsDialog(
+                context,
+                themeProvider,
+                _agreeToTerms,
+              )
+            else if (_hasAgreedToTerms)
+              Column(
+                children: [
+                  // Disclaimer banner
+                  if (_showDisclaimer) MessageWidgets.buildDisclaimerBanner(
+                    themeProvider,
+                    _disclaimerController,
+                    _hideDisclaimer,
+                  ),
+
+                  // Real-time message list with date separators
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[900]
+                            : Color(0xFFF8F9FA),
+                      ),
+                      child: StreamBuilder(
+                        stream: _messagesRef.orderByChild("timestamp").onValue,
+                        builder:
+                            (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                          if (!snapshot.hasData ||
+                              snapshot.data?.snapshot.value == null) {
+                            return MessageWidgets.buildEmptyState(themeProvider);
+                          }
+
+                          // Convert snapshot to list of messages
+                          Map<dynamic, dynamic> messagesMap = snapshot
+                              .data!.snapshot.value as Map<dynamic, dynamic>;
+
+                          List<Map<String, dynamic>> messagesList = messagesMap
+                              .entries
+                              .map((e) => {
+                                    "key": e.key,
+                                    ...Map<String, dynamic>.from(e.value)
+                                  })
+                              .toList();
+
+                          // Sort by timestamp (ascending)
+                          messagesList.sort((a, b) =>
+                              a["timestamp"].compareTo(b["timestamp"]));
+
+                          // Group messages by date and create widgets with separators
+                          List<Widget> messageWidgets = [];
+                          String? lastDateString;
+
+                          for (int i = 0; i < messagesList.length; i++) {
+                            final message = messagesList[i];
+                            bool isMe = message["senderId"] == userId;
+
+                            // Get message date
+                            DateTime? messageDate;
+                            try {
+                              final timestamp =
+                                  message["createdAt"] ?? message["timestamp"];
+                              if (timestamp is int) {
+                                messageDate =
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                        timestamp);
+                              }
+                            } catch (e) {
+                              print('Error parsing date: $e');
+                            }
+
+                            // Add date separator if date changed and message date exists
+                            if (messageDate != null) {
+                              final dateString = ForumLogic.getDateString(messageDate);
+                              if (dateString != lastDateString) {
+                                messageWidgets.add(MessageWidgets.buildDateSeparator(
+                                    dateString, themeProvider));
+                                lastDateString = dateString;
+                              }
+
+                              // Add message only if we have a valid date
+                              messageWidgets.add(MessageWidgets.buildMessage(
+                                message,
+                                isMe,
+                                themeProvider,
+                                _showFullScreenImage,
+                                _showFullScreenVideo,
+                                _replyToMessage,
+                                _showMessageOptions,
+                              ));
+                            }
+                          }
+
+                          final listView = ListView(
+                            controller: _scrollController,
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            children: messageWidgets.isNotEmpty
+                                ? messageWidgets
+                                : messagesList.map((message) {
+                              bool isMe = message["senderId"] == userId;
+                              return MessageWidgets.buildMessage(
+                                message,
+                                isMe,
+                                themeProvider,
+                                _showFullScreenImage,
+                                _showFullScreenVideo,
+                                _replyToMessage,
+                                _showMessageOptions,
+                              );
+                            }).toList(),
+                          );
+
+                          // Ensure we scroll to bottom after build completes
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (_scrollController.hasClients) {
+                              Future.delayed(Duration(milliseconds: 100), () {
+                                if (_scrollController.hasClients) {
+                                  _scrollController.jumpTo(
+                                    _scrollController.position.maxScrollExtent,
+                                  );
+                                }
+                              });
+                            }
+                          });
+
+                          return listView;
+                        },
+                      ),
+                    ),
+                  ),
+
+                  // Reply and edit indicators
+                  MessageWidgets.buildReplyIndicator(
+                    themeProvider,
+                    _isReplying,
+                    _replyingToSender,
+                    _replyingToMessage,
+                    _clearReply,
+                  ),
+                  MessageWidgets.buildEditIndicator(
+                    themeProvider,
+                    _isEditing,
+                    _originalMessage,
+                    _cancelEditing,
+                  ),
+
+                  // Enhanced message input field & send button with emoji picker
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]
+                          : Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: themeProvider.isDarkMode
+                              ? Colors.black26
+                              : Colors.grey.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: SafeArea(
+                      child: Row(
+                        children: [
+                          // UPDATED: Pin icon button for media selection
+                          Container(
+                            decoration: BoxDecoration(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: _isUploading ? null : _showMediaOptions,
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  child: _isUploading
+                                      ? Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Color(0xFF2196F3),
+                                      ),
+                                    ),
+                                  )
+                                      : Icon(
+                                    Icons.attach_file,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[500],
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+
+                          // Enhanced text input field
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[700]
+                                    : Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: (_isTyping || _isEditing)
+                                      ? Color(0xFF2196F3)
+                                      : (themeProvider.isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey[300]!),
+                                  width: (_isTyping || _isEditing) ? 2 : 1,
+                                ),
+                                boxShadow: (_isTyping || _isEditing)
+                                    ? [
+                                  BoxShadow(
+                                    color: Color(0xFF2196F3)
+                                        .withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ]
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Text field
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _messageController,
+                                      focusNode: _textFieldFocusNode,
+                                      onTap: () {
+                                        // Hide emoji picker when text field is tapped
+                                        if (_showEmojiPicker) {
+                                          setState(() {
+                                            _showEmojiPicker = false;
+                                          });
+                                          _emojiAnimationController.reverse();
+                                        }
+                                      },
+                                      style: TextStyle(
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: null,
+                                      textCapitalization:
+                                      TextCapitalization.sentences,
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 20, vertical: 12),
+                                        hintText: _isEditing
+                                            ? "Edit your message..."
+                                            : (_isReplying
+                                            ? "Reply to ${_replyingToSender}..."
+                                            : "Type a message..."),
+                                        hintStyle: TextStyle(
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[500],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                  // Emoji button inside text field
+                                  GestureDetector(
+                                    onTap: () {
+                                      FocusScope.of(context).unfocus();
+                                      Future.delayed(Duration(milliseconds: 100), () {
+                                        _toggleEmojiPicker();
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: EdgeInsets.only(right: 8),
+                                      padding: EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: _showEmojiPicker
+                                            ? Color(0xFF2196F3).withOpacity(0.1)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Icon(
+                                        _showEmojiPicker
+                                            ? Icons.keyboard
+                                            : Icons.emoji_emotions_outlined,
+                                        color: _showEmojiPicker
+                                            ? Color(0xFF2196F3)
+                                            : (themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600]),
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+
+                          // Send button
+                          AnimatedBuilder(
+                            animation: _sendButtonScaleAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _sendButtonScaleAnimation.value,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: (_isTyping || _isEditing)
+                                        ? LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              Color(0xFF1976D2),
+                                              Color(0xFF2196F3)
+                                            ],
+                                          )
+                                        : null,
+                                    color: !(_isTyping || _isEditing)
+                                        ? (themeProvider.isDarkMode
+                                        ? Colors.grey[600]
+                                        : Colors.grey[400])
+                                        : null,
+                                    shape: BoxShape.circle,
+                                    boxShadow: (_isTyping || _isEditing)
+                                        ? [
+                                            BoxShadow(
+                                              color: Color(0xFF2196F3)
+                                                  .withOpacity(0.3),
+                                              blurRadius: 8,
+                                              offset: Offset(0, 4),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(28),
+                                      onTap: (_isTyping || _isEditing)
+                                          ? () => _sendMessage()
+                                          : null,
+                                      child: Container(
+                                        width: 56,
+                                        height: 56,
+                                        decoration: BoxDecoration(
+                                            shape: BoxShape.circle),
+                                        child: Icon(
+                                          _isEditing
+                                              ? Icons.check
+                                              : (_isTyping
+                                              ? Icons.send_rounded
+                                              : Icons.send_outlined),
+                                          color: Colors.white,
+                                          size: (_isTyping || _isEditing) ? 24 : 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Emoji picker below input field
+                  if (_showEmojiPicker) EmojiPickerWidget(
+                    themeProvider: themeProvider,
+                    emojiAnimationController: _emojiAnimationController,
+                    emojiScaleAnimation: _emojiScaleAnimation,
+                    selectedEmojiCategory: _selectedEmojiCategory,
+                    onCategorySelected: (category) {
+                      setState(() {
+                        _selectedEmojiCategory = category;
+                      });
+                    },
+                    onEmojiSelected: _insertEmoji,
+                  ),
+                ],
+              )
+            else
+              Center(
+                child: CircularProgressIndicator(color: Color(0xFF2196F3)),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+}

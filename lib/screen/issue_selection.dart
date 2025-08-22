@@ -15,7 +15,7 @@ import 'new_entry.dart';
 import 'street_light.dart';
 import 'drainage.dart';
 import 'animals.dart';
-import 'discussion.dart';
+import './discussion/discussion.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:nagarvikas/screen/modern_app_drawer.dart';
