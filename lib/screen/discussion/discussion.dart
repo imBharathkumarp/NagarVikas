@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../theme/theme_provider.dart';
 import 'emoji_picker.dart';
 import 'forum_logic.dart';
@@ -26,7 +27,7 @@ class DiscussionForumState extends State<DiscussionForum>
     with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final DatabaseReference _messagesRef =
-      FirebaseDatabase.instance.ref("discussion/");
+  FirebaseDatabase.instance.ref("discussion/");
   final DatabaseReference _usersRef = FirebaseDatabase.instance.ref("users/");
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _imagePicker = ImagePicker();
@@ -38,7 +39,7 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _showTermsDialog = false;
   bool _isUploading = false;
 
-  // Animation controllers for enhanced UI
+// Animation controllers for enhanced UI
   late AnimationController _sendButtonAnimationController;
   late AnimationController _messageAnimationController;
   late AnimationController _disclaimerController;
@@ -55,12 +56,18 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _isReplying = false;
   bool _showEmojiPicker = false;
 
-  // Edit message functionality
+// Edit message functionality
   bool _isEditing = false;
   String? _editingMessageId;
   String? _originalMessage;
 
   String _selectedEmojiCategory = 'Smileys';
+
+// Speech to text variables
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  bool _speechEnabled = false;
+  String _lastWords = '';
 
   @override
   void initState() {
@@ -69,18 +76,20 @@ class DiscussionForumState extends State<DiscussionForum>
     ForumLogic.getCurrentUserName(
       userId,
       _usersRef,
-      (name) => setState(() => currentUserName = name),
+          (name) => setState(() => currentUserName = name),
     );
     _checkTermsAgreement();
+    _initSpeech(); // Initialize speech to text
+
     ForumAnimations.initAnimations(
       this,
-      (controllers) {
+          (controllers) {
         _sendButtonAnimationController = controllers['sendButton']!;
         _messageAnimationController = controllers['message']!;
         _disclaimerController = controllers['disclaimer']!;
         _emojiAnimationController = controllers['emoji']!;
       },
-      (animations) {
+          (animations) {
         _sendButtonScaleAnimation = animations['sendButtonScale']!;
         _messageSlideAnimation = animations['messageSlide']!;
         _emojiScaleAnimation = animations['emojiScale']!;
@@ -169,6 +178,61 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
+  /// Initialize speech to text
+  void _initSpeech() async {
+    _speech = stt.SpeechToText();
+    _speechEnabled = await _speech.initialize();
+    setState(() {});
+  }
+
+  /// Start/stop listening for speech
+  void _toggleListening() async {
+    if (!_speechEnabled) {
+      Fluttertoast.showToast(msg: "Speech recognition not available");
+      return;
+    }
+
+    if (_isListening) {
+      await _speech.stop();
+      setState(() {
+        _isListening = false;
+      });
+    } else {
+      _lastWords = '';
+      await _speech.listen(
+        onResult: _onSpeechResult,
+        listenFor: Duration(seconds: 30),
+        pauseFor: Duration(seconds: 3),
+        partialResults: true,
+        cancelOnError: true,
+        listenMode: stt.ListenMode.confirmation,
+      );
+      setState(() {
+        _isListening = true;
+      });
+    }
+  }
+
+  /// Handle speech recognition results
+  void _onSpeechResult(result) {
+    setState(() {
+      _lastWords = result.recognizedWords;
+      if (result.finalResult) {
+        // Append to existing text or replace
+        String currentText = _messageController.text;
+        if (currentText.isEmpty) {
+          _messageController.text = _lastWords;
+        } else {
+          _messageController.text = currentText + ' ' + _lastWords;
+        }
+        _messageController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _messageController.text.length),
+        );
+        _isListening = false;
+      }
+    });
+  }
+
   /// Check if user has agreed to terms and conditions
   void _checkTermsAgreement() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -244,7 +308,7 @@ class DiscussionForumState extends State<DiscussionForum>
                   ),
                 ),
                 SizedBox(height: 25),
-                
+
                 // Title
                 Text(
                   'Share Media',
@@ -255,7 +319,7 @@ class DiscussionForumState extends State<DiscussionForum>
                   ),
                 ),
                 SizedBox(height: 25),
-                
+
                 // Media options grid
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -271,7 +335,7 @@ class DiscussionForumState extends State<DiscussionForum>
                       },
                       themeProvider: themeProvider,
                     ),
-                    
+
                     // Gallery Photo
                     _buildMediaOption(
                       icon: Icons.photo_library,
@@ -283,7 +347,7 @@ class DiscussionForumState extends State<DiscussionForum>
                       },
                       themeProvider: themeProvider,
                     ),
-                    
+
                     // Video Camera
                     _buildMediaOption(
                       icon: Icons.videocam,
@@ -295,7 +359,7 @@ class DiscussionForumState extends State<DiscussionForum>
                       },
                       themeProvider: themeProvider,
                     ),
-                    
+
                     // Gallery Video
                     _buildMediaOption(
                       icon: Icons.video_library,
@@ -446,7 +510,7 @@ class DiscussionForumState extends State<DiscussionForum>
       });
 
       final videoFile = File(video.path);
-      
+
       // Check file size (50MB limit)
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
@@ -492,7 +556,7 @@ class DiscussionForumState extends State<DiscussionForum>
       });
 
       final videoFile = File(video.path);
-      
+
       // Check file size (50MB limit)
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
@@ -973,8 +1037,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                 borderRadius: BorderRadius.circular(24),
                                 onTap: _isUploading ? null : _showMediaOptions,
                                 child: Container(
-                                  width: 48,
-                                  height: 48,
+                                  width: 44,
+                                  height: 44,
                                   child: _isUploading
                                       ? Center(
                                     child: SizedBox(
@@ -1053,20 +1117,45 @@ class DiscussionForumState extends State<DiscussionForum>
                                       textCapitalization:
                                       TextCapitalization.sentences,
                                       decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 20, vertical: 12),
+                                        contentPadding: EdgeInsets.only(
+                                            left: 20, top: 12, bottom: 12),
                                         hintText: _isEditing
                                             ? "Edit your message..."
                                             : (_isReplying
                                             ? "Reply to ${_replyingToSender}..."
-                                            : "Type a message..."),
+                                            : (_isListening ? "Listening..." : "Type...")),
                                         hintStyle: TextStyle(
-                                          color: themeProvider.isDarkMode
+                                          color: _isListening
+                                              ? Color(0xFF4CAF50)
+                                              : (themeProvider.isDarkMode
                                               ? Colors.grey[400]
-                                              : Colors.grey[500],
+                                              : Colors.grey[500]),
                                           fontWeight: FontWeight.w500,
                                         ),
                                         border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                  // Mic button
+                                  GestureDetector(
+                                    onTap: _toggleListening,
+                                    child: Container(
+                                      margin: EdgeInsets.only(right: 4),
+                                      padding: EdgeInsets.only(right: 8, top: 8, bottom: 8),
+                                      decoration: BoxDecoration(
+                                        color: _isListening
+                                            ? Color(0xFF4CAF50).withOpacity(0.1)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Icon(
+                                        _isListening ? Icons.mic : Icons.mic_none,
+                                        color: _isListening
+                                            ? Color(0xFF4CAF50)
+                                            : (themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600]),
+                                        size: 20,
                                       ),
                                     ),
                                   ),
@@ -1079,8 +1168,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                       });
                                     },
                                     child: Container(
-                                      margin: EdgeInsets.only(right: 8),
-                                      padding: EdgeInsets.all(8),
+                                      margin: EdgeInsets.only(right: 16),
+                                      padding: EdgeInsets.all(0),
                                       decoration: BoxDecoration(
                                         color: _showEmojiPicker
                                             ? Color(0xFF2196F3).withOpacity(0.1)
@@ -1116,13 +1205,13 @@ class DiscussionForumState extends State<DiscussionForum>
                                   decoration: BoxDecoration(
                                     gradient: (_isTyping || _isEditing)
                                         ? LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              Color(0xFF1976D2),
-                                              Color(0xFF2196F3)
-                                            ],
-                                          )
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF1976D2),
+                                        Color(0xFF2196F3)
+                                      ],
+                                    )
                                         : null,
                                     color: !(_isTyping || _isEditing)
                                         ? (themeProvider.isDarkMode
@@ -1132,13 +1221,13 @@ class DiscussionForumState extends State<DiscussionForum>
                                     shape: BoxShape.circle,
                                     boxShadow: (_isTyping || _isEditing)
                                         ? [
-                                            BoxShadow(
-                                              color: Color(0xFF2196F3)
-                                                  .withOpacity(0.3),
-                                              blurRadius: 8,
-                                              offset: Offset(0, 4),
-                                            ),
-                                          ]
+                                      BoxShadow(
+                                        color: Color(0xFF2196F3)
+                                            .withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ]
                                         : null,
                                   ),
                                   child: Material(
@@ -1149,8 +1238,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                           ? () => _sendMessage()
                                           : null,
                                       child: Container(
-                                        width: 56,
-                                        height: 56,
+                                        width: 44,
+                                        height: 44,
                                         decoration: BoxDecoration(
                                             shape: BoxShape.circle),
                                         child: Icon(
