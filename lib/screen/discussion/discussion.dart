@@ -65,6 +65,9 @@ class DiscussionForumState extends State<DiscussionForum>
 
   String _selectedEmojiCategory = 'Smileys';
 
+// Go down button visibility
+  bool _showGoDownButton = false;
+
 // Speech to text variables
   late stt.SpeechToText _speech;
   bool _isListening = false;
@@ -105,18 +108,41 @@ class DiscussionForumState extends State<DiscussionForum>
       });
     });
 
-    // Auto-scroll to bottom when new messages arrive
+    // Auto-scroll to bottom when new messages arrive (only if user is already near bottom)
     _messagesRef.orderByChild("timestamp").limitToLast(1).onChildAdded.listen((event) {
       if (mounted) {
         Future.delayed(Duration(milliseconds: 500), () {
           if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent + 80,
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
+            final isNearBottom = _scrollController.position.pixels >=
+                _scrollController.position.maxScrollExtent - 200;
+
+            if (isNearBottom) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent + 80,
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
           }
         });
+      }
+    });
+
+    // Listen for scroll changes to show/hide go down button
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        final isAtBottom = _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 100;
+
+        if (isAtBottom && _showGoDownButton) {
+          setState(() {
+            _showGoDownButton = false;
+          });
+        } else if (!isAtBottom && !_showGoDownButton) {
+          setState(() {
+            _showGoDownButton = true;
+          });
+        }
       }
     });
   }
@@ -129,6 +155,17 @@ class DiscussionForumState extends State<DiscussionForum>
     _disclaimerController.dispose();
     _emojiAnimationController.dispose();
     super.dispose();
+  }
+
+  /// Scroll to bottom of messages
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 80,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _hideDisclaimer() {
@@ -897,6 +934,7 @@ class DiscussionForumState extends State<DiscussionForum>
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
       return Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor:
             themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
         appBar: AppBar(
@@ -1003,9 +1041,9 @@ class DiscussionForumState extends State<DiscussionForum>
                           List<Map<String, dynamic>> messagesList = messagesMap
                               .entries
                               .map((e) => {
-                                    "key": e.key,
-                                    ...Map<String, dynamic>.from(e.value)
-                                  })
+                            "key": e.key,
+                            ...Map<String, dynamic>.from(e.value)
+                          })
                               .toList();
 
                           // Sort by timestamp (ascending)
@@ -1065,23 +1103,23 @@ class DiscussionForumState extends State<DiscussionForum>
                                 : messagesList.map((message) {
                               bool isMe = message["senderId"] == userId;
                               return MessageWidgets.buildMessage(
-                                message,
-                                isMe,
-                                themeProvider,
-                                _showFullScreenImage,
-                                _showFullScreenVideo,
-                                _replyToMessage,
-                                _showMessageOptions,
-                                _isAdmin
+                                  message,
+                                  isMe,
+                                  themeProvider,
+                                  _showFullScreenImage,
+                                  _showFullScreenVideo,
+                                  _replyToMessage,
+                                  _showMessageOptions,
+                                  _isAdmin
                               );
                             }).toList(),
                           );
 
-                          // Ensure we scroll to bottom after build completes
+                          // Only scroll to bottom on first load or when user is already at bottom
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (_scrollController.hasClients) {
+                            if (_scrollController.hasClients && !_showGoDownButton) {
                               Future.delayed(Duration(milliseconds: 100), () {
-                                if (_scrollController.hasClients) {
+                                if (_scrollController.hasClients && !_showGoDownButton) {
                                   _scrollController.jumpTo(
                                     _scrollController.position.maxScrollExtent,
                                   );
@@ -1219,6 +1257,16 @@ class DiscussionForumState extends State<DiscussionForum>
                                           });
                                           _emojiAnimationController.reverse();
                                         }
+                                        // Auto scroll if at bottom when keyboard opens
+                                        Future.delayed(Duration(milliseconds: 300), () {
+                                          if (!_showGoDownButton && _scrollController.hasClients) {
+                                            _scrollController.animateTo(
+                                              _scrollController.position.maxScrollExtent,
+                                              duration: Duration(milliseconds: 200),
+                                              curve: Curves.easeOut,
+                                            );
+                                          }
+                                        });
                                       },
                                       style: TextStyle(
                                         color: themeProvider.isDarkMode
@@ -1376,24 +1424,49 @@ class DiscussionForumState extends State<DiscussionForum>
                       ),
                     ),
                   ),
-                  // Emoji picker below input field
-                  if (_showEmojiPicker) EmojiPickerWidget(
-                    themeProvider: themeProvider,
-                    emojiAnimationController: _emojiAnimationController,
-                    emojiScaleAnimation: _emojiScaleAnimation,
-                    selectedEmojiCategory: _selectedEmojiCategory,
-                    onCategorySelected: (category) {
-                      setState(() {
-                        _selectedEmojiCategory = category;
-                      });
-                    },
-                    onEmojiSelected: _insertEmoji,
+                  if (_showEmojiPicker) Container(
+                    height: MediaQuery.of(context).viewInsets.bottom > 0 ? 280 : 280,
+                    child: EmojiPickerWidget(
+                      themeProvider: themeProvider,
+                      emojiAnimationController: _emojiAnimationController,
+                      emojiScaleAnimation: _emojiScaleAnimation,
+                      selectedEmojiCategory: _selectedEmojiCategory,
+                      onCategorySelected: (category) {
+                        setState(() {
+                          _selectedEmojiCategory = category;
+                        });
+                      },
+                      onEmojiSelected: _insertEmoji,
+                    ),
                   ),
                 ],
               )
             else
               Center(
                 child: CircularProgressIndicator(color: Color(0xFF2196F3)),
+              ),
+
+            // Go down button - positioned at bottom right
+            if (_showGoDownButton && _hasAgreedToTerms)
+              Positioned(
+                bottom: _showEmojiPicker ? 380 : 100,
+                right: 16,
+                child: AnimatedOpacity(
+                  opacity: _showGoDownButton ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: 300),
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Color(0xFF2196F3),
+                    onPressed: _scrollToBottom,
+                    elevation: 4,
+                    heroTag: "goDownButton",
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
               ),
           ],
         ),

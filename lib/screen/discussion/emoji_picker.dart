@@ -267,9 +267,7 @@ class EmojiPickerWidget extends StatelessWidget {
           scale: emojiScaleAnimation.value,
           alignment: Alignment.bottomCenter,
           child: Container(
-            height: MediaQuery.of(context).viewInsets.bottom > 0
-                ? MediaQuery.of(context).viewInsets.bottom
-                : 280,
+            height: 280,
             decoration: BoxDecoration(
               color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
