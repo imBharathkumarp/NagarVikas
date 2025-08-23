@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -489,14 +490,16 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    'Spell Records',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
+                                Expanded(
+                                  child: SlideInDown(
+                                    child: const Text(
+                                      'Spell Records',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -504,12 +507,15 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                               ],
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              '${filteredComplaints.length} spell${filteredComplaints.length != 1 ? 's' : ''} found',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withOpacity(0.9),
-                                fontWeight: FontWeight.w500,
+                            SlideInDown(
+                              delay: const Duration(milliseconds: 200),
+                              child: Text(
+                                '${filteredComplaints.length} spell${filteredComplaints.length != 1 ? 's' : ''} found',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
