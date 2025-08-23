@@ -17,7 +17,8 @@ import 'message_widgets.dart';
 /// DiscussionForum with Image and Video Sharing
 /// Enhanced real-time chat interface with image/video upload and full-screen viewing capabilities
 class DiscussionForum extends StatefulWidget {
-  const DiscussionForum({super.key});
+  final bool isAdmin;
+  const DiscussionForum({super.key, this.isAdmin = false});
 
   @override
   DiscussionForumState createState() => DiscussionForumState();
@@ -38,6 +39,7 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _hasAgreedToTerms = false;
   bool _showTermsDialog = false;
   bool _isUploading = false;
+  bool _isAdmin = false;
 
 // Animation controllers for enhanced UI
   late AnimationController _sendButtonAnimationController;
@@ -73,6 +75,7 @@ class DiscussionForumState extends State<DiscussionForum>
   void initState() {
     super.initState();
     userId = FirebaseAuth.instance.currentUser?.uid;
+    _isAdmin = widget.isAdmin;
     ForumLogic.getCurrentUserName(
       userId,
       _usersRef,
@@ -731,7 +734,7 @@ class DiscussionForumState extends State<DiscussionForum>
     });
   }
 
-  /// Delete message
+  /// Delete message (admin or owner)
   void _deleteMessage(String messageId) {
     showDialog(
       context: context,
@@ -764,7 +767,22 @@ class DiscussionForumState extends State<DiscussionForum>
               ),
               TextButton(
                 onPressed: () {
-                  _messagesRef.child(messageId).remove();
+                  if (_isAdmin) {
+                    // Admin deletion - replace with admin deletion message
+                    _messagesRef.child(messageId).update({
+                      "message": "This message was deleted by admin",
+                      "messageType": "admin_deleted",
+                      "deletedAt": ServerValue.timestamp,
+                      "deletedBy": "admin",
+                      "mediaUrl": null,
+                      "replyTo": null,
+                      "replyToMessage": null,
+                      "replyToSender": null,
+                    });
+                  } else {
+                    // User deletion - remove completely
+                    _messagesRef.child(messageId).remove();
+                  }
                   Navigator.of(context).pop();
                 },
                 child: Text(
@@ -779,8 +797,8 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  /// Show edit/delete options for own messages
-  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider, bool hasMedia) {
+  /// Show edit/delete options for messages
+  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider, bool hasMedia, bool isMyMessage) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -823,11 +841,11 @@ class DiscussionForumState extends State<DiscussionForum>
                 _replyToMessage(
                   messageId,
                   message.isNotEmpty ? message : (hasMedia ? "Media" : "Message"),
-                  currentUserName ?? "You",
+                  currentUserName ?? "User",
                 );
               },
             ),
-            if (!hasMedia) ListTile(
+            if (isMyMessage && !hasMedia) ListTile(
               leading: Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -848,7 +866,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 _startEditingMessage(messageId, message);
               },
             ),
-            ListTile(
+            if (isMyMessage || _isAdmin) ListTile(
               leading: Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -858,7 +876,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Icon(Icons.delete, color: Colors.red),
               ),
               title: Text(
-                'Delete Message',
+                _isAdmin && !isMyMessage ? 'Delete Message (Admin)' : 'Delete Message',
                 style: TextStyle(
                   color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
@@ -1034,6 +1052,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                 _showFullScreenVideo,
                                 _replyToMessage,
                                 _showMessageOptions,
+                                _isAdmin,
                               ));
                             }
                           }
@@ -1053,6 +1072,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                 _showFullScreenVideo,
                                 _replyToMessage,
                                 _showMessageOptions,
+                                _isAdmin
                               );
                             }).toList(),
                           );

@@ -9,14 +9,15 @@ import 'forum_logic.dart';
 class MessageWidgets {
   /// Build message widget with image and video support
   static Widget buildMessage(
-    Map<String, dynamic> messageData,
-    bool isMe,
-    ThemeProvider themeProvider,
-    Function(String) onImageTap,
-    Function(String) onVideoTap,
-    Function(String, String, String) onReply,
-      Function(String, String, ThemeProvider, bool) onMessageOptions,
-  ) {
+      Map<String, dynamic> messageData,
+      bool isMe,
+      ThemeProvider themeProvider,
+      Function(String) onImageTap,
+      Function(String) onVideoTap,
+      Function(String, String, String) onReply,
+      Function(String, String, ThemeProvider, bool, bool) onMessageOptions,
+      bool isAdmin,
+      ) {
     final timeString = ForumLogic.formatTime(
         messageData["createdAt"] ?? messageData["timestamp"]);
     final hasReply = messageData["replyTo"] != null;
@@ -77,13 +78,14 @@ class MessageWidgets {
                     // Message bubble
                     GestureDetector(
                       onLongPress: () {
-                        if (isMe) {
-                          // Show reply/edit/delete options for own messages
+                        if (isMe || isAdmin) {
+                          // Show options for own messages or if user is admin
                           onMessageOptions(
                             messageData["key"] ?? "",
                             messageData["message"] ?? "",
                             themeProvider,
                             isImageMessage || isVideoMessage,
+                            isMe, // pass the actual isMe value
                           );
                         } else {
                           // Show reply option for other messages
@@ -193,6 +195,41 @@ class MessageWidgets {
                                       ),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            // Admin deleted message indicator
+                            if (messageData["messageType"] == "admin_deleted") ...[
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                margin: EdgeInsets.only(bottom: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: Colors.red,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.admin_panel_settings, size: 16, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        "This message was deleted by admin",
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 12,
+                                          fontStyle: FontStyle.italic,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -347,15 +384,26 @@ class MessageWidgets {
                             ],
 
                             // Text message content
-                            if (hasText) ...[
+                            if (messageData["messageType"] == "admin_deleted") ...[
+                              Text(
+                                "This message was deleted by admin",
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ] else if (hasText) ...[
                               Text(
                                 messageData["message"],
                                 style: TextStyle(
                                   color: isMe
                                       ? Colors.white
                                       : (themeProvider.isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87),
+                                      ? Colors.white
+                                      : Colors.black87),
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   height: 1.4,
