@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/services.dart';
 import 'package:nagarvikas/service/connectivity_service.dart';
+import 'package:nagarvikas/widgets/bottom_nav_admin.dart';
 import 'package:nagarvikas/widgets/bottom_nav_bar.dart';
 import 'package:nagarvikas/widgets/exit_confirmation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -163,7 +164,7 @@ class AuthCheckScreenState extends State<AuthCheckScreen> {
       return const WelcomeScreen();
     } else {
       if (isAdmin && user!.email?.contains("gov") == true) {
-        return AdminDashboard();
+        return MainNavigationWrapper();
       } else {
         return const BottomNavBar();
       }
@@ -177,7 +178,7 @@ Future<void> handleAdminLogin(BuildContext context) async {
   await prefs.setBool('isAdmin', true);
   if (context.mounted) {
     Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => AdminDashboard()));
+        context, MaterialPageRoute(builder: (context) => MainNavigationWrapper()));
   }
 }
 
@@ -245,7 +246,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
     _buttonAnimationController.forward().then((_) {
       _buttonAnimationController.reverse();
     });
-    
+
     setState(() => _isLoading = true);
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
@@ -290,7 +291,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(
-              horizontal: screenWidth * 0.08, 
+              horizontal: screenWidth * 0.08,
               vertical: screenHeight * 0.05
             ),
             child: ConstrainedBox(
@@ -334,12 +335,12 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                     child: Container(
                       padding: const EdgeInsets.all(40),
                       decoration: BoxDecoration(
-                        color: isDarkMode 
+                        color: isDarkMode
                             ? Colors.grey[800]?.withOpacity(0.8)
                             : Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(30),
                         border: Border.all(
-                          color: isDarkMode 
+                          color: isDarkMode
                               ? Colors.grey[700]!
                               : Colors.grey[200]!,
                           width: 1.5,
@@ -389,7 +390,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                             style: TextStyle(
                               fontSize: screenWidth * 0.045,
                               fontWeight: FontWeight.w600,
-                              color: isDarkMode 
+                              color: isDarkMode
                                   ? Colors.white.withOpacity(0.9)
                                   : Colors.black87,
                             ),
@@ -407,12 +408,12 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: isDarkMode 
+                        color: isDarkMode
                             ? Colors.grey[800]?.withOpacity(0.6)
                             : Colors.white.withOpacity(0.8),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isDarkMode 
+                          color: isDarkMode
                               ? Colors.grey[700]!
                               : Colors.grey[200]!,
                           width: 1,
@@ -476,7 +477,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.08, 
+            horizontal: screenWidth * 0.08,
             vertical: 20
           ),
           child: AnimatedBuilder(
@@ -496,7 +497,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: isDarkMode 
+                        color: isDarkMode
                             ? Colors.teal.withOpacity(0.3)
                             : const Color(0xFF1565C0).withOpacity(0.3),
                         blurRadius: 8,
@@ -607,7 +608,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
               ),
             ),
           ),
-          
+
           const SizedBox(height: 24),
 
           // Enhanced Dark Mode Toggle with consistent styling
@@ -616,12 +617,12 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
             child: Consumer<ThemeProvider>(
               builder: (context, themeProvider, _) => Container(
                 decoration: BoxDecoration(
-                  color: isDarkMode 
+                  color: isDarkMode
                       ? Colors.grey[700]?.withOpacity(0.5)
                       : Colors.grey[50],
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDarkMode 
+                    color: isDarkMode
                         ? Colors.grey[600]!
                         : Colors.grey[200]!,
                   ),

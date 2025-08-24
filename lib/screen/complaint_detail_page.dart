@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 import '../service/local_status_storage.dart';
 import '../service/notification_service.dart';
 import '../theme/theme_provider.dart';
+import '../widgets/bottom_nav_admin.dart';
 import './admin_dashboard.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -30,7 +31,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
   void initState() {
     super.initState();
     _fetchComplaintDetails();
-    
+
     // Initialize animation controllers
     _deleteButtonAnimationController = AnimationController(
       duration: const Duration(milliseconds: 150),
@@ -134,7 +135,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
       final screenHeight = MediaQuery.of(context).size.height;
       final screenWidth = MediaQuery.of(context).size.width;
-      
+
       if (complaint == null) {
         return Scaffold(
           backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
@@ -164,7 +165,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
             children: [
               // Custom App Bar
               _buildCustomAppBar(themeProvider, complaint!["issue_type"] ?? "Complaint"),
-              
+
               // Main Content - Scrollable
               Expanded(
                 child: Container(
@@ -181,7 +182,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
-                        
+
                         // Media Container
                         Container(
                           width: double.infinity,
@@ -203,9 +204,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                             child: _buildMediaPreview(mediaType, mediaUrl, themeProvider),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Details Container
                         Container(
                           width: double.infinity,
@@ -232,7 +233,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode 
+                                      color: themeProvider.isDarkMode
                                           ? Colors.teal.withOpacity(0.2)
                                           : const Color(0xFF1565C0).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
@@ -269,25 +270,25 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                                   ),
                                 ],
                               ),
-                              
+
                               const SizedBox(height: 24),
-                              
+
                               // Information Grid
                               _buildInfoGrid(themeProvider),
-                              
+
                               const SizedBox(height: 24),
-                              
+
                               // Status Update Section
                               _buildStatusUpdateSection(themeProvider),
-                              
+
                               const SizedBox(height: 32),
-                              
+
                               // Delete Button
                               _buildDeleteButton(themeProvider),
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 32),
                       ],
                     ),
@@ -320,7 +321,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
         children: [
           Container(
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode 
+              color: themeProvider.isDarkMode
                   ? Colors.grey[700]
                   : Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
@@ -352,7 +353,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
 
   PreferredSizeWidget _buildAppBar(ThemeProvider themeProvider, String title, bool isShimmer) {
     return AppBar(
-      title: isShimmer 
+      title: isShimmer
           ? Container(
               width: 150,
               height: 20,
@@ -506,7 +507,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: themeProvider.isDarkMode 
+                  color: themeProvider.isDarkMode
                       ? Colors.amber.withOpacity(0.2)
                       : Colors.amber.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -570,9 +571,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
   }
 
   DropdownMenuItem<String> _buildDropdownItem(
-    String status, 
-    IconData icon, 
-    Color color, 
+    String status,
+    IconData icon,
+    Color color,
     ThemeProvider themeProvider
   ) {
     return DropdownMenuItem(
@@ -725,7 +726,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
 
                       if (!mounted) return;
                       navigator.pushReplacement(
-                        MaterialPageRoute(builder: (context) => AdminDashboard()),
+                        MaterialPageRoute(builder: (context) => MainNavigationWrapper()),
                       );
                       Fluttertoast.showToast(msg: "Complaint deleted successfully!");
                     },
@@ -798,7 +799,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
             ],
           ),
         ),
-        
+
         // Scrollable Content
         Expanded(
           child: Container(
@@ -815,7 +816,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  
+
                   // Media shimmer
                   Container(
                     height: screenHeight * 0.25,
@@ -825,9 +826,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Details shimmer
                   Container(
                     width: double.infinity,
@@ -885,9 +886,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Info items shimmer
                         ...List.generate(7, (index) {
                           return Container(
@@ -936,9 +937,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                             ),
                           );
                         }),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Status update shimmer
                         Container(
                           height: 80,
@@ -948,9 +949,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Delete button shimmer
                         Container(
                           height: 56,
@@ -963,7 +964,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
                 ],
               ),
@@ -1183,7 +1184,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
       final dt = DateTime.parse(isoTimestamp).toLocal();
       final now = DateTime.now();
       final difference = now.difference(dt);
-      
+
       if (difference.inDays > 0) {
         return "${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago";
       } else if (difference.inHours > 0) {
