@@ -59,6 +59,12 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _isReplying = false;
   bool _showEmojiPicker = false;
 
+  // Media attachment preview
+  File? _attachedMediaFile;
+  String? _attachedMediaUrl;
+  String? _attachedMediaType;
+  bool _showMediaPreview = false;
+
 // Edit message functionality
   bool _isEditing = false;
   String? _editingMessageId;
@@ -119,11 +125,17 @@ class DiscussionForumState extends State<DiscussionForum>
                 _scrollController.position.maxScrollExtent - 200;
 
             if (isNearBottom) {
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent + 80,
-                duration: Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
+              // Force jump to absolute bottom
+              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+
+              // Additional jumps to handle media loading
+              for (int i = 1; i <= 5; i++) {
+                Future.delayed(Duration(milliseconds: i * 200), () {
+                  if (_scrollController.hasClients) {
+                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                  }
+                });
+              }
             }
           }
         });
@@ -159,14 +171,20 @@ class DiscussionForumState extends State<DiscussionForum>
     super.dispose();
   }
 
-  /// Scroll to bottom of messages
+  /// Scroll to bottom of messages - goes to absolute latest message
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 80,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      // Force immediate scroll to current max extent
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+
+      // Then use multiple delayed jumps to handle dynamic content loading
+      for (int i = 1; i <= 10; i++) {
+        Future.delayed(Duration(milliseconds: i * 100), () {
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          }
+        });
+      }
     }
   }
 
@@ -559,17 +577,26 @@ class DiscussionForumState extends State<DiscussionForum>
       final imageUrl = await _uploadToCloudinary(imageFile, isVideo: false);
 
       if (imageUrl != null) {
-        _sendMessage(mediaUrl: imageUrl, mediaType: "image");
+        setState(() {
+          _attachedMediaFile = imageFile;
+          _attachedMediaUrl = imageUrl;
+          _attachedMediaType = "image";
+          _showMediaPreview = true;
+          _isUploading = false;
+        });
+        FocusScope.of(context).requestFocus(_textFieldFocusNode);
       } else {
+        setState(() {
+          _isUploading = false;
+        });
         Fluttertoast.showToast(
             msg: "Failed to upload image. Please try again.");
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: "Error picking image: $e");
-    } finally {
       setState(() {
         _isUploading = false;
       });
+      Fluttertoast.showToast(msg: "Error picking image: $e");
     }
   }
 
@@ -593,17 +620,26 @@ class DiscussionForumState extends State<DiscussionForum>
       final imageUrl = await _uploadToCloudinary(imageFile, isVideo: false);
 
       if (imageUrl != null) {
-        _sendMessage(mediaUrl: imageUrl, mediaType: "image");
+        setState(() {
+          _attachedMediaFile = imageFile;
+          _attachedMediaUrl = imageUrl;
+          _attachedMediaType = "image";
+          _showMediaPreview = true;
+          _isUploading = false;
+        });
+        FocusScope.of(context).requestFocus(_textFieldFocusNode);
       } else {
+        setState(() {
+          _isUploading = false;
+        });
         Fluttertoast.showToast(
             msg: "Failed to upload image. Please try again.");
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: "Error taking photo: $e");
-    } finally {
       setState(() {
         _isUploading = false;
       });
+      Fluttertoast.showToast(msg: "Error taking photo: $e");
     }
   }
 
@@ -614,7 +650,7 @@ class DiscussionForumState extends State<DiscussionForum>
     try {
       final XFile? video = await _imagePicker.pickVideo(
         source: ImageSource.gallery,
-        maxDuration: Duration(minutes: 5), // 5 minute limit
+        maxDuration: Duration(minutes: 5),
       );
 
       if (video == null) return;
@@ -624,8 +660,6 @@ class DiscussionForumState extends State<DiscussionForum>
       });
 
       final videoFile = File(video.path);
-
-      // Check file size (50MB limit)
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
@@ -639,17 +673,26 @@ class DiscussionForumState extends State<DiscussionForum>
       final videoUrl = await _uploadToCloudinary(videoFile, isVideo: true);
 
       if (videoUrl != null) {
-        _sendMessage(mediaUrl: videoUrl, mediaType: "video");
+        setState(() {
+          _attachedMediaFile = videoFile;
+          _attachedMediaUrl = videoUrl;
+          _attachedMediaType = "video";
+          _showMediaPreview = true;
+          _isUploading = false;
+        });
+        FocusScope.of(context).requestFocus(_textFieldFocusNode);
       } else {
+        setState(() {
+          _isUploading = false;
+        });
         Fluttertoast.showToast(
             msg: "Failed to upload video. Please try again.");
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: "Error picking video: $e");
-    } finally {
       setState(() {
         _isUploading = false;
       });
+      Fluttertoast.showToast(msg: "Error picking video: $e");
     }
   }
 
@@ -660,7 +703,7 @@ class DiscussionForumState extends State<DiscussionForum>
     try {
       final XFile? video = await _imagePicker.pickVideo(
         source: ImageSource.camera,
-        maxDuration: Duration(minutes: 5), // 5 minute limit
+        maxDuration: Duration(minutes: 5),
       );
 
       if (video == null) return;
@@ -670,8 +713,6 @@ class DiscussionForumState extends State<DiscussionForum>
       });
 
       final videoFile = File(video.path);
-
-      // Check file size (50MB limit)
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
@@ -685,18 +726,36 @@ class DiscussionForumState extends State<DiscussionForum>
       final videoUrl = await _uploadToCloudinary(videoFile, isVideo: true);
 
       if (videoUrl != null) {
-        _sendMessage(mediaUrl: videoUrl, mediaType: "video");
+        setState(() {
+          _attachedMediaFile = videoFile;
+          _attachedMediaUrl = videoUrl;
+          _attachedMediaType = "video";
+          _showMediaPreview = true;
+          _isUploading = false;
+        });
+        FocusScope.of(context).requestFocus(_textFieldFocusNode);
       } else {
+        setState(() {
+          _isUploading = false;
+        });
         Fluttertoast.showToast(
             msg: "Failed to upload video. Please try again.");
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: "Error recording video: $e");
-    } finally {
       setState(() {
         _isUploading = false;
       });
+      Fluttertoast.showToast(msg: "Error recording video: $e");
     }
+  }
+
+  void _clearMediaPreview() {
+    setState(() {
+      _attachedMediaFile = null;
+      _attachedMediaUrl = null;
+      _attachedMediaType = null;
+      _showMediaPreview = false;
+    });
   }
 
   // Show image in full screen
@@ -735,7 +794,11 @@ class DiscussionForumState extends State<DiscussionForum>
       return;
     }
 
-    if ((_messageController.text.trim().isEmpty && mediaUrl == null) ||
+    // Use attached media if available, otherwise use provided parameters
+    final finalMediaUrl = _attachedMediaUrl ?? mediaUrl;
+    final finalMediaType = _attachedMediaType ?? mediaType;
+
+    if ((_messageController.text.trim().isEmpty && finalMediaUrl == null) ||
         currentUserName == null) return;
 
     _sendButtonAnimationController.forward().then((_) {
@@ -755,9 +818,9 @@ class DiscussionForumState extends State<DiscussionForum>
     }
 
     // Add media URL and type if present
-    if (mediaUrl != null && mediaType != null) {
-      messageData["mediaUrl"] = mediaUrl;
-      messageData["messageType"] = mediaType;
+    if (finalMediaUrl != null && finalMediaType != null) {
+      messageData["mediaUrl"] = finalMediaUrl;
+      messageData["messageType"] = finalMediaType;
     } else {
       messageData["messageType"] = "text";
     }
@@ -773,6 +836,7 @@ class DiscussionForumState extends State<DiscussionForum>
 
     _messageController.clear();
     _clearReply();
+    _clearMediaPreview(); // Clear media preview after sending
     setState(() {
       _isTyping = false;
     });
@@ -785,13 +849,19 @@ class DiscussionForumState extends State<DiscussionForum>
       _emojiAnimationController.reverse();
     }
 
-    Future.delayed(Duration(milliseconds: 300), () {
+    // Force scroll to bottom after sending message
+    Future.delayed(Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 80,
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+
+        // Additional jumps for media content
+        for (int i = 1; i <= 8; i++) {
+          Future.delayed(Duration(milliseconds: i * 125), () {
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            }
+          });
+        }
       }
     });
   }
@@ -1220,16 +1290,16 @@ class DiscussionForumState extends State<DiscussionForum>
                             }).toList(),
                           );
 
-                          // Only scroll to bottom on first load or when user is already at bottom
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (_scrollController.hasClients && !_showGoDownButton) {
-                              Future.delayed(Duration(milliseconds: 100), () {
-                                if (_scrollController.hasClients && !_showGoDownButton) {
-                                  _scrollController.jumpTo(
-                                    _scrollController.position.maxScrollExtent,
-                                  );
-                                }
-                              });
+                              // Multiple jumps to ensure we reach absolute bottom
+                              for (int i = 0; i <= 10; i++) {
+                                Future.delayed(Duration(milliseconds: i * 50), () {
+                                  if (_scrollController.hasClients && !_showGoDownButton) {
+                                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                                  }
+                                });
+                              }
                             }
                           });
 
@@ -1238,6 +1308,85 @@ class DiscussionForumState extends State<DiscussionForum>
                       ),
                     ),
                   ),
+
+                  // Media preview
+                  if (_showMediaPreview && _attachedMediaUrl != null)
+                    Container(
+                      margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Color(0xFF2196F3),
+                          width: 2,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _attachedMediaType == "image" ? Icons.image : Icons.videocam,
+                                color: Color(0xFF2196F3),
+                                size: 16,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Attached ${_attachedMediaType == "image" ? "Image" : "Video"}',
+                                style: TextStyle(
+                                  color: Color(0xFF2196F3),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Spacer(),
+                              GestureDetector(
+                                onTap: _clearMediaPreview,
+                                child: Icon(
+                                  Icons.close,
+                                  size: 18,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _attachedMediaType == "image"
+                                ? (_attachedMediaFile != null
+                                ? Image.file(
+                              _attachedMediaFile!,
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
+                            )
+                                : Container(
+                              height: 100,
+                              width: 100,
+                              color: Colors.grey[300],
+                              child: Icon(Icons.image),
+                            ))
+                                : Container(
+                              height: 100,
+                              width: 100,
+                              color: Colors.black,
+                              child: Icon(
+                                Icons.play_arrow,
+                                color: Colors.white,
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+// Reply and edit indicators
 
                   // Reply and edit indicators
                   MessageWidgets.buildReplyIndicator(
@@ -1360,7 +1509,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                       : Colors.grey[300]!),
                                   width: (_isTyping || _isEditing) ? 2 : 1,
                                 ),
-                                boxShadow: (_isTyping || _isEditing)
+                                boxShadow: (_isTyping || _isEditing || _showMediaPreview)
                                     ? [
                                   BoxShadow(
                                     color: Color(0xFF2196F3)
@@ -1494,7 +1643,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                 scale: _sendButtonScaleAnimation.value,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    gradient: (_isTyping || _isEditing)
+                                    gradient: (_isTyping || _isEditing || _showMediaPreview)
                                         ? LinearGradient(
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
@@ -1504,13 +1653,13 @@ class DiscussionForumState extends State<DiscussionForum>
                                       ],
                                     )
                                         : null,
-                                    color: !(_isTyping || _isEditing)
+                                    color: !(_isTyping || _isEditing || _showMediaPreview)
                                         ? (themeProvider.isDarkMode
                                         ? Colors.grey[600]
                                         : Colors.grey[400])
                                         : null,
                                     shape: BoxShape.circle,
-                                    boxShadow: (_isTyping || _isEditing)
+                                    boxShadow: (_isTyping || _isEditing || _showMediaPreview)
                                         ? [
                                       BoxShadow(
                                         color: Color(0xFF2196F3)
@@ -1525,7 +1674,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                     color: Colors.transparent,
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(28),
-                                      onTap: (_isTyping || _isEditing)
+                                      onTap: (_isTyping || _isEditing || _showMediaPreview)
                                           ? () => _sendMessage()
                                           : null,
                                       child: Container(
@@ -1540,7 +1689,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                               ? Icons.send_rounded
                                               : Icons.send_outlined),
                                           color: Colors.white,
-                                          size: (_isTyping || _isEditing) ? 24 : 20,
+                                          size: (_isTyping || _isEditing || _showMediaPreview) ? 24 : 20,
                                         ),
                                       ),
                                     ),
