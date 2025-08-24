@@ -25,36 +25,11 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
   List<Widget> dashboardWidgets = [];
 
-  // Bottom navigation items
-  static const List<BottomNavigationBarItem> _bottomNavItems = [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.home),
-      label: 'Home',
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.analytics),
-      label: 'Analytics',
-    ),
-  ];
 
   @override
   void initState() {
     super.initState();
     fetchComplaintStats();
-  }
-
-  // Handle bottom navigation item tap
-  void _onItemTapped(int index) {
-    if (index == 0) { // Home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AdminDashboard()),
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
   }
 
   Future<void> fetchComplaintStats() async {
@@ -418,17 +393,6 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                 },
               ),
             ),
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            items: _bottomNavItems,
-            currentIndex: _selectedIndex,
-            selectedItemColor: Colors.teal,
-            unselectedItemColor: Colors.grey,
-            onTap: _onItemTapped,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
-            elevation: 10,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: fetchComplaintStats,

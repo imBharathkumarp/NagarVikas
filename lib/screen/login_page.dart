@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../service/local_status_storage.dart';
 import '../service/notification_service.dart';
 import '../theme/theme_provider.dart';
+import '../widgets/bottom_nav_admin.dart';
 import '../widgets/bottom_nav_bar.dart';
 
 // 🧩 Stateful widget for login page
@@ -155,7 +156,7 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         return Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return AlertDialog(
-              backgroundColor: themeProvider.isDarkMode 
+              backgroundColor: themeProvider.isDarkMode
                   ? Colors.grey[800]
                   : Colors.white,
               shape: RoundedRectangleBorder(
@@ -292,7 +293,7 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               }
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => AdminDashboard()),
+                                MaterialPageRoute(builder: (context) => MainNavigationWrapper()),
                               );
                             } else {
                               Fluttertoast.showToast(msg: "Incorrect PIN! Access Denied.");
@@ -500,7 +501,7 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: isDarkMode 
+                                      color: isDarkMode
                                           ? Colors.teal.withOpacity(0.3)
                                           : const Color(0xFF1565C0).withOpacity(0.3),
                                       blurRadius: 8,
