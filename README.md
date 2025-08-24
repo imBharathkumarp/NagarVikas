@@ -27,7 +27,7 @@
 <summary><strong>🔍 Click to expand navigation</strong></summary>
 
 - [🌟 Vision & Mission](#-vision--mission)
-- [❓ Problem Statement](#-problem-statement)  
+- [❓ Problem Statement](#-problem-statement)
 - [💡 Our Solution](#-our-solution)
 - [🚀 Key Features](#-key-features)
 - [🔄 Complaint Lifecycle](#-complaint-lifecycle)
@@ -51,7 +51,7 @@
 
 ### 🎯 Our Mission
 - **Democratize** civic engagement through technology
-- **Eliminate** bureaucratic red tape in complaint resolution  
+- **Eliminate** bureaucratic red tape in complaint resolution
 - **Empower** citizens with real-time transparency
 - **Enable** data-driven decision making for authorities
 - **Foster** stronger community connections
@@ -90,7 +90,7 @@ NagarVikas isn't just another app—it's a comprehensive **civic engagement ecos
 
 #### 🔄 The Revolutionary Process
 ```
-👤 Citizen Reports Issue → 📱 Smart Validation → 🏛️ Admin Dashboard → 
+👤 Citizen Reports Issue → 📱 Smart Validation → 🏛️ Admin Dashboard →
 ⚡ Real-time Assignment → 👥 Field Team Action → ✅ Resolution & Feedback
 ```
 
@@ -162,7 +162,7 @@ graph TB
     L --> M[✅ Status: Resolved]
     M --> N[📊 Citizen Feedback]
     N --> O[📈 Analytics & Insights]
-    
+
     style A fill:#e1f5fe
     style M fill:#c8e6c9
     style O fill:#fff3e0
@@ -198,7 +198,7 @@ graph TB
 - **Flutter** - Single codebase, native performance across iOS, Android, and Web
 - **Dart** - Type-safe, fast compilation, excellent developer experience
 
-#### **Backend Powerhouse**  
+#### **Backend Powerhouse**
 - **Firebase Realtime Database** - Millisecond data synchronization
 - **Firebase Authentication** - Military-grade security with social logins
 - **Firebase Cloud Functions** - Serverless computing for complex operations
@@ -235,7 +235,7 @@ graph TB
 ### 🎬 Live Demo Features
 
 - **🎯 One-tap complaint filing** with auto-location detection
-- **📊 Real-time dashboard** with live complaint updates  
+- **📊 Real-time dashboard** with live complaint updates
 - **🔔 Instant notifications** for status changes
 - **📈 Analytics visualization** with interactive charts
 - **🎤 Voice input support** for accessibility
@@ -250,7 +250,7 @@ graph TB
 #### **System Requirements**
 ```bash
 Flutter SDK: >= 3.10.0
-Dart SDK: >= 3.0.0  
+Dart SDK: >= 3.0.0
 Android SDK: >= 21
 iOS: >= 12.0
 Xcode: >= 14.0 (for iOS development)
@@ -293,7 +293,7 @@ flutter devices
 # Run on specific platform
 flutter run                    # Default platform
 flutter run -d chrome         # Web browser
-flutter run -d android        # Android device/emulator  
+flutter run -d android        # Android device/emulator
 ```
 
 ---
@@ -413,7 +413,7 @@ flutter run -d android        # Android device/emulator
 │       ├── formatters.dart
 │       └── constants.dart
 ├── 🐧 linux/                        # Linux Platform Files
-├── 🍎 macos/                        # macOS Platform Files  
+├── 🍎 macos/                        # macOS Platform Files
 ├── 🧪 test/                         # Testing Suite
 │   ├── unit/
 │   │   ├── models/
@@ -466,11 +466,22 @@ flutter run -d android        # Android device/emulator
 </details>
 
 
-
 ---
 
-
 ## 🤝 Contributing
+
+We welcome contributions! Please read our [Contributing Guidelines](Contributing.md) before submitting a pull request.
+
+<div>
+  <h2><img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f49e/512.webp" width="30" height="30"> Our Valuebale Contributors</h2>
+</div>
+
+
+<i>Thank you to all our contributors for making Nagar Vikas amazing! 💝</i>
+
+
+<!-- readme: contributors -start -->
+<!-- readme: contributors -end -->
 
 ### 🌟 Join the Revolution - Every Contribution Counts!
 
@@ -650,7 +661,7 @@ Please read and follow our community standards:
 
 #### **🎯 Immediate Benefits**
 - **Citizens feel empowered** with voice and transparency
-- **Authorities gain efficiency** through digital transformation  
+- **Authorities gain efficiency** through digital transformation
 - **Communities grow stronger** through collaborative problem-solving
 - **Resources optimize** through data-driven allocation
 
@@ -667,7 +678,7 @@ Please read and follow our community standards:
 <div align="center">
 
 ### **🌟 Prateek Chourasia**
-*Founder & Lead Developer*  
+*Founder & Lead Developer*
 **NextGen Soft Labs**
 
 <img src="https://github.com/Prateek9876.png" width="150" height="150" style="border-radius: 50%; border: 3px solid #2196F3;">
@@ -685,8 +696,8 @@ Please read and follow our community standards:
 [![Email](https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:prateekchourasia9876@gmail.com)
 [![Portfolio](https://img.shields.io/badge/Portfolio-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://nextgensoftlabs.com)
 
-**📧 Direct Contact:** prateekchourasia9876@gmail.com  
-**📍 Location:** India  
+**📧 Direct Contact:** prateekchourasia9876@gmail.com
+**📍 Location:** India
 **⏰ Timezone:** IST (GMT +5:30)
 
 </div>
@@ -718,7 +729,7 @@ For complete legal details, see [LICENSE.md](LICENSE.md).
 
 ### 🔒 Additional Information
 - 🛡️ **Data Protection** - All user data encrypted at rest and in transit
-- 🔐 **Privacy First** - Minimal data collection, maximum user control  
+- 🔐 **Privacy First** - Minimal data collection, maximum user control
 - 🔍 **Security Audits** - Regular security assessments and updates
 - 📋 **Compliance Ready** - Built with GDPR and data protection standards in mind
 
@@ -738,7 +749,7 @@ For complete legal details, see [LICENSE.md](LICENSE.md).
 Found a bug? Here's how to report it effectively:
 
 1. **🔍 Search existing issues** first
-2. **📝 Use our issue template** for consistency  
+2. **📝 Use our issue template** for consistency
 3. **📊 Provide detailed information**:
    - Device/platform information
    - Steps to reproduce
