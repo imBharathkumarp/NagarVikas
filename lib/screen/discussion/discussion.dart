@@ -40,6 +40,7 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _showTermsDialog = false;
   bool _isUploading = false;
   bool _isAdmin = false;
+  bool _isUserBanned = false;
 
 // Animation controllers for enhanced UI
   late AnimationController _sendButtonAnimationController;
@@ -85,6 +86,7 @@ class DiscussionForumState extends State<DiscussionForum>
           (name) => setState(() => currentUserName = name),
     );
     _checkTermsAgreement();
+    _checkUserBanStatus();
     _initSpeech(); // Initialize speech to text
 
     ForumAnimations.initAnimations(
@@ -283,6 +285,78 @@ class DiscussionForumState extends State<DiscussionForum>
       _hasAgreedToTerms = hasAgreed;
       _showTermsDialog = !hasAgreed;
     });
+  }
+
+  /// Check if current user is banned
+  void _checkUserBanStatus() async {
+    if (userId == null) return;
+
+    DatabaseReference bannedUsersRef = FirebaseDatabase.instance.ref("banned_users/$userId");
+    bannedUsersRef.onValue.listen((event) {
+      if (mounted) {
+        setState(() {
+          _isUserBanned = event.snapshot.exists;
+        });
+      }
+    });
+  }
+
+  /// Ban a user (admin only)
+  void _banUser(String userIdToBan, String userName) {
+    if (!_isAdmin) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return AlertDialog(
+            backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            title: Text(
+              'Ban User',
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Are you sure you want to ban $userName? They will not be able to send messages until unbanned.',
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await FirebaseDatabase.instance.ref("banned_users/$userIdToBan").set({
+                    "banned_by": userId,
+                    "banned_at": ServerValue.timestamp,
+                    "user_name": userName,
+                    "reason": "Admin ban",
+                  });
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('$userName has been banned')),
+                  );
+                },
+                child: Text(
+                  'Ban User',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _agreeToTerms() async {
@@ -643,8 +717,18 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  // UPDATED: Send message with optional media URL and type
   void _sendMessage({String? mediaUrl, String? mediaType}) {
+    // Check if user is banned
+    if (_isUserBanned) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You are banned from sending messages'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     // Handle editing case
     if (_isEditing) {
       _saveEditedMessage();
@@ -835,7 +919,7 @@ class DiscussionForumState extends State<DiscussionForum>
   }
 
   /// Show edit/delete options for messages
-  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider, bool hasMedia, bool isMyMessage) {
+  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider, bool hasMedia, bool isMyMessage, String senderId, String senderName) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -878,7 +962,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 _replyToMessage(
                   messageId,
                   message.isNotEmpty ? message : (hasMedia ? "Media" : "Message"),
-                  currentUserName ?? "User",
+                  senderName,
                 );
               },
             ),
@@ -922,6 +1006,27 @@ class DiscussionForumState extends State<DiscussionForum>
               onTap: () {
                 Navigator.pop(context);
                 _deleteMessage(messageId);
+              },
+            ),
+            if (_isAdmin && !isMyMessage && senderId != userId) ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.block, color: Colors.orange),
+              ),
+              title: Text(
+                'Ban User',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _banUser(senderId, senderName);
               },
             ),
           ],
@@ -1166,7 +1271,31 @@ class DiscussionForumState extends State<DiscussionForum>
                         ),
                       ],
                     ),
-                    child: SafeArea(
+                    child: _isUserBanned
+                        ? Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.block, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You are banned from sending messages',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                        : SafeArea(
                       child: Row(
                         children: [
                           // UPDATED: Pin icon button for media selection
