@@ -1546,6 +1546,14 @@ class DiscussionForumState extends State<DiscussionForum>
                                           }
                                         });
                                       },
+                                      onChanged: (text) {
+                                        if (text.length > 100) {
+                                          _messageController.text = text.substring(0, 100);
+                                          _messageController.selection = TextSelection.fromPosition(
+                                            TextPosition(offset: 100),
+                                          );
+                                        }
+                                      },
                                       style: TextStyle(
                                         color: themeProvider.isDarkMode
                                             ? Colors.white
@@ -1553,7 +1561,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                         fontSize: 16,
                                         fontWeight: FontWeight.w500,
                                       ),
-                                      maxLines: null,
+                                      maxLines: 3,
+                                      minLines: 1,
                                       textCapitalization:
                                       TextCapitalization.sentences,
                                       decoration: InputDecoration(
@@ -1727,7 +1736,7 @@ class DiscussionForumState extends State<DiscussionForum>
             // Go down button - positioned at bottom right
             if (_showGoDownButton && _hasAgreedToTerms)
               Positioned(
-                bottom: _showEmojiPicker ? 380 : 100,
+                bottom: _showEmojiPicker ? 380 : (_isReplying ? 180 : 100),
                 right: 16,
                 child: AnimatedOpacity(
                   opacity: _showGoDownButton ? 1.0 : 0.0,
