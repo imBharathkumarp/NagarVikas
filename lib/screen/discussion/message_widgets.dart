@@ -15,7 +15,7 @@ class MessageWidgets {
       Function(String) onImageTap,
       Function(String) onVideoTap,
       Function(String, String, String) onReply,
-      Function(String, String, ThemeProvider, bool, bool) onMessageOptions,
+      Function(String, String, ThemeProvider, bool, bool, String, String) onMessageOptions,
       bool isAdmin,
       ) {
     final timeString = ForumLogic.formatTime(
@@ -86,6 +86,8 @@ class MessageWidgets {
                             themeProvider,
                             isImageMessage || isVideoMessage,
                             isMe, // pass the actual isMe value
+                            messageData["senderId"] ?? "",
+                            messageData["senderName"] ?? "Unknown User",
                           );
                         } else {
                           // Show reply option for other messages

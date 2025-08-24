@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import '../theme/theme_provider.dart';
 import 'complaint_detail_page.dart';
+import 'discussion/banned_users_dashboard.dart';
 import 'discussion/discussion.dart';
 import 'favourites.dart';
 import 'login_page.dart';
@@ -289,6 +290,28 @@ class AdminDashboardState extends State<AdminDashboard> {
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (context) => const DiscussionForum(isAdmin: true),
+                    ));
+                  },
+                ),
+                Divider(
+                    thickness: 1,
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[700]
+                        : Colors.grey[300]),
+                ListTile(
+                  leading: Icon(Icons.block, color: Colors.orange),
+                  title: Text(
+                    'Banned Users',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => const BannedUsersDashboard(),
                     ));
                   },
                 ),

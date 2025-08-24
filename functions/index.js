@@ -312,3 +312,48 @@ exports.handleTokenRefresh = functions.database
       return null;
     }
   });
+
+// Function to prevent banned users from posting
+exports.checkUserBanStatus = functions.database
+  .ref('/discussion/{messageId}')
+  .onCreate(async (snapshot, context) => {
+    const messageData = snapshot.val();
+    const messageId = context.params.messageId;
+    const senderId = messageData.senderId;
+
+    if (!senderId) {
+      console.log('No senderId found in message');
+      return null;
+    }
+
+    try {
+      // Check if user is banned
+      const bannedUserSnapshot = await admin.database().ref(`/banned_users/${senderId}`).once('value');
+
+      if (bannedUserSnapshot.exists()) {
+        console.log(`Banned user ${senderId} attempted to send message, deleting...`);
+
+        // Delete the message
+        await admin.database().ref(`/discussion/${messageId}`).remove();
+
+        // Optionally, you could add a system message indicating the attempted post was blocked
+        await admin.database().ref('/discussion').push().set({
+          message: "A message from a banned user was automatically removed",
+          messageType: "system",
+          timestamp: admin.database.ServerValue.TIMESTAMP,
+          createdAt: admin.database.ServerValue.TIMESTAMP,
+          senderName: "System",
+          senderId: "system"
+        });
+
+        return null;
+      }
+
+      console.log(`User ${senderId} is not banned, message allowed`);
+      return null;
+
+    } catch (error) {
+      console.error('Error checking ban status:', error);
+      return null;
+    }
+  });
