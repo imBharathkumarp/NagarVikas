@@ -427,8 +427,15 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
       DrawerMenuItem(
         icon: Icons.history,
         title: widget.t('my_complaints'),
-        page: MyComplaintsScreen(),
         color: const Color(0xFF2196F3),
+        onTap: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BottomNavBar(initialIndex: 1),
+            ),
+          );
+        },
       ),
       DrawerMenuItem(
         icon: Icons.favorite_outline,

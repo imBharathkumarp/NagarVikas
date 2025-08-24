@@ -220,7 +220,8 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
         return Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return AlertDialog(
-              backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              backgroundColor:
+                  themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -235,7 +236,9 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                   Text(
                     'Remove Spell?',
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -245,7 +248,9 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
               content: Text(
                 'This action cannot be undone. Your spell will be permanently removed.',
                 style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white70 : Colors.black54,
+                  color: themeProvider.isDarkMode
+                      ? Colors.white70
+                      : Colors.black54,
                   fontSize: 14,
                 ),
               ),
@@ -254,7 +259,9 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                   child: Text(
                     'Cancel',
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.white70 : Colors.black54,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white70
+                          : Colors.black54,
                     ),
                   ),
                   onPressed: () => Navigator.of(context).pop(),
@@ -315,8 +322,10 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
     if (issueLower.contains("water")) return Icons.water_drop_rounded;
     if (issueLower.contains("drainage")) return Icons.water_rounded;
     if (issueLower.contains("garbage")) return Icons.delete_rounded;
-    if (issueLower.contains("stray") || issueLower.contains("animal")) return Icons.pets_rounded;
-    if (issueLower.contains("streetlight") || issueLower.contains("light")) return Icons.lightbulb_rounded;
+    if (issueLower.contains("stray") || issueLower.contains("animal"))
+      return Icons.pets_rounded;
+    if (issueLower.contains("streetlight") || issueLower.contains("light"))
+      return Icons.lightbulb_rounded;
     return Icons.report_problem_rounded;
   }
 
@@ -408,9 +417,7 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: themeProvider.isDarkMode
-                  ? Colors.white70
-                  : Colors.black54,
+              color: themeProvider.isDarkMode ? Colors.white70 : Colors.black54,
             ),
           ),
           const SizedBox(height: 8),
@@ -457,14 +464,14 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                         end: Alignment.bottomRight,
                         colors: themeProvider.isDarkMode
                             ? [
-                          Colors.grey[800]!,
-                          Colors.grey[700]!,
-                          Colors.teal[600]!,
-                        ]
+                                Colors.grey[800]!,
+                                Colors.grey[700]!,
+                                Colors.teal[600]!,
+                              ]
                             : [
-                          const Color(0xFF1565C0),
-                          const Color(0xFF42A5F5),
-                          const Color(0xFF04CCF0),
+                                const Color(0xFF1565C0),
+                                const Color(0xFF42A5F5),
+                                const Color(0xFF04CCF0),
                               ],
                       ),
                     ),
@@ -638,7 +645,8 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                     ? Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
-                          children: List.generate(4, (index) => _buildShimmerCard()),
+                          children:
+                              List.generate(4, (index) => _buildShimmerCard()),
                         ),
                       )
                     : filteredComplaints.isEmpty
@@ -651,19 +659,26 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                             child: RefreshIndicator(
                               onRefresh: _fetchComplaints,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                                 child: Column(
-                                  children: filteredComplaints.asMap().entries.map((entry) {
+                                  children: filteredComplaints
+                                      .asMap()
+                                      .entries
+                                      .map((entry) {
                                     int index = entry.key;
-                                    Map<String, dynamic> complaint = entry.value;
+                                    Map<String, dynamic> complaint =
+                                        entry.value;
 
-                                    int originalIndex = complaints.indexWhere((c) =>
-                                        c['issue'] == complaint['issue'] &&
-                                        c['date'] == complaint['date'] &&
-                                        c['time'] == complaint['time']);
+                                    int originalIndex = complaints.indexWhere(
+                                        (c) =>
+                                            c['issue'] == complaint['issue'] &&
+                                            c['date'] == complaint['date'] &&
+                                            c['time'] == complaint['time']);
 
                                     return AnimatedContainer(
-                                      duration: const Duration(milliseconds: 300),
+                                      duration:
+                                          const Duration(milliseconds: 300),
                                       margin: const EdgeInsets.only(bottom: 12),
                                       decoration: BoxDecoration(
                                         color: themeProvider.isDarkMode
@@ -690,62 +705,85 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                                       child: Padding(
                                         padding: const EdgeInsets.all(16),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
                                                 Container(
-                                                  padding: const EdgeInsets.all(8),
+                                                  padding:
+                                                      const EdgeInsets.all(8),
                                                   decoration: BoxDecoration(
-                                                    color: _getStatusColor(complaint['status'])
+                                                    color: _getStatusColor(
+                                                            complaint['status'])
                                                         .withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(10),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
                                                   ),
                                                   child: Icon(
-                                                    _getComplaintIcon(complaint['issue']),
-                                                    color: _getStatusColor(complaint['status']),
+                                                    _getComplaintIcon(
+                                                        complaint['issue']),
+                                                    color: _getStatusColor(
+                                                        complaint['status']),
                                                     size: 20,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 12),
                                                 Expanded(
                                                   child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
                                                       Text(
-                                                        _getShortIssueText(complaint['issue']),
+                                                        _getShortIssueText(
+                                                            complaint['issue']),
                                                         style: TextStyle(
                                                           fontSize: 16,
-                                                          fontWeight: FontWeight.w600,
-                                                          color: themeProvider.isDarkMode
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: themeProvider
+                                                                  .isDarkMode
                                                               ? Colors.white
                                                               : Colors.black87,
                                                         ),
                                                         maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                       ),
                                                       const SizedBox(height: 4),
                                                       Row(
                                                         children: [
                                                           Icon(
-                                                            Icons.location_on_rounded,
+                                                            Icons
+                                                                .location_on_rounded,
                                                             size: 14,
-                                                            color: themeProvider.isDarkMode
-                                                                ? Colors.grey[400]
-                                                                : Colors.grey[600],
+                                                            color: themeProvider
+                                                                    .isDarkMode
+                                                                ? Colors
+                                                                    .grey[400]
+                                                                : Colors
+                                                                    .grey[600],
                                                           ),
-                                                          const SizedBox(width: 4),
+                                                          const SizedBox(
+                                                              width: 4),
                                                           Expanded(
                                                             child: Text(
                                                               '${complaint['location']}, ${complaint['city']}',
                                                               style: TextStyle(
                                                                 fontSize: 12,
-                                                                color: themeProvider.isDarkMode
-                                                                    ? Colors.grey[400]
-                                                                    : Colors.grey[600],
+                                                                color: themeProvider
+                                                                        .isDarkMode
+                                                                    ? Colors.grey[
+                                                                        400]
+                                                                    : Colors.grey[
+                                                                        600],
                                                               ),
                                                               maxLines: 1,
-                                                              overflow: TextOverflow.ellipsis,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
                                                             ),
                                                           ),
                                                         ],
@@ -754,35 +792,50 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                                                   ),
                                                 ),
                                                 Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
                                                   children: [
                                                     Container(
-                                                      padding: const EdgeInsets.symmetric(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
                                                         horizontal: 8,
                                                         vertical: 4,
                                                       ),
                                                       decoration: BoxDecoration(
-                                                        color: _getStatusColor(complaint['status']),
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        color: _getStatusColor(
+                                                            complaint[
+                                                                'status']),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
                                                       ),
                                                       child: Text(
                                                         complaint['status'],
                                                         style: const TextStyle(
                                                           color: Colors.white,
                                                           fontSize: 10,
-                                                          fontWeight: FontWeight.w600,
+                                                          fontWeight:
+                                                              FontWeight.w600,
                                                         ),
                                                       ),
                                                     ),
                                                     const SizedBox(height: 8),
                                                     InkWell(
-                                                      onTap: () => _showDeleteDialog(originalIndex),
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      onTap: () =>
+                                                          _showDeleteDialog(
+                                                              originalIndex),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
                                                       child: Padding(
-                                                        padding: const EdgeInsets.all(4),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(4),
                                                         child: Icon(
-                                                          Icons.delete_outline_rounded,
-                                                          color: Colors.red[400],
+                                                          Icons
+                                                              .delete_outline_rounded,
+                                                          color:
+                                                              Colors.red[400],
                                                           size: 18,
                                                         ),
                                                       ),
@@ -793,7 +846,8 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                                             ),
                                             const SizedBox(height: 12),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
                                                 horizontal: 12,
                                                 vertical: 8,
                                               ),
@@ -801,24 +855,28 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                                                 color: themeProvider.isDarkMode
                                                     ? Colors.grey[800]
                                                     : Colors.grey[50],
-                                                borderRadius: BorderRadius.circular(10),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
                                               ),
                                               child: Row(
                                                 children: [
                                                   Icon(
                                                     Icons.schedule_rounded,
                                                     size: 16,
-                                                    color: themeProvider.isDarkMode
-                                                        ? Colors.grey[400]
-                                                        : Colors.grey[600],
+                                                    color:
+                                                        themeProvider.isDarkMode
+                                                            ? Colors.grey[400]
+                                                            : Colors.grey[600],
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Text(
                                                     '${complaint['date']} at ${complaint['time']}',
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      fontWeight: FontWeight.w500,
-                                                      color: themeProvider.isDarkMode
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: themeProvider
+                                                              .isDarkMode
                                                           ? Colors.grey[300]
                                                           : Colors.grey[700],
                                                     ),
