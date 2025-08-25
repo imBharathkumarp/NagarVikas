@@ -10,16 +10,21 @@ import 'poll_message_widget.dart';
 class MessageWidgets {
   /// Build message widget with image and video support
   static Widget buildMessage(
-      Map<String, dynamic> messageData,
-      bool isMe,
-      ThemeProvider themeProvider,
-      Function(String) onImageTap,
-      Function(String) onVideoTap,
-      Function(String, String, String) onReply,
-      Function(String, String, ThemeProvider, bool, bool, String, String)
-          onMessageOptions,
-      bool isAdmin,
-      String currentUserId) {
+    Map<String, dynamic> messageData,
+    bool isMe,
+    ThemeProvider themeProvider,
+    Function(String) onImageTap,
+    Function(String) onVideoTap,
+    Function(String, String, String) onReply,
+    Function(String, String, ThemeProvider, bool, bool, String, String)
+        onMessageOptions,
+    bool isAdmin,
+    String currentUserId,
+    // NEW PARAMETERS for voting
+    Map<String, Map<String, dynamic>> messageVotes,
+    Function(String, bool) onVote,
+    Function(String) getUserVote,
+  ) {
     final timeString = ForumLogic.formatTime(
         messageData["createdAt"] ?? messageData["timestamp"]);
     final hasReply = messageData["replyTo"] != null;
@@ -30,6 +35,12 @@ class MessageWidgets {
     final mediaUrl = messageData["mediaUrl"] ?? messageData["imageUrl"];
     final hasText = messageData["message"] != null &&
         messageData["message"].toString().trim().isNotEmpty;
+
+    // Get voting data
+    final messageId = messageData["key"] ?? "";
+    final voteCounts = _getVoteCountsFromData(messageVotes[messageId] ?? {});
+    final userVote = getUserVote(messageId);
+    final hasVotes = voteCounts['upvotes']! > 0 || voteCounts['downvotes']! > 0;
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 400),
@@ -92,30 +103,15 @@ class MessageWidgets {
                       // Regular message bubble for text, image, video
                       GestureDetector(
                         onLongPress: () {
-                          if (isMe || isAdmin) {
-                            // Show options for own messages or if user is admin
-                            onMessageOptions(
-                              messageData["key"] ?? "",
-                              messageData["message"] ?? "",
-                              themeProvider,
-                              isImageMessage || isVideoMessage,
-                              isMe, // pass the actual isMe value
-                              messageData["senderId"] ?? "",
-                              messageData["senderName"] ?? "Unknown User",
-                            );
-                          } else {
-                            // Show reply option for other messages
-                            onReply(
-                              messageData["key"] ?? "",
-                              messageData["message"] ??
-                                  (isImageMessage
-                                      ? "Image"
-                                      : isVideoMessage
-                                          ? "Video"
-                                          : "Message"),
-                              messageData["senderName"] ?? "Unknown User",
-                            );
-                          }
+                          onMessageOptions(
+                            messageData["key"] ?? "",
+                            messageData["message"] ?? "",
+                            themeProvider,
+                            isImageMessage || isVideoMessage,
+                            isMe,
+                            messageData["senderId"] ?? "",
+                            messageData["senderName"] ?? "Unknown User",
+                          );
                         },
                         child: Container(
                           constraints: BoxConstraints(
@@ -339,7 +335,7 @@ class MessageWidgets {
                                       child: Stack(
                                         alignment: Alignment.center,
                                         children: [
-                                          // Video thumbnail (you can implement thumbnail generation)
+                                          // Video thumbnail
                                           Container(
                                             width: double.infinity,
                                             height: double.infinity,
@@ -446,66 +442,242 @@ class MessageWidgets {
                                 ),
                               ],
 
-                              // Timestamp and reply button
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (timeString.isNotEmpty) ...[
-                                    Text(
-                                      timeString,
-                                      style: TextStyle(
-                                        color: isMe
-                                            ? Colors.white70
-                                            : (themeProvider.isDarkMode
-                                                ? Colors.grey[400]
-                                                : Colors.grey[600]),
-                                        fontSize: 11,
+                              SizedBox(height: 4),
+
+                              // NEW: Voting buttons and counts
+                              if (messageData["messageType"] != "admin_deleted")
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Upvote button
+                                    GestureDetector(
+                                      onTap: () => onVote(messageId, true),
+                                      child: AnimatedContainer(
+                                        duration: Duration(milliseconds: 200),
+                                        curve: Curves.easeInOut,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: userVote == 'upvote'
+                                              ? Color(0xFF4CAF50)
+                                                  .withOpacity(0.2)
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: userVote == 'upvote'
+                                              ? Border.all(
+                                                  color: Color(0xFF4CAF50),
+                                                  width: 1.5,
+                                                )
+                                              : Border.all(
+                                                  color: Colors.transparent,
+                                                  width: 1.5,
+                                                ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            AnimatedSwitcher(
+                                              duration:
+                                                  Duration(milliseconds: 200),
+                                              child: Icon(
+                                                userVote == 'upvote'
+                                                    ? Icons.thumb_up
+                                                    : Icons.thumb_up_outlined,
+                                                key: ValueKey(
+                                                    userVote == 'upvote'),
+                                                size: 14,
+                                                color: userVote == 'upvote'
+                                                    ? Color(0xFF4CAF50)
+                                                    : (isMe
+                                                        ? Colors.white70
+                                                        : (themeProvider
+                                                                .isDarkMode
+                                                            ? Colors.grey[400]
+                                                            : Colors
+                                                                .grey[600])),
+                                              ),
+                                            ),
+                                            if (voteCounts['upvotes']! > 0) ...[
+                                              SizedBox(width: 4),
+                                              AnimatedSwitcher(
+                                                duration:
+                                                    Duration(milliseconds: 200),
+                                                child: Text(
+                                                  '${voteCounts['upvotes']}',
+                                                  key: ValueKey(
+                                                      'upvotes-${voteCounts['upvotes']}'),
+                                                  style: TextStyle(
+                                                    color: userVote == 'upvote'
+                                                        ? Color(0xFF4CAF50)
+                                                        : (isMe
+                                                            ? Colors.white70
+                                                            : (themeProvider
+                                                                    .isDarkMode
+                                                                ? Colors
+                                                                    .grey[400]
+                                                                : Colors.grey[
+                                                                    600])),
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    SizedBox(width: 8),
+
+                                    // Downvote button
+                                    GestureDetector(
+                                      onTap: () => onVote(messageId, false),
+                                      child: AnimatedContainer(
+                                        duration: Duration(milliseconds: 200),
+                                        curve: Curves.easeInOut,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: userVote == 'downvote'
+                                              ? Colors.red.withOpacity(0.2)
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: userVote == 'downvote'
+                                              ? Border.all(
+                                                  color: Colors.red,
+                                                  width: 1.5,
+                                                )
+                                              : Border.all(
+                                                  color: Colors.transparent,
+                                                  width: 1.5,
+                                                ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            AnimatedSwitcher(
+                                              duration:
+                                                  Duration(milliseconds: 200),
+                                              child: Icon(
+                                                userVote == 'downvote'
+                                                    ? Icons.thumb_down
+                                                    : Icons.thumb_down_outlined,
+                                                key: ValueKey(
+                                                    userVote == 'downvote'),
+                                                size: 14,
+                                                color: userVote == 'downvote'
+                                                    ? Colors.red
+                                                    : (isMe
+                                                        ? Colors.white70
+                                                        : (themeProvider
+                                                                .isDarkMode
+                                                            ? Colors.grey[400]
+                                                            : Colors
+                                                                .grey[600])),
+                                              ),
+                                            ),
+                                            if (voteCounts['downvotes']! >
+                                                0) ...[
+                                              SizedBox(width: 4),
+                                              AnimatedSwitcher(
+                                                duration:
+                                                    Duration(milliseconds: 200),
+                                                child: Text(
+                                                  '${voteCounts['downvotes']}',
+                                                  key: ValueKey(
+                                                      'downvotes-${voteCounts['downvotes']}'),
+                                                  style: TextStyle(
+                                                    color: userVote ==
+                                                            'downvote'
+                                                        ? Colors.red
+                                                        : (isMe
+                                                            ? Colors.white70
+                                                            : (themeProvider
+                                                                    .isDarkMode
+                                                                ? Colors
+                                                                    .grey[400]
+                                                                : Colors.grey[
+                                                                    600])),
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Spacer for timestamp
+                                    if (timeString.isNotEmpty ||
+                                        messageData["isEdited"] == true)
+                                      Spacer(),
+
+                                    // Timestamp and edited indicator
+                                    if (timeString.isNotEmpty) ...[
+                                      Text(
+                                        timeString,
+                                        style: TextStyle(
+                                          color: isMe
+                                              ? Colors.white70
+                                              : (themeProvider.isDarkMode
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[600]),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                    if (messageData["isEdited"] == true) ...[
+                                      SizedBox(width: 4),
+                                      Text(
+                                        "(edited)",
+                                        style: TextStyle(
+                                          color: isMe
+                                              ? Colors.white70
+                                              : (themeProvider.isDarkMode
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[600]),
+                                          fontSize: 10,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
+                                    SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () {
+                                        onReply(
+                                          messageData["key"] ?? "",
+                                          messageData["message"] ??
+                                              (isImageMessage
+                                                  ? "Image"
+                                                  : isVideoMessage
+                                                      ? "Video"
+                                                      : "Message"),
+                                          messageData["senderName"] ??
+                                              "Unknown User",
+                                        );
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.all(2),
+                                        child: Icon(
+                                          Icons.reply,
+                                          size: 14,
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600],
+                                        ),
                                       ),
                                     ),
                                   ],
-                                  if (messageData["isEdited"] == true) ...[
-                                    SizedBox(width: 4),
-                                    Text(
-                                      "(edited)",
-                                      style: TextStyle(
-                                        color: isMe
-                                            ? Colors.white70
-                                            : (themeProvider.isDarkMode
-                                                ? Colors.grey[400]
-                                                : Colors.grey[600]),
-                                        fontSize: 10,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                  SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () {
-                                      onReply(
-                                        messageData["key"] ?? "",
-                                        messageData["message"] ??
-                                            (isImageMessage
-                                                ? "Image"
-                                                : isVideoMessage
-                                                    ? "Video"
-                                                    : "Message"),
-                                        messageData["senderName"] ??
-                                            "Unknown User",
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: EdgeInsets.all(2),
-                                      child: Icon(
-                                        Icons.reply,
-                                        size: 14,
-                                        color: themeProvider.isDarkMode
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
                             ],
                           ),
                         ),
@@ -518,6 +690,21 @@ class MessageWidgets {
         );
       },
     );
+  }
+
+  static Map<String, int> _getVoteCountsFromData(Map<String, dynamic> votes) {
+    int upvotes = 0;
+    int downvotes = 0;
+
+    votes.forEach((userId, voteData) {
+      if (voteData is Map && voteData['type'] == 'upvote') {
+        upvotes++;
+      } else if (voteData is Map && voteData['type'] == 'downvote') {
+        downvotes++;
+      }
+    });
+
+    return {'upvotes': upvotes, 'downvotes': downvotes};
   }
 
   /// Build disclaimer banner

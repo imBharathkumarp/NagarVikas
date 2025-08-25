@@ -43,6 +43,8 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _isUploading = false;
   bool _isAdmin = false;
   bool _isUserBanned = false;
+  Map<String, Map<String, dynamic>> _messageVotes = {}; // Cache message votes
+  final DatabaseReference _votesRef = FirebaseDatabase.instance.ref("votes/");
 
 // Animation controllers for enhanced UI
   late AnimationController _sendButtonAnimationController;
@@ -95,6 +97,15 @@ class DiscussionForumState extends State<DiscussionForum>
     );
     _checkTermsAgreement();
     _checkUserBanStatus();
+    _messagesRef.onValue.listen((event) {
+      if (event.snapshot.exists) {
+        final messagesData =
+            Map<String, dynamic>.from(event.snapshot.value as Map);
+        messagesData.forEach((messageId, messageData) {
+          _loadMessageVotes(messageId);
+        });
+      }
+    });
     _initSpeech(); // Initialize speech to text
 
     ForumAnimations.initAnimations(
@@ -177,6 +188,124 @@ class DiscussionForumState extends State<DiscussionForum>
     _disclaimerController.dispose();
     _emojiAnimationController.dispose();
     super.dispose();
+  }
+
+  /// Load votes for a specific message
+  Future<void> _loadMessageVotes(String messageId) async {
+    try {
+      final snapshot = await _votesRef.child(messageId).once();
+      if (snapshot.snapshot.exists) {
+        final votesData =
+            Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        setState(() {
+          _messageVotes[messageId] = votesData;
+        });
+      } else {
+        // Important: Clear votes if no data exists (after removal)
+        setState(() {
+          _messageVotes[messageId] = {};
+        });
+      }
+    } catch (e) {
+      print('Error loading votes for message $messageId: $e');
+    }
+  }
+
+  /// Vote on a message (upvote or downvote)
+  Future<void> _voteMessage(String messageId, bool isUpvote) async {
+    if (userId == null || _isUserBanned) {
+      if (_isUserBanned) {
+        Fluttertoast.showToast(msg: "You are banned from voting");
+      }
+      return;
+    }
+
+    try {
+      final voteRef = _votesRef.child(messageId).child(userId!);
+      final snapshot = await voteRef.once();
+
+      // Check current vote status
+      String? currentVote;
+      if (snapshot.snapshot.exists) {
+        final voteData =
+            Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        currentVote = voteData['type'];
+      }
+
+      // Determine new vote action - THIS IS THE KEY PART
+      if (currentVote == null) {
+        // No previous vote - add new vote
+        await voteRef.set({
+          'type': isUpvote ? 'upvote' : 'downvote',
+          'timestamp': ServerValue.timestamp,
+          'voterName': currentUserName ?? 'Unknown User',
+        });
+      } else if ((currentVote == 'upvote' && isUpvote) ||
+          (currentVote == 'downvote' && !isUpvote)) {
+        // Same vote clicked - REMOVE the vote (toggle off)
+        await voteRef.remove();
+
+        // Immediately update local state to reflect removal
+        setState(() {
+          if (_messageVotes[messageId] != null) {
+            _messageVotes[messageId]!.remove(userId!);
+          }
+        });
+
+        // Show feedback to user
+        Fluttertoast.showToast(
+          msg: isUpvote ? "Upvote removed" : "Downvote removed",
+          toastLength: Toast.LENGTH_SHORT,
+        );
+      } else {
+        // Different vote clicked - change vote type
+        await voteRef.set({
+          'type': isUpvote ? 'upvote' : 'downvote',
+          'timestamp': ServerValue.timestamp,
+          'voterName': currentUserName ?? 'Unknown User',
+        });
+
+        // Show feedback to user
+        Fluttertoast.showToast(
+          msg: isUpvote ? "Changed to upvote" : "Changed to downvote",
+          toastLength: Toast.LENGTH_SHORT,
+        );
+      }
+
+      // Always refresh votes after any operation to ensure UI consistency
+      await _loadMessageVotes(messageId);
+    } catch (e) {
+      print('Error voting on message: $e');
+      Fluttertoast.showToast(msg: "Failed to vote. Please try again.");
+    }
+  }
+
+  /// Get vote counts for a message
+  Map<String, int> _getVoteCounts(String messageId) {
+    final votes = _messageVotes[messageId] ?? {};
+    int upvotes = 0;
+    int downvotes = 0;
+
+    votes.forEach((userId, voteData) {
+      if (voteData is Map && voteData['type'] == 'upvote') {
+        upvotes++;
+      } else if (voteData is Map && voteData['type'] == 'downvote') {
+        downvotes++;
+      }
+    });
+
+    return {'upvotes': upvotes, 'downvotes': downvotes};
+  }
+
+  /// Check if current user has voted on a message
+  String? _getUserVote(String messageId) {
+    if (userId == null) return null;
+    final votes = _messageVotes[messageId] ?? {};
+    final userVote = votes[userId!];
+    if (userVote is Map && userVote['type'] != null) {
+      return userVote['type'];
+    }
+    return null;
   }
 
   /// Scroll to bottom of messages - goes to absolute latest message
@@ -1152,6 +1281,8 @@ class DiscussionForumState extends State<DiscussionForum>
               ),
             ),
             SizedBox(height: 20),
+
+            // Vote options for everyone
             ListTile(
               leading: Container(
                 padding: EdgeInsets.all(8),
@@ -1159,7 +1290,54 @@ class DiscussionForumState extends State<DiscussionForum>
                   color: Color(0xFF4CAF50).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.reply, color: Color(0xFF4CAF50)),
+                child: Icon(Icons.thumb_up, color: Color(0xFF4CAF50)),
+              ),
+              title: Text(
+                'Upvote ${isPoll ? "Poll" : "Message"}',
+                style: TextStyle(
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _voteMessage(messageId, true);
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.thumb_down, color: Colors.red),
+              ),
+              title: Text(
+                'Downvote ${isPoll ? "Poll" : "Message"}',
+                style: TextStyle(
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _voteMessage(messageId, false);
+              },
+            ),
+
+            Divider(color: Colors.grey[400]),
+
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF2196F3).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.reply, color: Color(0xFF2196F3)),
               ),
               title: Text(
                 'Reply to ${isPoll ? "Poll" : "Message"}',
@@ -1186,10 +1364,10 @@ class DiscussionForumState extends State<DiscussionForum>
                 leading: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    color: Color(0xFFFF9800).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.edit, color: Color(0xFF2196F3)),
+                  child: Icon(Icons.edit, color: Color(0xFFFF9800)),
                 ),
                 title: Text(
                   'Edit Message',
@@ -1427,6 +1605,10 @@ class DiscussionForumState extends State<DiscussionForum>
                                 _showMessageOptions,
                                 _isAdmin,
                                 userId!,
+                                // NEW: Add voting parameters
+                                _messageVotes,
+                                _voteMessage,
+                                (messageId) => _getUserVote(messageId) ?? '',
                               ));
                             }
                           }
@@ -1439,15 +1621,21 @@ class DiscussionForumState extends State<DiscussionForum>
                                 : messagesList.map((message) {
                                     bool isMe = message["senderId"] == userId;
                                     return MessageWidgets.buildMessage(
-                                        message,
-                                        isMe,
-                                        themeProvider,
-                                        _showFullScreenImage,
-                                        _showFullScreenVideo,
-                                        _replyToMessage,
-                                        _showMessageOptions,
-                                        _isAdmin,
-                                        userId!);
+                                      message,
+                                      isMe,
+                                      themeProvider,
+                                      _showFullScreenImage,
+                                      _showFullScreenVideo,
+                                      _replyToMessage,
+                                      _showMessageOptions,
+                                      _isAdmin,
+                                      userId!,
+                                      // NEW: Add voting parameters
+                                      _messageVotes,
+                                      _voteMessage,
+                                      (messageId) =>
+                                          _getUserVote(messageId) ?? '',
+                                    );
                                   }).toList(),
                           );
 
