@@ -13,6 +13,8 @@ import 'emoji_picker.dart';
 import 'forum_logic.dart';
 import 'forum_animations.dart';
 import 'message_widgets.dart';
+import 'poll_creation_widget.dart';
+import 'poll_message_widget.dart';
 
 /// DiscussionForum with Image and Video Sharing
 /// Enhanced real-time chat interface with image/video upload and full-screen viewing capabilities
@@ -28,7 +30,7 @@ class DiscussionForumState extends State<DiscussionForum>
     with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final DatabaseReference _messagesRef =
-  FirebaseDatabase.instance.ref("discussion/");
+      FirebaseDatabase.instance.ref("discussion/");
   final DatabaseReference _usersRef = FirebaseDatabase.instance.ref("users/");
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _imagePicker = ImagePicker();
@@ -89,7 +91,7 @@ class DiscussionForumState extends State<DiscussionForum>
     ForumLogic.getCurrentUserName(
       userId,
       _usersRef,
-          (name) => setState(() => currentUserName = name),
+      (name) => setState(() => currentUserName = name),
     );
     _checkTermsAgreement();
     _checkUserBanStatus();
@@ -97,13 +99,13 @@ class DiscussionForumState extends State<DiscussionForum>
 
     ForumAnimations.initAnimations(
       this,
-          (controllers) {
+      (controllers) {
         _sendButtonAnimationController = controllers['sendButton']!;
         _messageAnimationController = controllers['message']!;
         _disclaimerController = controllers['disclaimer']!;
         _emojiAnimationController = controllers['emoji']!;
       },
-          (animations) {
+      (animations) {
         _sendButtonScaleAnimation = animations['sendButtonScale']!;
         _messageSlideAnimation = animations['messageSlide']!;
         _emojiScaleAnimation = animations['emojiScale']!;
@@ -117,7 +119,11 @@ class DiscussionForumState extends State<DiscussionForum>
     });
 
     // Auto-scroll to bottom when new messages arrive (only if user is already near bottom)
-    _messagesRef.orderByChild("timestamp").limitToLast(1).onChildAdded.listen((event) {
+    _messagesRef
+        .orderByChild("timestamp")
+        .limitToLast(1)
+        .onChildAdded
+        .listen((event) {
       if (mounted) {
         Future.delayed(Duration(milliseconds: 500), () {
           if (_scrollController.hasClients) {
@@ -126,13 +132,15 @@ class DiscussionForumState extends State<DiscussionForum>
 
             if (isNearBottom) {
               // Force jump to absolute bottom
-              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+              _scrollController
+                  .jumpTo(_scrollController.position.maxScrollExtent);
 
               // Additional jumps to handle media loading
               for (int i = 1; i <= 5; i++) {
                 Future.delayed(Duration(milliseconds: i * 200), () {
                   if (_scrollController.hasClients) {
-                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                    _scrollController
+                        .jumpTo(_scrollController.position.maxScrollExtent);
                   }
                 });
               }
@@ -181,10 +189,95 @@ class DiscussionForumState extends State<DiscussionForum>
       for (int i = 1; i <= 10; i++) {
         Future.delayed(Duration(milliseconds: i * 100), () {
           if (_scrollController.hasClients) {
-            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            _scrollController
+                .jumpTo(_scrollController.position.maxScrollExtent);
           }
         });
       }
+    }
+  }
+
+  /// Show poll creation dialog
+  void _showPollCreation() {
+    if (_isUserBanned) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You are banned from creating polls'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return PollCreationWidget(
+            themeProvider: themeProvider,
+            onPollCreated: _createPoll,
+          );
+        },
+      ),
+    );
+  }
+
+  /// Create and send poll
+  void _createPoll(
+      String question, List<String> options, bool allowMultipleAnswers) async {
+    if (currentUserName == null || userId == null) return;
+
+    try {
+      // Create poll data
+      final pollId = _messagesRef.push().key!;
+      final pollData = {
+        'question': question,
+        'options': options,
+        'allowMultipleAnswers': allowMultipleAnswers,
+        'createdBy': userId,
+        'createdAt': ServerValue.timestamp,
+        'votes':
+            {}, // Will store votes as: {option: {userId: {votedAt, voterName}}}
+      };
+
+      // Save poll to polls collection
+      await FirebaseDatabase.instance.ref("polls/$pollId").set(pollData);
+
+      // Create message referencing the poll
+      final messageData = {
+        'senderId': userId,
+        'senderName': currentUserName,
+        'messageType': 'poll',
+        'pollId': pollId,
+        'timestamp': ServerValue.timestamp,
+        'createdAt': ServerValue.timestamp,
+      };
+
+      await _messagesRef.child(pollId).set(messageData);
+
+      // Clear any reply state
+      _clearReply();
+
+      // Hide emoji picker if open
+      if (_showEmojiPicker) {
+        setState(() {
+          _showEmojiPicker = false;
+        });
+        _emojiAnimationController.reverse();
+      }
+
+      // Scroll to bottom
+      Future.delayed(Duration(milliseconds: 100), () {
+        _scrollToBottom();
+      });
+    } catch (e) {
+      print('Error creating poll: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create poll. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -309,7 +402,8 @@ class DiscussionForumState extends State<DiscussionForum>
   void _checkUserBanStatus() async {
     if (userId == null) return;
 
-    DatabaseReference bannedUsersRef = FirebaseDatabase.instance.ref("banned_users/$userId");
+    DatabaseReference bannedUsersRef =
+        FirebaseDatabase.instance.ref("banned_users/$userId");
     bannedUsersRef.onValue.listen((event) {
       if (mounted) {
         setState(() {
@@ -328,7 +422,8 @@ class DiscussionForumState extends State<DiscussionForum>
       builder: (context) => Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return AlertDialog(
-            backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            backgroundColor:
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Ban User',
               style: TextStyle(
@@ -339,7 +434,8 @@ class DiscussionForumState extends State<DiscussionForum>
             content: Text(
               'Are you sure you want to ban $userName? They will not be able to send messages until unbanned.',
               style: TextStyle(
-                color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                color:
+                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -348,13 +444,17 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Cancel',
                   style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
                   ),
                 ),
               ),
               TextButton(
                 onPressed: () async {
-                  await FirebaseDatabase.instance.ref("banned_users/$userIdToBan").set({
+                  await FirebaseDatabase.instance
+                      .ref("banned_users/$userIdToBan")
+                      .set({
                     "banned_by": userId,
                     "banned_at": ServerValue.timestamp,
                     "user_name": userName,
@@ -367,7 +467,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 },
                 child: Text(
                   'Ban User',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style:
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -392,7 +493,8 @@ class DiscussionForumState extends State<DiscussionForum>
   Future<String?> _uploadToCloudinary(File file, {bool isVideo = false}) async {
     const cloudName = 'dved2q851';
     const uploadPreset = 'flutter_uploads';
-    final url = 'https://api.cloudinary.com/v1_1/$cloudName/${isVideo ? 'video' : 'image'}/upload';
+    final url =
+        'https://api.cloudinary.com/v1_1/$cloudName/${isVideo ? 'video' : 'image'}/upload';
 
     try {
       final formData = FormData.fromMap({
@@ -443,16 +545,18 @@ class DiscussionForumState extends State<DiscussionForum>
 
                 // Title
                 Text(
-                  'Share Media',
+                  'Share Content',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
                 SizedBox(height: 25),
 
-                // Media options grid
+                // First row - Media options
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -505,6 +609,26 @@ class DiscussionForumState extends State<DiscussionForum>
                     ),
                   ],
                 ),
+
+                SizedBox(height: 20),
+
+                // Second row - Poll option (centered)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildMediaOption(
+                      icon: Icons.poll,
+                      label: 'Poll',
+                      color: Color(0xFFFF9800),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showPollCreation();
+                      },
+                      themeProvider: themeProvider,
+                    ),
+                  ],
+                ),
+
                 SizedBox(height: 20),
               ],
             ),
@@ -663,7 +787,8 @@ class DiscussionForumState extends State<DiscussionForum>
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
-            msg: "Video file too large. Please choose a smaller file (max 50MB).");
+            msg:
+                "Video file too large. Please choose a smaller file (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -716,7 +841,8 @@ class DiscussionForumState extends State<DiscussionForum>
       final fileSize = await videoFile.length();
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
-            msg: "Video file too large. Please record a shorter video (max 50MB).");
+            msg:
+                "Video file too large. Please record a shorter video (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -858,7 +984,8 @@ class DiscussionForumState extends State<DiscussionForum>
         for (int i = 1; i <= 8; i++) {
           Future.delayed(Duration(milliseconds: i * 125), () {
             if (_scrollController.hasClients) {
-              _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+              _scrollController
+                  .jumpTo(_scrollController.position.maxScrollExtent);
             }
           });
         }
@@ -908,7 +1035,8 @@ class DiscussionForumState extends State<DiscussionForum>
 
   /// Save edited message
   void _saveEditedMessage() {
-    if (_editingMessageId == null || _messageController.text.trim().isEmpty) return;
+    if (_editingMessageId == null || _messageController.text.trim().isEmpty)
+      return;
 
     _messagesRef.child(_editingMessageId!).update({
       "message": _messageController.text.trim(),
@@ -932,7 +1060,8 @@ class DiscussionForumState extends State<DiscussionForum>
       builder: (context) => Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return AlertDialog(
-            backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            backgroundColor:
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Delete Message',
               style: TextStyle(
@@ -943,7 +1072,8 @@ class DiscussionForumState extends State<DiscussionForum>
             content: Text(
               'Are you sure you want to delete this message? This action cannot be undone.',
               style: TextStyle(
-                color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                color:
+                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -952,7 +1082,9 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Cancel',
                   style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
                   ),
                 ),
               ),
@@ -978,7 +1110,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 },
                 child: Text(
                   'Delete',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style:
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -989,7 +1122,15 @@ class DiscussionForumState extends State<DiscussionForum>
   }
 
   /// Show edit/delete options for messages
-  void _showMessageOptions(String messageId, String message, ThemeProvider themeProvider, bool hasMedia, bool isMyMessage, String senderId, String senderName) {
+  void _showMessageOptions(
+      String messageId,
+      String message,
+      ThemeProvider themeProvider,
+      bool hasMedia,
+      bool isMyMessage,
+      String senderId,
+      String senderName) {
+    final isPoll = message.isEmpty && hasMedia;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1021,9 +1162,10 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Icon(Icons.reply, color: Color(0xFF4CAF50)),
               ),
               title: Text(
-                'Reply to Message',
+                'Reply to ${isPoll ? "Poll" : "Message"}',
                 style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1031,74 +1173,88 @@ class DiscussionForumState extends State<DiscussionForum>
                 Navigator.pop(context);
                 _replyToMessage(
                   messageId,
-                  message.isNotEmpty ? message : (hasMedia ? "Media" : "Message"),
+                  message.isNotEmpty
+                      ? message
+                      : (isPoll ? "Poll" : (hasMedia ? "Media" : "Message")),
                   senderName,
                 );
               },
             ),
-            if (isMyMessage && !hasMedia) ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFF2196F3).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+            // Don't allow editing polls or media messages
+            if (isMyMessage && !hasMedia && !isPoll)
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.edit, color: Color(0xFF2196F3)),
                 ),
-                child: Icon(Icons.edit, color: Color(0xFF2196F3)),
-              ),
-              title: Text(
-                'Edit Message',
-                style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w600,
+                title: Text(
+                  'Edit Message',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _startEditingMessage(messageId, message);
+                },
               ),
-              onTap: () {
-                Navigator.pop(context);
-                _startEditingMessage(messageId, message);
-              },
-            ),
-            if (isMyMessage || _isAdmin) ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+            if (isMyMessage || _isAdmin)
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.delete, color: Colors.red),
                 ),
-                child: Icon(Icons.delete, color: Colors.red),
-              ),
-              title: Text(
-                _isAdmin && !isMyMessage ? 'Delete Message (Admin)' : 'Delete Message',
-                style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w600,
+                title: Text(
+                  _isAdmin && !isMyMessage
+                      ? 'Delete ${isPoll ? "Poll" : "Message"} (Admin)'
+                      : 'Delete ${isPoll ? "Poll" : "Message"}',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteMessage(messageId);
+                },
               ),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteMessage(messageId);
-              },
-            ),
-            if (_isAdmin && !isMyMessage && senderId != userId) ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+            if (_isAdmin && !isMyMessage && senderId != userId)
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.block, color: Colors.orange),
                 ),
-                child: Icon(Icons.block, color: Colors.orange),
-              ),
-              title: Text(
-                'Ban User',
-                style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w600,
+                title: Text(
+                  'Ban User',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _banUser(senderId, senderName);
+                },
               ),
-              onTap: () {
-                Navigator.pop(context);
-                _banUser(senderId, senderName);
-              },
-            ),
           ],
         ),
       ),
@@ -1186,11 +1342,12 @@ class DiscussionForumState extends State<DiscussionForum>
               Column(
                 children: [
                   // Disclaimer banner
-                  if (_showDisclaimer) MessageWidgets.buildDisclaimerBanner(
-                    themeProvider,
-                    _disclaimerController,
-                    _hideDisclaimer,
-                  ),
+                  if (_showDisclaimer)
+                    MessageWidgets.buildDisclaimerBanner(
+                      themeProvider,
+                      _disclaimerController,
+                      _hideDisclaimer,
+                    ),
 
                   // Real-time message list with date separators
                   Expanded(
@@ -1206,7 +1363,8 @@ class DiscussionForumState extends State<DiscussionForum>
                             (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                           if (!snapshot.hasData ||
                               snapshot.data?.snapshot.value == null) {
-                            return MessageWidgets.buildEmptyState(themeProvider);
+                            return MessageWidgets.buildEmptyState(
+                                themeProvider);
                           }
 
                           // Convert snapshot to list of messages
@@ -1216,9 +1374,9 @@ class DiscussionForumState extends State<DiscussionForum>
                           List<Map<String, dynamic>> messagesList = messagesMap
                               .entries
                               .map((e) => {
-                            "key": e.key,
-                            ...Map<String, dynamic>.from(e.value)
-                          })
+                                    "key": e.key,
+                                    ...Map<String, dynamic>.from(e.value)
+                                  })
                               .toList();
 
                           // Sort by timestamp (ascending)
@@ -1249,10 +1407,12 @@ class DiscussionForumState extends State<DiscussionForum>
 
                             // Add date separator if date changed and message date exists
                             if (messageDate != null) {
-                              final dateString = ForumLogic.getDateString(messageDate);
+                              final dateString =
+                                  ForumLogic.getDateString(messageDate);
                               if (dateString != lastDateString) {
-                                messageWidgets.add(MessageWidgets.buildDateSeparator(
-                                    dateString, themeProvider));
+                                messageWidgets.add(
+                                    MessageWidgets.buildDateSeparator(
+                                        dateString, themeProvider));
                                 lastDateString = dateString;
                               }
 
@@ -1266,6 +1426,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                 _replyToMessage,
                                 _showMessageOptions,
                                 _isAdmin,
+                                userId!,
                               ));
                             }
                           }
@@ -1276,27 +1437,31 @@ class DiscussionForumState extends State<DiscussionForum>
                             children: messageWidgets.isNotEmpty
                                 ? messageWidgets
                                 : messagesList.map((message) {
-                              bool isMe = message["senderId"] == userId;
-                              return MessageWidgets.buildMessage(
-                                  message,
-                                  isMe,
-                                  themeProvider,
-                                  _showFullScreenImage,
-                                  _showFullScreenVideo,
-                                  _replyToMessage,
-                                  _showMessageOptions,
-                                  _isAdmin
-                              );
-                            }).toList(),
+                                    bool isMe = message["senderId"] == userId;
+                                    return MessageWidgets.buildMessage(
+                                        message,
+                                        isMe,
+                                        themeProvider,
+                                        _showFullScreenImage,
+                                        _showFullScreenVideo,
+                                        _replyToMessage,
+                                        _showMessageOptions,
+                                        _isAdmin,
+                                        userId!);
+                                  }).toList(),
                           );
 
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (_scrollController.hasClients && !_showGoDownButton) {
+                            if (_scrollController.hasClients &&
+                                !_showGoDownButton) {
                               // Multiple jumps to ensure we reach absolute bottom
                               for (int i = 0; i <= 10; i++) {
-                                Future.delayed(Duration(milliseconds: i * 50), () {
-                                  if (_scrollController.hasClients && !_showGoDownButton) {
-                                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                                Future.delayed(Duration(milliseconds: i * 50),
+                                    () {
+                                  if (_scrollController.hasClients &&
+                                      !_showGoDownButton) {
+                                    _scrollController.jumpTo(_scrollController
+                                        .position.maxScrollExtent);
                                   }
                                 });
                               }
@@ -1315,7 +1480,9 @@ class DiscussionForumState extends State<DiscussionForum>
                       margin: EdgeInsets.fromLTRB(16, 8, 16, 0),
                       padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[100],
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Color(0xFF2196F3),
@@ -1328,7 +1495,9 @@ class DiscussionForumState extends State<DiscussionForum>
                           Row(
                             children: [
                               Icon(
-                                _attachedMediaType == "image" ? Icons.image : Icons.videocam,
+                                _attachedMediaType == "image"
+                                    ? Icons.image
+                                    : Icons.videocam,
                                 color: Color(0xFF2196F3),
                                 size: 16,
                               ),
@@ -1359,28 +1528,28 @@ class DiscussionForumState extends State<DiscussionForum>
                             borderRadius: BorderRadius.circular(8),
                             child: _attachedMediaType == "image"
                                 ? (_attachedMediaFile != null
-                                ? Image.file(
-                              _attachedMediaFile!,
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            )
+                                    ? Image.file(
+                                        _attachedMediaFile!,
+                                        height: 100,
+                                        width: 100,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        height: 100,
+                                        width: 100,
+                                        color: Colors.grey[300],
+                                        child: Icon(Icons.image),
+                                      ))
                                 : Container(
-                              height: 100,
-                              width: 100,
-                              color: Colors.grey[300],
-                              child: Icon(Icons.image),
-                            ))
-                                : Container(
-                              height: 100,
-                              width: 100,
-                              color: Colors.black,
-                              child: Icon(
-                                Icons.play_arrow,
-                                color: Colors.white,
-                                size: 40,
-                              ),
-                            ),
+                                    height: 100,
+                                    width: 100,
+                                    color: Colors.black,
+                                    child: Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                                  ),
                           ),
                         ],
                       ),
@@ -1422,310 +1591,355 @@ class DiscussionForumState extends State<DiscussionForum>
                     ),
                     child: _isUserBanned
                         ? Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red, width: 1),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.block, color: Colors.red, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'You are banned from sending messages',
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                        : SafeArea(
-                      child: Row(
-                        children: [
-                          // UPDATED: Pin icon button for media selection
-                          Container(
+                            padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: themeProvider.isDarkMode
-                                  ? Colors.grey[700]
-                                  : Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: themeProvider.isDarkMode
-                                    ? Colors.grey[600]!
-                                    : Colors.grey[300]!,
-                                width: 1,
-                              ),
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red, width: 1),
                             ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(24),
-                                onTap: _isUploading ? null : _showMediaOptions,
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  child: _isUploading
-                                      ? Center(
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Color(0xFF2196F3),
-                                      ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.block, color: Colors.red, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'You are banned from sending messages',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  )
-                                      : Icon(
-                                    Icons.attach_file,
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[500],
-                                    size: 24,
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ),
-                          SizedBox(width: 12),
-
-                          // Enhanced text input field
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode
-                                    ? Colors.grey[700]
-                                    : Color(0xFFF5F5F5),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: (_isTyping || _isEditing)
-                                      ? Color(0xFF2196F3)
-                                      : (themeProvider.isDarkMode
-                                      ? Colors.grey[600]!
-                                      : Colors.grey[300]!),
-                                  width: (_isTyping || _isEditing) ? 2 : 1,
-                                ),
-                                boxShadow: (_isTyping || _isEditing || _showMediaPreview)
-                                    ? [
-                                  BoxShadow(
-                                    color: Color(0xFF2196F3)
-                                        .withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ]
-                                    : null,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Text field
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _messageController,
-                                      focusNode: _textFieldFocusNode,
-                                      onTap: () {
-                                        // Hide emoji picker when text field is tapped
-                                        if (_showEmojiPicker) {
-                                          setState(() {
-                                            _showEmojiPicker = false;
-                                          });
-                                          _emojiAnimationController.reverse();
-                                        }
-                                        // Auto scroll if at bottom when keyboard opens
-                                        Future.delayed(Duration(milliseconds: 300), () {
-                                          if (!_showGoDownButton && _scrollController.hasClients) {
-                                            _scrollController.animateTo(
-                                              _scrollController.position.maxScrollExtent,
-                                              duration: Duration(milliseconds: 200),
-                                              curve: Curves.easeOut,
-                                            );
-                                          }
-                                        });
-                                      },
-                                      onChanged: (text) {
-                                        if (text.length > 100) {
-                                          _messageController.text = text.substring(0, 100);
-                                          _messageController.selection = TextSelection.fromPosition(
-                                            TextPosition(offset: 100),
-                                          );
-                                        }
-                                      },
-                                      style: TextStyle(
-                                        color: themeProvider.isDarkMode
-                                            ? Colors.white
-                                            : Colors.black87,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 3,
-                                      minLines: 1,
-                                      textCapitalization:
-                                      TextCapitalization.sentences,
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.only(
-                                            left: 20, top: 12, bottom: 12),
-                                        hintText: _isEditing
-                                            ? "Edit your message..."
-                                            : (_isReplying
-                                            ? "Reply to ${_replyingToSender}..."
-                                            : (_isListening ? "Listening..." : "Type...")),
-                                        hintStyle: TextStyle(
-                                          color: _isListening
-                                              ? Color(0xFF4CAF50)
-                                              : (themeProvider.isDarkMode
-                                              ? Colors.grey[400]
-                                              : Colors.grey[500]),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                  // Mic button
-                                  GestureDetector(
-                                    onTap: _toggleListening,
-                                    child: Container(
-                                      margin: EdgeInsets.only(right: 4),
-                                      padding: EdgeInsets.only(right: 8, top: 8, bottom: 8),
-                                      decoration: BoxDecoration(
-                                        color: _isListening
-                                            ? Color(0xFF4CAF50).withOpacity(0.1)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Icon(
-                                        _isListening ? Icons.mic : Icons.mic_none,
-                                        color: _isListening
-                                            ? Color(0xFF4CAF50)
-                                            : (themeProvider.isDarkMode
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600]),
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                  // Emoji button inside text field
-                                  GestureDetector(
-                                    onTap: () {
-                                      FocusScope.of(context).unfocus();
-                                      Future.delayed(Duration(milliseconds: 100), () {
-                                        _toggleEmojiPicker();
-                                      });
-                                    },
-                                    child: Container(
-                                      margin: EdgeInsets.only(right: 16),
-                                      padding: EdgeInsets.all(0),
-                                      decoration: BoxDecoration(
-                                        color: _showEmojiPicker
-                                            ? Color(0xFF2196F3).withOpacity(0.1)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Icon(
-                                        _showEmojiPicker
-                                            ? Icons.keyboard
-                                            : Icons.emoji_emotions_outlined,
-                                        color: _showEmojiPicker
-                                            ? Color(0xFF2196F3)
-                                            : (themeProvider.isDarkMode
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600]),
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 12),
-
-                          // Send button
-                          AnimatedBuilder(
-                            animation: _sendButtonScaleAnimation,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: _sendButtonScaleAnimation.value,
-                                child: Container(
+                          )
+                        : SafeArea(
+                            child: Row(
+                              children: [
+                                // UPDATED: Pin icon button for media selection
+                                Container(
                                   decoration: BoxDecoration(
-                                    gradient: (_isTyping || _isEditing || _showMediaPreview)
-                                        ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF1976D2),
-                                        Color(0xFF2196F3)
-                                      ],
-                                    )
-                                        : null,
-                                    color: !(_isTyping || _isEditing || _showMediaPreview)
-                                        ? (themeProvider.isDarkMode
-                                        ? Colors.grey[600]
-                                        : Colors.grey[400])
-                                        : null,
-                                    shape: BoxShape.circle,
-                                    boxShadow: (_isTyping || _isEditing || _showMediaPreview)
-                                        ? [
-                                      BoxShadow(
-                                        color: Color(0xFF2196F3)
-                                            .withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ]
-                                        : null,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[700]
+                                        : Color(0xFFF5F5F5),
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[600]!
+                                          : Colors.grey[300]!,
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      borderRadius: BorderRadius.circular(28),
-                                      onTap: (_isTyping || _isEditing || _showMediaPreview)
-                                          ? () => _sendMessage()
-                                          : null,
+                                      borderRadius: BorderRadius.circular(24),
+                                      onTap: _isUploading
+                                          ? null
+                                          : _showMediaOptions,
                                       child: Container(
                                         width: 44,
                                         height: 44,
-                                        decoration: BoxDecoration(
-                                            shape: BoxShape.circle),
-                                        child: Icon(
-                                          _isEditing
-                                              ? Icons.check
-                                              : (_isTyping
-                                              ? Icons.send_rounded
-                                              : Icons.send_outlined),
-                                          color: Colors.white,
-                                          size: (_isTyping || _isEditing || _showMediaPreview) ? 24 : 20,
-                                        ),
+                                        child: _isUploading
+                                            ? Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Color(0xFF2196F3),
+                                                  ),
+                                                ),
+                                              )
+                                            : Icon(
+                                                Icons.attach_file,
+                                                color: themeProvider.isDarkMode
+                                                    ? Colors.grey[400]
+                                                    : Colors.grey[500],
+                                                size: 24,
+                                              ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              );
-                            },
+                                SizedBox(width: 12),
+
+                                // Enhanced text input field
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[700]
+                                          : Color(0xFFF5F5F5),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: (_isTyping || _isEditing)
+                                            ? Color(0xFF2196F3)
+                                            : (themeProvider.isDarkMode
+                                                ? Colors.grey[600]!
+                                                : Colors.grey[300]!),
+                                        width:
+                                            (_isTyping || _isEditing) ? 2 : 1,
+                                      ),
+                                      boxShadow: (_isTyping ||
+                                              _isEditing ||
+                                              _showMediaPreview)
+                                          ? [
+                                              BoxShadow(
+                                                color: Color(0xFF2196F3)
+                                                    .withOpacity(0.2),
+                                                blurRadius: 8,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        // Text field
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _messageController,
+                                            focusNode: _textFieldFocusNode,
+                                            onTap: () {
+                                              // Hide emoji picker when text field is tapped
+                                              if (_showEmojiPicker) {
+                                                setState(() {
+                                                  _showEmojiPicker = false;
+                                                });
+                                                _emojiAnimationController
+                                                    .reverse();
+                                              }
+                                              // Auto scroll if at bottom when keyboard opens
+                                              Future.delayed(
+                                                  Duration(milliseconds: 300),
+                                                  () {
+                                                if (!_showGoDownButton &&
+                                                    _scrollController
+                                                        .hasClients) {
+                                                  _scrollController.animateTo(
+                                                    _scrollController.position
+                                                        .maxScrollExtent,
+                                                    duration: Duration(
+                                                        milliseconds: 200),
+                                                    curve: Curves.easeOut,
+                                                  );
+                                                }
+                                              });
+                                            },
+                                            onChanged: (text) {
+                                              if (text.length > 100) {
+                                                _messageController.text =
+                                                    text.substring(0, 100);
+                                                _messageController.selection =
+                                                    TextSelection.fromPosition(
+                                                  TextPosition(offset: 100),
+                                                );
+                                              }
+                                            },
+                                            style: TextStyle(
+                                              color: themeProvider.isDarkMode
+                                                  ? Colors.white
+                                                  : Colors.black87,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 3,
+                                            minLines: 1,
+                                            textCapitalization:
+                                                TextCapitalization.sentences,
+                                            decoration: InputDecoration(
+                                              contentPadding: EdgeInsets.only(
+                                                  left: 20,
+                                                  top: 12,
+                                                  bottom: 12),
+                                              hintText: _isEditing
+                                                  ? "Edit your message..."
+                                                  : (_isReplying
+                                                      ? "Reply to ${_replyingToSender}..."
+                                                      : (_isListening
+                                                          ? "Listening..."
+                                                          : "Type...")),
+                                              hintStyle: TextStyle(
+                                                color: _isListening
+                                                    ? Color(0xFF4CAF50)
+                                                    : (themeProvider.isDarkMode
+                                                        ? Colors.grey[400]
+                                                        : Colors.grey[500]),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              border: InputBorder.none,
+                                            ),
+                                          ),
+                                        ),
+                                        // Mic button
+                                        GestureDetector(
+                                          onTap: _toggleListening,
+                                          child: Container(
+                                            margin: EdgeInsets.only(right: 4),
+                                            padding: EdgeInsets.only(
+                                                right: 8, top: 8, bottom: 8),
+                                            decoration: BoxDecoration(
+                                              color: _isListening
+                                                  ? Color(0xFF4CAF50)
+                                                      .withOpacity(0.1)
+                                                  : Colors.transparent,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Icon(
+                                              _isListening
+                                                  ? Icons.mic
+                                                  : Icons.mic_none,
+                                              color: _isListening
+                                                  ? Color(0xFF4CAF50)
+                                                  : (themeProvider.isDarkMode
+                                                      ? Colors.grey[400]
+                                                      : Colors.grey[600]),
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ),
+                                        // Emoji button inside text field
+                                        GestureDetector(
+                                          onTap: () {
+                                            FocusScope.of(context).unfocus();
+                                            Future.delayed(
+                                                Duration(milliseconds: 100),
+                                                () {
+                                              _toggleEmojiPicker();
+                                            });
+                                          },
+                                          child: Container(
+                                            margin: EdgeInsets.only(right: 16),
+                                            padding: EdgeInsets.all(0),
+                                            decoration: BoxDecoration(
+                                              color: _showEmojiPicker
+                                                  ? Color(0xFF2196F3)
+                                                      .withOpacity(0.1)
+                                                  : Colors.transparent,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Icon(
+                                              _showEmojiPicker
+                                                  ? Icons.keyboard
+                                                  : Icons
+                                                      .emoji_emotions_outlined,
+                                              color: _showEmojiPicker
+                                                  ? Color(0xFF2196F3)
+                                                  : (themeProvider.isDarkMode
+                                                      ? Colors.grey[400]
+                                                      : Colors.grey[600]),
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+
+                                // Send button
+                                AnimatedBuilder(
+                                  animation: _sendButtonScaleAnimation,
+                                  builder: (context, child) {
+                                    return Transform.scale(
+                                      scale: _sendButtonScaleAnimation.value,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: (_isTyping ||
+                                                  _isEditing ||
+                                                  _showMediaPreview)
+                                              ? LinearGradient(
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  colors: [
+                                                    Color(0xFF1976D2),
+                                                    Color(0xFF2196F3)
+                                                  ],
+                                                )
+                                              : null,
+                                          color: !(_isTyping ||
+                                                  _isEditing ||
+                                                  _showMediaPreview)
+                                              ? (themeProvider.isDarkMode
+                                                  ? Colors.grey[600]
+                                                  : Colors.grey[400])
+                                              : null,
+                                          shape: BoxShape.circle,
+                                          boxShadow: (_isTyping ||
+                                                  _isEditing ||
+                                                  _showMediaPreview)
+                                              ? [
+                                                  BoxShadow(
+                                                    color: Color(0xFF2196F3)
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: Offset(0, 4),
+                                                  ),
+                                                ]
+                                              : null,
+                                        ),
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            borderRadius:
+                                                BorderRadius.circular(28),
+                                            onTap: (_isTyping ||
+                                                    _isEditing ||
+                                                    _showMediaPreview)
+                                                ? () => _sendMessage()
+                                                : null,
+                                            child: Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: BoxDecoration(
+                                                  shape: BoxShape.circle),
+                                              child: Icon(
+                                                _isEditing
+                                                    ? Icons.check
+                                                    : (_isTyping
+                                                        ? Icons.send_rounded
+                                                        : Icons.send_outlined),
+                                                color: Colors.white,
+                                                size: (_isTyping ||
+                                                        _isEditing ||
+                                                        _showMediaPreview)
+                                                    ? 24
+                                                    : 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
+                  ),
+                  if (_showEmojiPicker)
+                    Container(
+                      height: MediaQuery.of(context).viewInsets.bottom > 0
+                          ? 280
+                          : 280,
+                      child: EmojiPickerWidget(
+                        themeProvider: themeProvider,
+                        emojiAnimationController: _emojiAnimationController,
+                        emojiScaleAnimation: _emojiScaleAnimation,
+                        selectedEmojiCategory: _selectedEmojiCategory,
+                        onCategorySelected: (category) {
+                          setState(() {
+                            _selectedEmojiCategory = category;
+                          });
+                        },
+                        onEmojiSelected: _insertEmoji,
                       ),
                     ),
-                  ),
-                  if (_showEmojiPicker) Container(
-                    height: MediaQuery.of(context).viewInsets.bottom > 0 ? 280 : 280,
-                    child: EmojiPickerWidget(
-                      themeProvider: themeProvider,
-                      emojiAnimationController: _emojiAnimationController,
-                      emojiScaleAnimation: _emojiScaleAnimation,
-                      selectedEmojiCategory: _selectedEmojiCategory,
-                      onCategorySelected: (category) {
-                        setState(() {
-                          _selectedEmojiCategory = category;
-                        });
-                      },
-                      onEmojiSelected: _insertEmoji,
-                    ),
-                  ),
                 ],
               )
             else

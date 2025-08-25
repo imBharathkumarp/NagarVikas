@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import '../../theme/theme_provider.dart';
 import 'forum_logic.dart';
+import 'poll_message_widget.dart';
 
 class MessageWidgets {
   /// Build message widget with image and video support
@@ -15,15 +16,17 @@ class MessageWidgets {
       Function(String) onImageTap,
       Function(String) onVideoTap,
       Function(String, String, String) onReply,
-      Function(String, String, ThemeProvider, bool, bool, String, String) onMessageOptions,
+      Function(String, String, ThemeProvider, bool, bool, String, String)
+          onMessageOptions,
       bool isAdmin,
-      ) {
+      String currentUserId) {
     final timeString = ForumLogic.formatTime(
         messageData["createdAt"] ?? messageData["timestamp"]);
     final hasReply = messageData["replyTo"] != null;
     final messageType = messageData["messageType"] ?? "text";
     final isImageMessage = messageType == "image";
     final isVideoMessage = messageType == "video";
+    final isPollMessage = messageType == "poll";
     final mediaUrl = messageData["mediaUrl"] ?? messageData["imageUrl"];
     final hasText = messageData["message"] != null &&
         messageData["message"].toString().trim().isNotEmpty;
@@ -75,214 +78,335 @@ class MessageWidgets {
                           ],
                         ),
                       ),
-                    // Message bubble
-                    GestureDetector(
-                      onLongPress: () {
-                        if (isMe || isAdmin) {
-                          // Show options for own messages or if user is admin
-                          onMessageOptions(
-                            messageData["key"] ?? "",
-                            messageData["message"] ?? "",
-                            themeProvider,
-                            isImageMessage || isVideoMessage,
-                            isMe, // pass the actual isMe value
-                            messageData["senderId"] ?? "",
-                            messageData["senderName"] ?? "Unknown User",
-                          );
-                        } else {
-                          // Show reply option for other messages
-                          onReply(
-                            messageData["key"] ?? "",
-                            messageData["message"] ?? (isImageMessage ? "Image" : isVideoMessage ? "Video" : "Message"),
-                            messageData["senderName"] ?? "Unknown User",
-                          );
-                        }
-                      },
-                      child: Container(
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          vertical: (isImageMessage || isVideoMessage) ? 4 : 8,
-                          horizontal: (isImageMessage || isVideoMessage) ? 4 : 12,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: isMe
-                              ? LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFF1976D2),
-                                    Color(0xFF2196F3)
-                                  ],
-                                )
-                              : null,
-                          color: isMe
-                              ? null
-                              : (themeProvider.isDarkMode
-                                  ? Colors.grey[700]
-                                  : Colors.grey[100]),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(18),
-                            topRight: Radius.circular(18),
-                            bottomLeft:
-                                isMe ? Radius.circular(18) : Radius.circular(3),
-                            bottomRight:
-                                isMe ? Radius.circular(3) : Radius.circular(18),
+
+                    // Message content - Handle different message types
+                    if (isPollMessage)
+                      // Poll message
+                      PollMessageWidget(
+                        pollData: messageData,
+                        isMe: isMe,
+                        themeProvider: themeProvider,
+                        currentUserId: currentUserId,
+                      )
+                    else
+                      // Regular message bubble for text, image, video
+                      GestureDetector(
+                        onLongPress: () {
+                          if (isMe || isAdmin) {
+                            // Show options for own messages or if user is admin
+                            onMessageOptions(
+                              messageData["key"] ?? "",
+                              messageData["message"] ?? "",
+                              themeProvider,
+                              isImageMessage || isVideoMessage,
+                              isMe, // pass the actual isMe value
+                              messageData["senderId"] ?? "",
+                              messageData["senderName"] ?? "Unknown User",
+                            );
+                          } else {
+                            // Show reply option for other messages
+                            onReply(
+                              messageData["key"] ?? "",
+                              messageData["message"] ??
+                                  (isImageMessage
+                                      ? "Image"
+                                      : isVideoMessage
+                                          ? "Video"
+                                          : "Message"),
+                              messageData["senderName"] ?? "Unknown User",
+                            );
+                          }
+                        },
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.75,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: themeProvider.isDarkMode
-                                  ? Colors.black26
-                                  : Colors.grey.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
+                          padding: EdgeInsets.symmetric(
+                            vertical:
+                                (isImageMessage || isVideoMessage) ? 4 : 8,
+                            horizontal:
+                                (isImageMessage || isVideoMessage) ? 4 : 12,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: isMe
+                                ? LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFF1976D2),
+                                      Color(0xFF2196F3)
+                                    ],
+                                  )
+                                : null,
+                            color: isMe
+                                ? null
+                                : (themeProvider.isDarkMode
+                                    ? Colors.grey[700]
+                                    : Colors.grey[100]),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(18),
+                              topRight: Radius.circular(18),
+                              bottomLeft: isMe
+                                  ? Radius.circular(18)
+                                  : Radius.circular(3),
+                              bottomRight: isMe
+                                  ? Radius.circular(3)
+                                  : Radius.circular(18),
                             ),
-                          ],
-                          border: !isMe && !themeProvider.isDarkMode
-                              ? Border.all(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  width: 0.5)
-                              : null,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: isMe
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: [
-                            // Reply indicator
-                            if (hasReply) ...[
-                              Container(
-                                padding: EdgeInsets.all(6),
-                                margin: EdgeInsets.only(bottom: 6),
-                                decoration: BoxDecoration(
-                                  color: (isMe
-                                      ? Colors.white.withOpacity(0.2)
-                                      : Colors.black.withOpacity(0.1)),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: isMe
-                                          ? Colors.white
-                                          : const Color.fromARGB(255, 4, 204, 240),
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      messageData["replyToSender"] ??
-                                          "Unknown User",
-                                      style: TextStyle(
+                            boxShadow: [
+                              BoxShadow(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.black26
+                                    : Colors.grey.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                            border: !isMe && !themeProvider.isDarkMode
+                                ? Border.all(
+                                    color: Colors.grey.withOpacity(0.2),
+                                    width: 0.5)
+                                : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: isMe
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            children: [
+                              // Reply indicator
+                              if (hasReply) ...[
+                                Container(
+                                  padding: EdgeInsets.all(6),
+                                  margin: EdgeInsets.only(bottom: 6),
+                                  decoration: BoxDecoration(
+                                    color: (isMe
+                                        ? Colors.white.withOpacity(0.2)
+                                        : Colors.black.withOpacity(0.1)),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border(
+                                      left: BorderSide(
                                         color: isMe
                                             ? Colors.white
                                             : const Color.fromARGB(
                                                 255, 4, 204, 240),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
+                                        width: 2,
                                       ),
                                     ),
-                                    SizedBox(height: 2),
-                                    Text(
-                                      messageData["replyToMessage"] ?? "",
-                                      style: TextStyle(
-                                        color: isMe
-                                            ? Colors.white70
-                                            : (themeProvider.isDarkMode
-                                                ? Colors.grey[400]
-                                                : Colors.grey[600]),
-                                        fontSize: 12,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        messageData["replyToSender"] ??
+                                            "Unknown User",
+                                        style: TextStyle(
+                                          color: isMe
+                                              ? Colors.white
+                                              : const Color.fromARGB(
+                                                  255, 4, 204, 240),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
+                                      SizedBox(height: 2),
+                                      Text(
+                                        messageData["replyToMessage"] ?? "",
+                                        style: TextStyle(
+                                          color: isMe
+                                              ? Colors.white70
+                                              : (themeProvider.isDarkMode
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[600]),
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
 
-                            // Admin deleted message indicator
-                            if (messageData["messageType"] == "admin_deleted") ...[
-                              Container(
-                                padding: EdgeInsets.all(8),
-                                margin: EdgeInsets.only(bottom: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: Colors.red,
-                                      width: 2,
+                              // Admin deleted message indicator
+                              if (messageData["messageType"] ==
+                                  "admin_deleted") ...[
+                                Container(
+                                  padding: EdgeInsets.all(8),
+                                  margin: EdgeInsets.only(bottom: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: Colors.red,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.admin_panel_settings,
+                                          size: 16, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "This message was deleted by admin",
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.italic,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
+                              // Image content
+                              if (isImageMessage && mediaUrl != null) ...[
+                                GestureDetector(
+                                  onTap: () => onImageTap(mediaUrl),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: CachedNetworkImage(
+                                      imageUrl: mediaUrl,
+                                      width: 200,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(
+                                        width: 200,
+                                        height: 200,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                        ),
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            color: Color(0xFF2196F3),
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                        width: 200,
+                                        height: 200,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.error_outline,
+                                                color: Colors.grey[600]),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              "Failed to load",
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.admin_panel_settings, size: 16, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        "This message was deleted by admin",
-                                        style: TextStyle(
-                                          color: Colors.red,
-                                          fontSize: 12,
-                                          fontStyle: FontStyle.italic,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                                if (hasText) SizedBox(height: 8),
+                              ],
 
-                            // Image content
-                            if (isImageMessage && mediaUrl != null) ...[
-                              GestureDetector(
-                                onTap: () => onImageTap(mediaUrl),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: CachedNetworkImage(
-                                    imageUrl: mediaUrl,
+                              // Video content
+                              if (isVideoMessage && mediaUrl != null) ...[
+                                GestureDetector(
+                                  onTap: () => onVideoTap(mediaUrl),
+                                  child: Container(
                                     width: 200,
-                                    height: 200,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      width: 200,
-                                      height: 200,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[300],
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          color: Color(0xFF2196F3),
-                                          strokeWidth: 2,
-                                        ),
-                                      ),
+                                    height: 150,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                      width: 200,
-                                      height: 200,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[300],
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Stack(
+                                        alignment: Alignment.center,
                                         children: [
-                                          Icon(Icons.error_outline,
-                                              color: Colors.grey[600]),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            "Failed to load",
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 12,
+                                          // Video thumbnail (you can implement thumbnail generation)
+                                          Container(
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Colors.grey[800]!,
+                                                  Colors.grey[900]!,
+                                                ],
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              Icons.video_library,
+                                              color: Colors.white54,
+                                              size: 40,
+                                            ),
+                                          ),
+                                          // Play button overlay
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.black54,
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
+                                            ),
+                                            padding: EdgeInsets.all(12),
+                                            child: Icon(
+                                              Icons.play_arrow,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                          ),
+                                          // Video label
+                                          Positioned(
+                                            bottom: 8,
+                                            left: 8,
+                                            child: Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black54,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.videocam,
+                                                    color: Colors.white,
+                                                    size: 12,
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    "Video",
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -290,187 +414,102 @@ class MessageWidgets {
                                     ),
                                   ),
                                 ),
-                              ),
-                              if (hasText) SizedBox(height: 8),
-                            ],
+                                if (hasText) SizedBox(height: 8),
+                              ],
 
-                            // Video content
-                            if (isVideoMessage && mediaUrl != null) ...[
-                              GestureDetector(
-                                onTap: () => onVideoTap(mediaUrl),
-                                child: Container(
-                                  width: 200,
-                                  height: 150,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        // Video thumbnail (you can implement thumbnail generation)
-                                        Container(
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                              colors: [
-                                                Colors.grey[800]!,
-                                                Colors.grey[900]!,
-                                              ],
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            Icons.video_library,
-                                            color: Colors.white54,
-                                            size: 40,
-                                          ),
-                                        ),
-                                        // Play button overlay
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            borderRadius: BorderRadius.circular(30),
-                                          ),
-                                          padding: EdgeInsets.all(12),
-                                          child: Icon(
-                                            Icons.play_arrow,
-                                            color: Colors.white,
-                                            size: 24,
-                                          ),
-                                        ),
-                                        // Video label
-                                        Positioned(
-                                          bottom: 8,
-                                          left: 8,
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black54,
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.videocam,
-                                                  color: Colors.white,
-                                                  size: 12,
-                                                ),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  "Video",
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                              // Text message content
+                              if (messageData["messageType"] ==
+                                  "admin_deleted") ...[
+                                Text(
+                                  "This message was deleted by admin",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
+                                    fontStyle: FontStyle.italic,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.4,
                                   ),
                                 ),
-                              ),
-                              if (hasText) SizedBox(height: 8),
-                            ],
-
-                            // Text message content
-                            if (messageData["messageType"] == "admin_deleted") ...[
-                              Text(
-                                "This message was deleted by admin",
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 14,
-                                  fontStyle: FontStyle.italic,
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ] else if (hasText) ...[
-                              Text(
-                                messageData["message"],
-                                style: TextStyle(
-                                  color: isMe
-                                      ? Colors.white
-                                      : (themeProvider.isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-
-                            // Timestamp and reply button
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (timeString.isNotEmpty) ...[
-                                  Text(
-                                    timeString,
-                                    style: TextStyle(
-                                      color: isMe
-                                          ? Colors.white70
-                                          : (themeProvider.isDarkMode
-                                          ? Colors.grey[400]
-                                          : Colors.grey[600]),
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                                if (messageData["isEdited"] == true) ...[
-                                  SizedBox(width: 4),
-                                  Text(
-                                    "(edited)",
-                                    style: TextStyle(
-                                      color: isMe
-                                          ? Colors.white70
-                                          : (themeProvider.isDarkMode
-                                          ? Colors.grey[400]
-                                          : Colors.grey[600]),
-                                      fontSize: 10,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ],
-                                SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: () {
-                                    onReply(
-                                      messageData["key"] ?? "",
-                                      messageData["message"] ?? (isImageMessage ? "Image" : isVideoMessage ? "Video" : "Message"),
-                                      messageData["senderName"] ?? "Unknown User",
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.all(2),
-                                    child: Icon(
-                                      Icons.reply,
-                                      size: 14,
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[400]
-                                          : Colors.grey[600],
-                                    ),
+                              ] else if (hasText) ...[
+                                Text(
+                                  messageData["message"],
+                                  style: TextStyle(
+                                    color: isMe
+                                        ? Colors.white
+                                        : (themeProvider.isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.4,
                                   ),
                                 ),
                               ],
-                            ),
-                          ],
+
+                              // Timestamp and reply button
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (timeString.isNotEmpty) ...[
+                                    Text(
+                                      timeString,
+                                      style: TextStyle(
+                                        color: isMe
+                                            ? Colors.white70
+                                            : (themeProvider.isDarkMode
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600]),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                  if (messageData["isEdited"] == true) ...[
+                                    SizedBox(width: 4),
+                                    Text(
+                                      "(edited)",
+                                      style: TextStyle(
+                                        color: isMe
+                                            ? Colors.white70
+                                            : (themeProvider.isDarkMode
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600]),
+                                        fontSize: 10,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                  SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () {
+                                      onReply(
+                                        messageData["key"] ?? "",
+                                        messageData["message"] ??
+                                            (isImageMessage
+                                                ? "Image"
+                                                : isVideoMessage
+                                                    ? "Video"
+                                                    : "Message"),
+                                        messageData["senderName"] ??
+                                            "Unknown User",
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.all(2),
+                                      child: Icon(
+                                        Icons.reply,
+                                        size: 14,
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -679,7 +718,8 @@ class MessageWidgets {
   }
 
   /// Build date separator
-  static Widget buildDateSeparator(String dateText, ThemeProvider themeProvider) {
+  static Widget buildDateSeparator(
+      String dateText, ThemeProvider themeProvider) {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       child: Row(
@@ -742,9 +782,7 @@ class MessageWidgets {
           Container(
             padding: EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode
-                  ? Colors.grey[800]
-                  : Colors.white,
+              color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -1113,7 +1151,8 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
 
   void _initializeVideo() async {
     try {
-      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+      _controller =
+          VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
       await _controller.initialize();
       setState(() {
         _isInitialized = true;
