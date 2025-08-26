@@ -16,7 +16,7 @@ import 'forum_logic.dart';
 import 'forum_animations.dart';
 import 'message_widgets.dart';
 import 'poll_creation_widget.dart';
-import 'poll_message_widget.dart';
+import 'package:flutter/services.dart';
 
 /// DiscussionForum with Image and Video Sharing
 /// Enhanced real-time chat interface with image/video upload and full-screen viewing capabilities
@@ -317,7 +317,6 @@ class DiscussionForumState extends State<DiscussionForum>
   /// Scroll to a specific message (for search results)
   Future<void> _scrollToMessage(String messageId) async {
     try {
-
       // Get message details first
       final messageSnapshot = await _messagesRef.child(messageId).once();
 
@@ -1400,6 +1399,39 @@ class DiscussionForumState extends State<DiscussionForum>
               ),
             ),
             SizedBox(height: 20),
+
+            // Copy message option - Show for all messages that have text content
+            if (message.isNotEmpty && !isPoll)
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF9C27B0).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.copy, color: Color(0xFF9C27B0)),
+                ),
+                title: Text(
+                  'Copy Message',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Copy message to clipboard
+                  Clipboard.setData(ClipboardData(text: message));
+                  Fluttertoast.showToast(
+                    msg: "Message copied to clipboard",
+                    toastLength: Toast.LENGTH_SHORT,
+                    backgroundColor: Color(0xFF9C27B0),
+                    textColor: Colors.white,
+                  );
+                },
+              ),
 
             // Vote options for everyone
             ListTile(
