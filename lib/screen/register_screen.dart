@@ -1,27 +1,22 @@
-/// RegisterScreen
-/// A stateful widget that handles new user registration using Firebase Authentication.
-/// Includes:
-/// - Email/password input
-/// - Password validation
+/// RegisterScreen with Optional Phone OTP Verification
+/// A comprehensive registration screen that includes:
+/// - Name, email, password, and phone number input
+/// - Optional phone number OTP verification using Firebase Auth
 /// - Email verification
-/// - Guest login
-/// - Firebase Realtime Database integration
+/// - Password validation
+/// - Guest login option
 library;
 
-// import necessary Flutter and Firebase packages
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:nagarvikas/screen/login_page.dart';
-import 'package:nagarvikas/screen/issue_selection.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-
 import '../theme/theme_provider.dart';
 import '../widgets/bottom_nav_bar.dart';
 
-// Register screen widget
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -30,7 +25,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class RegisterScreenState extends State<RegisterScreen> with TickerProviderStateMixin {
-  // Firebase authentication and realtime database reference
+  // Firebase instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref("users");
 
@@ -38,8 +33,28 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
 
+  // State variables
   bool _obscurePassword = true;
+  bool isLoading = false;
+  bool isPhoneVerifying = false;
+  bool isPhoneVerified = false;
+  bool showPasswordRequirements = false;
+  bool showOtpField = false;
+  
+  // NEW: Control whether phone verification is enabled
+  static const bool ENABLE_PHONE_VERIFICATION = false; // Set to true when you have billing
+
+  // Password validation flags
+  bool hasUppercase = false;
+  bool hasSpecialChar = false;
+  bool hasMinLength = false;
+
+  // Phone verification variables
+  String verificationId = '';
+  int? resendToken;
 
   // Animation controllers
   late AnimationController _registerButtonAnimationController;
@@ -47,13 +62,14 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
   late Animation<double> _registerButtonScaleAnimation;
   late Animation<double> _guestButtonScaleAnimation;
 
-  // ✅ This enables auto-capitalization and Capitalizes the first letter of each word.
-
   @override
   void initState() {
     super.initState();
+    _initAnimations();
+    _setupNameCapitalization();
+  }
 
-    // Initialize animation controllers
+  void _initAnimations() {
     _registerButtonAnimationController = AnimationController(
       duration: const Duration(milliseconds: 150),
       vsync: this,
@@ -68,16 +84,16 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     _guestButtonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _guestButtonAnimationController, curve: Curves.easeInOut),
     );
+  }
 
+  void _setupNameCapitalization() {
     _nameController.addListener(() {
       final text = _nameController.text;
       final capitalized = text
           .split(' ')
-          .map((word) =>
-      word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '')
+          .map((word) => word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '')
           .join(' ');
 
-      // Avoid endless loops
       if (text != capitalized) {
         _nameController.value = _nameController.value.copyWith(
           text: capitalized,
@@ -91,17 +107,15 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
   void dispose() {
     _registerButtonAnimationController.dispose();
     _guestButtonAnimationController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
-  // Flags for loading and password validation
-  bool isLoading = false;
-  bool hasUppercase = false;
-  bool hasSpecialChar = false;
-  bool hasMinLength = false;
-  bool showPasswordRequirements = false;
-
-  // ✅ Real-time password validation logic
+  // Password validation
   void _validatePassword(String password) {
     setState(() {
       hasUppercase = password.contains(RegExp(r'[A-Z]'));
@@ -110,22 +124,164 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     });
   }
 
-  // ✅ Handles user registration process
+  // Phone number validation
+  bool _isValidPhoneNumber(String phone) {
+    phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    return phone.length == 10 && RegExp(r'^[0-9]{10}$').hasMatch(phone);
+  }
+
+  // Send OTP to phone number
+  Future<void> _sendOtp() async {
+    if (!ENABLE_PHONE_VERIFICATION) {
+      Fluttertoast.showToast(msg: "Phone verification is currently disabled");
+      return;
+    }
+
+    String phone = _phoneController.text.trim();
+    
+    if (!_isValidPhoneNumber(phone)) {
+      Fluttertoast.showToast(msg: "Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    setState(() {
+      isPhoneVerifying = true;
+    });
+
+    // Add +91 country code for India
+    String phoneWithCountryCode = '+91$phone';
+
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneWithCountryCode,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification completed (Android only)
+          setState(() {
+            isPhoneVerified = true;
+            showOtpField = false;
+            isPhoneVerifying = false;
+          });
+          Fluttertoast.showToast(msg: "Phone number verified automatically!");
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          setState(() {
+            isPhoneVerifying = false;
+            showOtpField = false;
+          });
+          
+          String errorMessage = "Verification failed. Please try again.";
+          if (e.code == 'invalid-phone-number') {
+            errorMessage = "Invalid phone number format.";
+          } else if (e.code == 'too-many-requests') {
+            errorMessage = "Too many requests. Please try again later.";
+          }
+          
+          Fluttertoast.showToast(msg: errorMessage);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() {
+            this.verificationId = verificationId;
+            this.resendToken = resendToken;
+            showOtpField = true;
+            isPhoneVerifying = false;
+          });
+          Fluttertoast.showToast(msg: "OTP sent to $phoneWithCountryCode");
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          this.verificationId = verificationId;
+        },
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: resendToken,
+      );
+    } catch (e) {
+      setState(() {
+        isPhoneVerifying = false;
+        showOtpField = false;
+      });
+      Fluttertoast.showToast(msg: "Error: ${e.toString()}");
+    }
+  }
+
+  // Verify OTP
+  Future<void> _verifyOtp() async {
+    String otp = _otpController.text.trim();
+    
+    if (otp.length != 6) {
+      Fluttertoast.showToast(msg: "Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    setState(() {
+      isPhoneVerifying = true;
+    });
+
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otp,
+      );
+
+      // Verify the credential without signing in
+      await _auth.signInWithCredential(credential);
+      await _auth.signOut(); // Sign out immediately after verification
+      
+      setState(() {
+        isPhoneVerified = true;
+        showOtpField = false;
+        isPhoneVerifying = false;
+      });
+      
+      Fluttertoast.showToast(msg: "Phone number verified successfully!");
+      
+    } catch (e) {
+      setState(() {
+        isPhoneVerifying = false;
+      });
+      Fluttertoast.showToast(msg: "Invalid OTP. Please try again.");
+    }
+  }
+
+  // Resend OTP
+  Future<void> _resendOtp() async {
+    await _sendOtp();
+  }
+
+  // Register user
   Future<void> _registerUser() async {
-    // Button press animation
     _registerButtonAnimationController.forward().then((_) {
       _registerButtonAnimationController.reverse();
     });
 
-    String password = _passwordController.text.trim();
+    // Validation checks
+    if (_nameController.text.trim().isEmpty) {
+      Fluttertoast.showToast(msg: "Please enter your full name");
+      return;
+    }
 
-    // Check if password meets criteria
+    if (_emailController.text.trim().isEmpty) {
+      Fluttertoast.showToast(msg: "Please enter your email address");
+      return;
+    }
+
+    // MODIFIED: Only validate phone number if verification is enabled AND phone is provided
+    if (ENABLE_PHONE_VERIFICATION && _phoneController.text.trim().isNotEmpty) {
+      if (!_isValidPhoneNumber(_phoneController.text.trim())) {
+        Fluttertoast.showToast(msg: "Please enter a valid phone number or leave it empty");
+        return;
+      }
+
+      if (!isPhoneVerified) {
+        Fluttertoast.showToast(msg: "Please verify your phone number first");
+        return;
+      }
+    }
+
+    String password = _passwordController.text.trim();
     if (!hasMinLength || !hasUppercase || !hasSpecialChar) {
       setState(() {
         showPasswordRequirements = true;
       });
-      Fluttertoast.showToast(
-          msg: "Password does not meet the required criteria.");
+      Fluttertoast.showToast(msg: "Password does not meet the required criteria.");
       return;
     }
 
@@ -134,38 +290,50 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     });
 
     try {
-      // ✅ Create user using Firebase Authentication
-      UserCredential userCredential =
-      await _auth.createUserWithEmailAndPassword(
+      // Create user with email and password
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: password,
       );
 
-      // ✅ Send email verification
+      // Send email verification
       await userCredential.user!.sendEmailVerification();
 
-      // ✅ Save user details in Firebase Realtime Database
-      await _dbRef.child(userCredential.user!.uid).set({
+      // MODIFIED: Save user details with optional phone verification status
+      Map<String, dynamic> userData = {
         "name": _nameController.text.trim(),
         "email": _emailController.text.trim(),
-      });
+        "registrationDate": DateTime.now().toIso8601String(),
+      };
+
+      // Add phone data only if provided
+      if (_phoneController.text.trim().isNotEmpty) {
+        userData["phone"] = _phoneController.text.trim();
+        userData["phoneVerified"] = ENABLE_PHONE_VERIFICATION ? isPhoneVerified : false;
+      }
+
+      await _dbRef.child(userCredential.user!.uid).set(userData);
+
+      String successMessage = "Registration successful! Please verify your email before logging in.";
+      if (!ENABLE_PHONE_VERIFICATION && _phoneController.text.trim().isNotEmpty) {
+        successMessage += " Phone verification is currently disabled.";
+      }
 
       Fluttertoast.showToast(
-          msg:
-          "Registration successful! Please verify your email before logging in.");
+        msg: successMessage,
+        toastLength: Toast.LENGTH_LONG,
+      );
 
-      await _auth.signOut(); // Sign out the user after registration
-      await Future.delayed(Duration(seconds: 2));
+      await _auth.signOut();
+      await Future.delayed(const Duration(seconds: 2));
 
-      // Navigate to login screen
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
+          MaterialPageRoute(builder: (context) => const LoginPage()),
         );
       }
     } on FirebaseAuthException catch (e) {
-      // Handle various Firebase auth errors
       String errorMessage = "An error occurred. Please try again.";
 
       if (e.code == 'email-already-in-use') {
@@ -188,9 +356,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     });
   }
 
-  /// Signs in the user anonymously and navigates to the issue selection screen.
+  // Continue as guest
   Future<void> _continueAsGuest() async {
-    // Button press animation
     _guestButtonAnimationController.forward().then((_) {
       _guestButtonAnimationController.reverse();
     });
@@ -198,10 +365,10 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     try {
       await _auth.signInAnonymously();
       Fluttertoast.showToast(msg: "Signed in as Guest");
-      if(mounted){
+      if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => BottomNavBar()),
+          MaterialPageRoute(builder: (context) => const BottomNavBar()),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -209,8 +376,6 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     }
   }
 
-  /// Builds the registration UI with animation, input fields,
-  /// and buttons for registration and guest login.
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
@@ -242,7 +407,7 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Compact Welcome Section
+                      // Welcome Section
                       FadeInDown(
                         duration: const Duration(milliseconds: 800),
                         child: Column(
@@ -272,12 +437,12 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
 
                       SizedBox(height: screenHeight * 0.03),
 
-                      // Compact Registration illustration
+                      // Registration illustration
                       ZoomIn(
                         duration: const Duration(milliseconds: 1000),
                         child: Container(
-                          height: screenHeight * 0.18,
-                          width: screenHeight * 0.18,
+                          height: screenHeight * 0.15,
+                          width: screenHeight * 0.15,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
@@ -289,8 +454,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                           child: Center(
                             child: Image.asset(
                               "assets/register.png",
-                              height: screenHeight * 0.13,
-                              width: screenHeight * 0.13,
+                              height: screenHeight * 0.1,
+                              width: screenHeight * 0.1,
                               fit: BoxFit.contain,
                               color: isDarkMode ? Colors.white.withOpacity(0.9) : null,
                             ),
@@ -300,7 +465,7 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
 
                       SizedBox(height: screenHeight * 0.03),
 
-                      // Compact Input Fields
+                      // Input Fields
                       FadeInUp(
                         duration: const Duration(milliseconds: 1000),
                         child: Column(
@@ -323,6 +488,17 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                               isDarkMode: isDarkMode,
                               keyboardType: TextInputType.emailAddress,
                             ),
+                            const SizedBox(height: 16),
+
+                            // Phone Field with OTP verification
+                            _buildPhoneField(isDarkMode),
+                            
+                            // OTP Field (shown only after OTP is sent)
+                            if (showOtpField && ENABLE_PHONE_VERIFICATION) ...[
+                              const SizedBox(height: 16),
+                              _buildOtpField(isDarkMode),
+                            ],
+
                             const SizedBox(height: 16),
 
                             // Password Field
@@ -350,220 +526,35 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                         ),
                       ),
 
-                      // Password Requirements List
+                      // Password Requirements
                       if (showPasswordRequirements)
                         Padding(
                           padding: const EdgeInsets.only(top: 16),
-                          child: FadeInUp(
-                            duration: const Duration(milliseconds: 600),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isDarkMode ? Colors.grey[800] : Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Password Requirements:",
-                                    style: TextStyle(
-                                      color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  buildPasswordValidationItem(
-                                      "At least 8 characters", hasMinLength, themeProvider),
-                                  buildPasswordValidationItem(
-                                      "At least 1 uppercase letter", hasUppercase, themeProvider),
-                                  buildPasswordValidationItem(
-                                      "At least 1 special character", hasSpecialChar, themeProvider),
-                                ],
-                              ),
-                            ),
-                          ),
+                          child: _buildPasswordRequirements(themeProvider),
                         ),
 
                       SizedBox(height: screenHeight * 0.03),
 
-                      // Compact Register Button
+                      // Register Button
                       FadeInUp(
                         duration: const Duration(milliseconds: 1200),
-                        child: AnimatedBuilder(
-                          animation: _registerButtonScaleAnimation,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: _registerButtonScaleAnimation.value,
-                              child: Container(
-                                width: double.infinity,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: isDarkMode
-                                        ? [Colors.teal, Colors.teal[300]!]
-                                        : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isDarkMode 
-                                          ? Colors.teal.withOpacity(0.3)
-                                          : const Color(0xFF1565C0).withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: isLoading ? null : _registerUser,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: isLoading
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          ),
-                                        )
-                                      : const Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.person_add, color: Colors.white, size: 20),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              "Create Account",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                        child: _buildRegisterButton(isDarkMode),
                       ),
 
                       const SizedBox(height: 16),
 
-                      // Compact Guest Login Button
+                      // Guest Login Button
                       FadeInUp(
                         duration: const Duration(milliseconds: 1400),
-                        child: AnimatedBuilder(
-                          animation: _guestButtonScaleAnimation,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: _guestButtonScaleAnimation.value,
-                              child: Container(
-                                width: double.infinity,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: isDarkMode ? Colors.grey[800] : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isDarkMode 
-                                        ? Colors.grey[600]! 
-                                        : const Color(0xFF1565C0).withOpacity(0.3),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isDarkMode 
-                                          ? Colors.black.withOpacity(0.2)
-                                          : Colors.grey.withOpacity(0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: OutlinedButton(
-                                  onPressed: _continueAsGuest,
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    side: BorderSide.none,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Image.asset("assets/anonymous.png", height: 20),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        "Continue as Guest",
-                                        style: TextStyle(
-                                          color: isDarkMode ? Colors.white : const Color(0xFF1565C0),
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                        child: _buildGuestButton(isDarkMode),
                       ),
 
                       SizedBox(height: screenHeight * 0.02),
 
-                      // Compact Login Navigation
+                      // Login Navigation
                       FadeInUp(
                         duration: const Duration(milliseconds: 1600),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Already have an account? ",
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  PageRouteBuilder(
-                                    pageBuilder: (context, animation, secondaryAnimation) =>
-                                        const LoginPage(),
-                                    transitionsBuilder:
-                                        (context, animation, secondaryAnimation, child) =>
-                                            FadeTransition(opacity: animation, child: child),
-                                    transitionDuration: const Duration(milliseconds: 500),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                "Sign In",
-                                style: TextStyle(
-                                  color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: _buildLoginNavigation(isDarkMode),
                       ),
                     ],
                   ),
@@ -573,6 +564,354 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPhoneField(bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildCompactTextField(
+                controller: _phoneController,
+                hint: "Phone Number (10 digits) - Optional",
+                icon: Icons.phone_outlined,
+                isDarkMode: isDarkMode,
+                keyboardType: TextInputType.phone,
+                enabled: !isPhoneVerified,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: isPhoneVerified 
+                    ? Colors.green.withOpacity(0.1)
+                    : ENABLE_PHONE_VERIFICATION
+                        ? (isDarkMode ? Colors.teal.withOpacity(0.1) : const Color(0xFF1565C0).withOpacity(0.1))
+                        : (isDarkMode ? Colors.grey[700] : Colors.grey[300]),
+                border: Border.all(
+                  color: isPhoneVerified 
+                      ? Colors.green
+                      : ENABLE_PHONE_VERIFICATION
+                          ? (isDarkMode ? Colors.teal : const Color(0xFF1565C0))
+                          : (isDarkMode ? Colors.grey[600]! : Colors.grey[400]!),
+                ),
+              ),
+              child: MaterialButton(
+                onPressed: !ENABLE_PHONE_VERIFICATION 
+                    ? null 
+                    : (isPhoneVerified ? null : (isPhoneVerifying ? null : _sendOtp)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: isPhoneVerifying && ENABLE_PHONE_VERIFICATION
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isDarkMode ? Colors.teal : const Color(0xFF1565C0),
+                          ),
+                        ),
+                      )
+                    : isPhoneVerified && ENABLE_PHONE_VERIFICATION
+                        ? const Icon(Icons.check_circle, color: Colors.green, size: 24)
+                        : Text(
+                            ENABLE_PHONE_VERIFICATION ? "Send OTP" : "Disabled",
+                            style: TextStyle(
+                              color: ENABLE_PHONE_VERIFICATION
+                                  ? (isDarkMode ? Colors.teal : const Color(0xFF1565C0))
+                                  : (isDarkMode ? Colors.grey[500] : Colors.grey[500]),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+              ),
+            ),
+          ],
+        ),
+        if (!ENABLE_PHONE_VERIFICATION)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              "Phone verification is currently disabled. You can still add your phone number.",
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[500] : Colors.grey[600],
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildOtpField(bool isDarkMode) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildCompactTextField(
+                controller: _otpController,
+                hint: "Enter 6-digit OTP",
+                icon: Icons.security_outlined,
+                isDarkMode: isDarkMode,
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.green.withOpacity(0.1),
+                border: Border.all(color: Colors.green),
+              ),
+              child: MaterialButton(
+                onPressed: isPhoneVerifying ? null : _verifyOtp,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: isPhoneVerifying
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                        ),
+                      )
+                    : const Text(
+                        "Verify",
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Didn't receive OTP? ",
+              style: TextStyle(
+                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+            TextButton(
+              onPressed: isPhoneVerifying ? null : _resendOtp,
+              child: Text(
+                "Resend",
+                style: TextStyle(
+                  color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordRequirements(ThemeProvider themeProvider) {
+    return FadeInUp(
+      duration: const Duration(milliseconds: 600),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Password Requirements:",
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            buildPasswordValidationItem("At least 8 characters", hasMinLength, themeProvider),
+            buildPasswordValidationItem("At least 1 uppercase letter", hasUppercase, themeProvider),
+            buildPasswordValidationItem("At least 1 special character", hasSpecialChar, themeProvider),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisterButton(bool isDarkMode) {
+    return AnimatedBuilder(
+      animation: _registerButtonScaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _registerButtonScaleAnimation.value,
+          child: Container(
+            width: double.infinity,
+            height: 50,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDarkMode
+                    ? [Colors.teal, Colors.teal[300]!]
+                    : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: isDarkMode 
+                      ? Colors.teal.withOpacity(0.3)
+                      : const Color(0xFF1565C0).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: isLoading ? null : _registerUser,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_add, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          "Create Account",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGuestButton(bool isDarkMode) {
+    return AnimatedBuilder(
+      animation: _guestButtonScaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _guestButtonScaleAnimation.value,
+          child: Container(
+            width: double.infinity,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.grey[800] : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDarkMode 
+                    ? Colors.grey[600]! 
+                    : const Color(0xFF1565C0).withOpacity(0.3),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDarkMode 
+                      ? Colors.black.withOpacity(0.2)
+                      : Colors.grey.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: OutlinedButton(
+              onPressed: _continueAsGuest,
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                side: BorderSide.none,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset("assets/anonymous.png", height: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Continue as Guest",
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : const Color(0xFF1565C0),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoginNavigation(bool isDarkMode) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          "Already have an account? ",
+          style: TextStyle(
+            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+            fontSize: 14,
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => const LoginPage(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+                    FadeTransition(opacity: animation, child: child),
+                transitionDuration: const Duration(milliseconds: 500),
+              ),
+            );
+          },
+          child: Text(
+            "Sign In",
+            style: TextStyle(
+              color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -586,6 +925,7 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     TextInputType? keyboardType,
     TextCapitalization textCapitalization = TextCapitalization.none,
     Function(String)? onChanged,
+    bool enabled = true,
   }) {
     return TextField(
       controller: controller,
@@ -593,15 +933,20 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       onChanged: onChanged,
+      enabled: enabled,
       style: TextStyle(
-        color: isDarkMode ? Colors.white : Colors.black87,
+        color: enabled 
+            ? (isDarkMode ? Colors.white : Colors.black87)
+            : (isDarkMode ? Colors.grey[600] : Colors.grey[400]),
         fontSize: 16,
       ),
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(
           icon,
-          color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+          color: enabled
+              ? (isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0))
+              : (isDarkMode ? Colors.grey[600] : Colors.grey[400]),
           size: 20,
         ),
         suffixIcon: suffixIcon,
@@ -609,11 +954,19 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
           color: isDarkMode ? Colors.grey[500] : Colors.grey[400],
         ),
         filled: true,
-        fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
+        fillColor: enabled
+            ? (isDarkMode ? Colors.grey[800] : Colors.white)
+            : (isDarkMode ? Colors.grey[850] : Colors.grey[50]),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
             color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+          ),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!,
           ),
         ),
         focusedBorder: OutlineInputBorder(
@@ -628,7 +981,6 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     );
   }
 
-  // Widget to build password requirement item
   Widget buildPasswordValidationItem(String text, bool isValid, ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -636,7 +988,9 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
         children: [
           Icon(
             isValid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-            color: isValid ? Colors.green : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+            color: isValid 
+                ? Colors.green 
+                : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
             size: 16,
           ),
           const SizedBox(width: 8),
