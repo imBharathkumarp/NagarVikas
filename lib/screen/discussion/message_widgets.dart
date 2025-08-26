@@ -160,11 +160,14 @@ class MessageWidgets {
                                 messageData["senderName"] ?? "Unknown User",
                               );
                             },
+                            child: IntrinsicWidth(
                             child: AnimatedContainer(
                               duration: Duration(milliseconds: 300),
                               constraints: BoxConstraints(
-                                maxWidth:
-                                    MediaQuery.of(context).size.width * 0.75,
+                                minWidth:
+                                    50.0, // Minimum width for very short messages
+                                maxWidth: MediaQuery.of(context).size.width *
+                                    0.75, // Maximum width remains the same
                               ),
                               padding: EdgeInsets.symmetric(
                                 vertical:
@@ -236,7 +239,7 @@ class MessageWidgets {
                                   // Add highlight indicator at the top when highlighted
                                   if (_currentlyHighlighted)
                                     Container(
-                                      margin: EdgeInsets.only(bottom: 6),                                    
+                                      margin: EdgeInsets.only(bottom: 6),
                                       decoration: BoxDecoration(
                                         color: isMe
                                             ? Colors.white.withOpacity(0.2)
@@ -775,6 +778,7 @@ class MessageWidgets {
                                     ),
                                 ],
                               ),
+                            ),
                             ),
                           ),
                       ],
