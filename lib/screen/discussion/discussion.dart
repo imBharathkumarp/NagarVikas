@@ -316,133 +316,78 @@ class DiscussionForumState extends State<DiscussionForum>
     }
   }
 
-  /// Scroll to a specific message (for search results)
   Future<void> _scrollToMessage(String messageId) async {
     try {
-      // Get message details first
+      // Get message details
       final messageSnapshot = await _messagesRef.child(messageId).once();
 
-      // Get all messages to find the position of our target message
-      final allMessagesSnapshot =
-          await _messagesRef.orderByChild("timestamp").once();
+      // Get all messages to find the position
+      final allMessagesSnapshot = await _messagesRef.orderByChild("timestamp").once();
 
       if (!allMessagesSnapshot.snapshot.exists) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No messages found'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('No messages found'), backgroundColor: Colors.red),
         );
         return;
       }
 
-      // Convert to list and sort by timestamp (same as in build method)
+      // Convert to list and sort by timestamp
       Map<dynamic, dynamic> messagesMap =
-          allMessagesSnapshot.snapshot.value as Map<dynamic, dynamic>;
+      allMessagesSnapshot.snapshot.value as Map<dynamic, dynamic>;
       List<Map<String, dynamic>> messagesList = messagesMap.entries
           .map((e) => {"key": e.key, ...Map<String, dynamic>.from(e.value)})
           .toList();
 
-      // Sort by timestamp (ascending)
       messagesList.sort((a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
-      // Find the index of our target message
-      int targetIndex = -1;
-      for (int i = 0; i < messagesList.length; i++) {
-        if (messagesList[i]["key"] == messageId) {
-          targetIndex = i;
-          break;
-        }
-      }
-
+      // Find target index
+      int targetIndex = messagesList.indexWhere((msg) => msg["key"] == messageId);
       if (targetIndex == -1) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Message not found in current view'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Message not found in current view'), backgroundColor: Colors.red),
         );
         return;
       }
 
-      // Set the message to be highlighted
-      setState(() {
-        _highlightedMessageId = messageId;
-      });
+      // Highlight message
+      setState(() => _highlightedMessageId = messageId);
 
-      // Hide the loading snackbar
+      // Hide loading snackbar
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-      // Calculate approximate scroll position
-      // Each message widget is approximately 80-120 pixels high (including date separators)
-      // We'll use a conservative estimate
+      // Estimate scroll position
       double estimatedItemHeight = 100.0;
       double scrollPosition = targetIndex * estimatedItemHeight;
 
-      // Ensure we don't exceed max scroll extent
-      await Future.delayed(
-          Duration(milliseconds: 100)); // Wait for UI to update
-
+      // Smooth scroll
+      await Future.delayed(Duration(milliseconds: 50)); // Wait for UI to update
       if (_scrollController.hasClients) {
         double maxScrollExtent = _scrollController.position.maxScrollExtent;
         double targetPosition = scrollPosition.clamp(0.0, maxScrollExtent);
 
-        // Animate to the calculated position
         await _scrollController.animateTo(
           targetPosition,
-          duration: Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
+          duration: Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
         );
-
-        // Fine-tune the position with additional scrolling attempts
-        // This helps account for dynamic content height variations
-        for (int attempt = 0; attempt < 5; attempt++) {
-          await Future.delayed(Duration(milliseconds: 200));
-          if (_scrollController.hasClients) {
-            // Try to center the message better
-            double adjustment = attempt * 50.0; // Small adjustments
-            double newPosition = (targetPosition - adjustment)
-                .clamp(0.0, _scrollController.position.maxScrollExtent);
-
-            await _scrollController.animateTo(
-              newPosition,
-              duration: Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-            );
-          }
-        }
       }
 
-      // Get message details for feedback
-      final messageData =
-          Map<String, dynamic>.from(messageSnapshot.snapshot.value as Map);
-      final senderName = messageData['senderName'] ?? 'Unknown User';
-
-      // Remove highlight after 5 seconds
+      // Remove highlight after 1 second
       _highlightTimer?.cancel();
-      _highlightTimer = Timer(Duration(seconds: 5), () {
+      _highlightTimer = Timer(Duration(seconds: 1), () {
         if (mounted) {
-          setState(() {
-            _highlightedMessageId = null;
-          });
+          setState(() => _highlightedMessageId = null);
         }
       });
     } catch (e) {
       print('Error finding message: $e');
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error finding message. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error finding message. Please try again.'), backgroundColor: Colors.red),
       );
-
-      // Clear highlight on error
-      setState(() {
-        _highlightedMessageId = null;
-      });
+      setState(() => _highlightedMessageId = null);
     }
   }
 
@@ -1817,7 +1762,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                     _voteMessage,
                                         (messageId) => _getUserVote(messageId) ?? '',
                                     // Add jumping functionality
-                                    onJumpToMessage: _jumpToMessage,
+                                    onJumpToMessage: _scrollToMessage,
                                     // Add highlighting parameters
                                     isHighlighted: _highlightedMessageId == message["key"],
                                   ),
