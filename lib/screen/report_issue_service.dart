@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme/theme_provider.dart';
 
 class ReportIssueService {
-  static const String _supportEmail = "placeholder@example.com";
+  static const String _supportEmail = "prateekch4653@gmail.com";
 
   static void showReportIssueDialog(BuildContext context, ThemeProvider themeProvider) {
     final TextEditingController issueController = TextEditingController();
