@@ -66,6 +66,8 @@ class DiscussionForumState extends State<DiscussionForum>
   String? _replyingToSender;
   bool _isReplying = false;
   bool _showEmojiPicker = false;
+  final GlobalKey _messagesListKey = GlobalKey();
+  final Map<String, GlobalKey> _messageKeys = {};
 
   // Media attachment preview
   File? _attachedMediaFile;
@@ -314,133 +316,78 @@ class DiscussionForumState extends State<DiscussionForum>
     }
   }
 
-  /// Scroll to a specific message (for search results)
   Future<void> _scrollToMessage(String messageId) async {
     try {
-      // Get message details first
+      // Get message details
       final messageSnapshot = await _messagesRef.child(messageId).once();
 
-      // Get all messages to find the position of our target message
-      final allMessagesSnapshot =
-          await _messagesRef.orderByChild("timestamp").once();
+      // Get all messages to find the position
+      final allMessagesSnapshot = await _messagesRef.orderByChild("timestamp").once();
 
       if (!allMessagesSnapshot.snapshot.exists) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No messages found'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('No messages found'), backgroundColor: Colors.red),
         );
         return;
       }
 
-      // Convert to list and sort by timestamp (same as in build method)
+      // Convert to list and sort by timestamp
       Map<dynamic, dynamic> messagesMap =
-          allMessagesSnapshot.snapshot.value as Map<dynamic, dynamic>;
+      allMessagesSnapshot.snapshot.value as Map<dynamic, dynamic>;
       List<Map<String, dynamic>> messagesList = messagesMap.entries
           .map((e) => {"key": e.key, ...Map<String, dynamic>.from(e.value)})
           .toList();
 
-      // Sort by timestamp (ascending)
       messagesList.sort((a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
-      // Find the index of our target message
-      int targetIndex = -1;
-      for (int i = 0; i < messagesList.length; i++) {
-        if (messagesList[i]["key"] == messageId) {
-          targetIndex = i;
-          break;
-        }
-      }
-
+      // Find target index
+      int targetIndex = messagesList.indexWhere((msg) => msg["key"] == messageId);
       if (targetIndex == -1) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Message not found in current view'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Message not found in current view'), backgroundColor: Colors.red),
         );
         return;
       }
 
-      // Set the message to be highlighted
-      setState(() {
-        _highlightedMessageId = messageId;
-      });
+      // Highlight message
+      setState(() => _highlightedMessageId = messageId);
 
-      // Hide the loading snackbar
+      // Hide loading snackbar
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-      // Calculate approximate scroll position
-      // Each message widget is approximately 80-120 pixels high (including date separators)
-      // We'll use a conservative estimate
+      // Estimate scroll position
       double estimatedItemHeight = 100.0;
       double scrollPosition = targetIndex * estimatedItemHeight;
 
-      // Ensure we don't exceed max scroll extent
-      await Future.delayed(
-          Duration(milliseconds: 100)); // Wait for UI to update
-
+      // Smooth scroll
+      await Future.delayed(Duration(milliseconds: 50)); // Wait for UI to update
       if (_scrollController.hasClients) {
         double maxScrollExtent = _scrollController.position.maxScrollExtent;
         double targetPosition = scrollPosition.clamp(0.0, maxScrollExtent);
 
-        // Animate to the calculated position
         await _scrollController.animateTo(
           targetPosition,
-          duration: Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
+          duration: Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
         );
-
-        // Fine-tune the position with additional scrolling attempts
-        // This helps account for dynamic content height variations
-        for (int attempt = 0; attempt < 5; attempt++) {
-          await Future.delayed(Duration(milliseconds: 200));
-          if (_scrollController.hasClients) {
-            // Try to center the message better
-            double adjustment = attempt * 50.0; // Small adjustments
-            double newPosition = (targetPosition - adjustment)
-                .clamp(0.0, _scrollController.position.maxScrollExtent);
-
-            await _scrollController.animateTo(
-              newPosition,
-              duration: Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-            );
-          }
-        }
       }
 
-      // Get message details for feedback
-      final messageData =
-          Map<String, dynamic>.from(messageSnapshot.snapshot.value as Map);
-      final senderName = messageData['senderName'] ?? 'Unknown User';
-
-      // Remove highlight after 5 seconds
+      // Remove highlight after 1 second
       _highlightTimer?.cancel();
-      _highlightTimer = Timer(Duration(seconds: 5), () {
+      _highlightTimer = Timer(Duration(seconds: 1), () {
         if (mounted) {
-          setState(() {
-            _highlightedMessageId = null;
-          });
+          setState(() => _highlightedMessageId = null);
         }
       });
     } catch (e) {
       print('Error finding message: $e');
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error finding message. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error finding message. Please try again.'), backgroundColor: Colors.red),
       );
-
-      // Clear highlight on error
-      setState(() {
-        _highlightedMessageId = null;
-      });
+      setState(() => _highlightedMessageId = null);
     }
   }
 
@@ -1250,6 +1197,26 @@ class DiscussionForumState extends State<DiscussionForum>
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
+// Add this new method right after _replyToMessage
+  void _jumpToMessage(String messageId) {
+    final messageKey = _messageKeys[messageId];
+    if (messageKey != null && messageKey.currentContext != null) {
+      Scrollable.ensureVisible(
+        messageKey.currentContext!,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.3, // Position the message 30% from top of screen
+      );
+
+      // Add a brief highlight animation
+      Future.delayed(Duration(milliseconds: 600), () {
+        if (messageKey.currentContext != null) {
+          // You can add a brief color flash here if desired
+        }
+      });
+    }
+  }
+
   void _clearReply() {
     setState(() {
       _isReplying = false;
@@ -1596,12 +1563,12 @@ class DiscussionForumState extends State<DiscussionForum>
       return Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
+        themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
         appBar: AppBar(
           elevation: 0,
           centerTitle: true,
           backgroundColor:
-              themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           title: Column(
             children: [
               Text(
@@ -1610,7 +1577,7 @@ class DiscussionForumState extends State<DiscussionForum>
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1715,14 +1682,12 @@ class DiscussionForumState extends State<DiscussionForum>
                             ? Colors.grey[900]
                             : Color(0xFFF8F9FA),
                       ),
-                      child: StreamBuilder(
+                      child: StreamBuilder<DatabaseEvent>(
                         stream: _messagesRef.orderByChild("timestamp").onValue,
-                        builder:
-                            (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                        builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                           if (!snapshot.hasData ||
                               snapshot.data?.snapshot.value == null) {
-                            return MessageWidgets.buildEmptyState(
-                                themeProvider);
+                            return MessageWidgets.buildEmptyState(themeProvider);
                           }
 
                           // Convert snapshot to list of messages
@@ -1732,9 +1697,9 @@ class DiscussionForumState extends State<DiscussionForum>
                           List<Map<String, dynamic>> messagesList = messagesMap
                               .entries
                               .map((e) => {
-                                    "key": e.key,
-                                    ...Map<String, dynamic>.from(e.value)
-                                  })
+                            "key": e.key,
+                            ...Map<String, dynamic>.from(e.value)
+                          })
                               .toList();
 
                           // Sort by timestamp (ascending)
@@ -1748,6 +1713,12 @@ class DiscussionForumState extends State<DiscussionForum>
                           for (int i = 0; i < messagesList.length; i++) {
                             final message = messagesList[i];
                             bool isMe = message["senderId"] == userId;
+                            final messageId = message["key"];
+
+                            // Ensure message key exists
+                            if (!_messageKeys.containsKey(messageId)) {
+                              _messageKeys[messageId] = GlobalKey();
+                            }
 
                             // Get message date
                             DateTime? messageDate;
@@ -1756,8 +1727,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                   message["createdAt"] ?? message["timestamp"];
                               if (timestamp is int) {
                                 messageDate =
-                                    DateTime.fromMillisecondsSinceEpoch(
-                                        timestamp);
+                                    DateTime.fromMillisecondsSinceEpoch(timestamp);
                               }
                             } catch (e) {
                               print('Error parsing date: $e');
@@ -1765,8 +1735,7 @@ class DiscussionForumState extends State<DiscussionForum>
 
                             // Add date separator if date changed and message date exists
                             if (messageDate != null) {
-                              final dateString =
-                                  ForumLogic.getDateString(messageDate);
+                              final dateString = ForumLogic.getDateString(messageDate);
                               if (dateString != lastDateString) {
                                 messageWidgets.add(
                                     MessageWidgets.buildDateSeparator(
@@ -1775,51 +1744,71 @@ class DiscussionForumState extends State<DiscussionForum>
                               }
 
                               // Add message only if we have a valid date
-                              messageWidgets.add(MessageWidgets.buildMessage(
-                                message,
-                                isMe,
-                                themeProvider,
-                                _showFullScreenImage,
-                                _showFullScreenVideo,
-                                _replyToMessage,
-                                _showMessageOptions,
-                                _isAdmin,
-                                userId!,
-                                // NEW: Add voting parameters
-                                _messageVotes,
-                                _voteMessage,
-                                (messageId) => _getUserVote(messageId) ?? '',
-                                // NEW: Add highlighting parameters
-                                isHighlighted:
-                                    _highlightedMessageId == message["key"],
-                              ));
+                              messageWidgets.add(
+                                Container(
+                                  key: _messageKeys[messageId],
+                                  child: MessageWidgets.buildMessage(
+                                    message,
+                                    isMe,
+                                    themeProvider,
+                                    _showFullScreenImage,
+                                    _showFullScreenVideo,
+                                    _replyToMessage,
+                                    _showMessageOptions,
+                                    _isAdmin,
+                                    userId!,
+                                    // Add voting parameters
+                                    _messageVotes,
+                                    _voteMessage,
+                                        (messageId) => _getUserVote(messageId) ?? '',
+                                    // Add jumping functionality
+                                    onJumpToMessage: _scrollToMessage,
+                                    // Add highlighting parameters
+                                    isHighlighted: _highlightedMessageId == message["key"],
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+
+                          // Ensure all messages have keys for jumping functionality
+                          for (int i = 0; i < messagesList.length; i++) {
+                            final messageId = messagesList[i]["key"];
+                            if (!_messageKeys.containsKey(messageId)) {
+                              _messageKeys[messageId] = GlobalKey();
                             }
                           }
 
                           final listView = ListView(
+                            key: _messagesListKey,
                             controller: _scrollController,
                             padding: EdgeInsets.symmetric(vertical: 8),
                             children: messageWidgets.isNotEmpty
                                 ? messageWidgets
                                 : messagesList.map((message) {
-                                    bool isMe = message["senderId"] == userId;
-                                    return MessageWidgets.buildMessage(
-                                      message,
-                                      isMe,
-                                      themeProvider,
-                                      _showFullScreenImage,
-                                      _showFullScreenVideo,
-                                      _replyToMessage,
-                                      _showMessageOptions,
-                                      _isAdmin,
-                                      userId!,
-                                      // NEW: Add voting parameters
-                                      _messageVotes,
-                                      _voteMessage,
-                                      (messageId) =>
-                                          _getUserVote(messageId) ?? '',
-                                    );
-                                  }).toList(),
+                              bool isMe = message["senderId"] == userId;
+                              final messageId = message["key"];
+
+                              return Container(
+                                key: _messageKeys[messageId],
+                                child: MessageWidgets.buildMessage(
+                                  message,
+                                  isMe,
+                                  themeProvider,
+                                  _showFullScreenImage,
+                                  _showFullScreenVideo,
+                                  _replyToMessage,
+                                  _showMessageOptions,
+                                  _isAdmin,
+                                  userId!,
+                                  // Add voting parameters
+                                  _messageVotes,
+                                  _voteMessage,
+                                      (messageId) => _getUserVote(messageId) ?? '',
+                                  onJumpToMessage: _jumpToMessage,
+                                ),
+                              );
+                            }).toList(),
                           );
 
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1827,8 +1816,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                 !_showGoDownButton) {
                               // Multiple jumps to ensure we reach absolute bottom
                               for (int i = 0; i <= 10; i++) {
-                                Future.delayed(Duration(milliseconds: i * 50),
-                                    () {
+                                Future.delayed(Duration(milliseconds: i * 50), () {
                                   if (_scrollController.hasClients &&
                                       !_showGoDownButton) {
                                     _scrollController.jumpTo(_scrollController
@@ -1899,34 +1887,32 @@ class DiscussionForumState extends State<DiscussionForum>
                             borderRadius: BorderRadius.circular(8),
                             child: _attachedMediaType == "image"
                                 ? (_attachedMediaFile != null
-                                    ? Image.file(
-                                        _attachedMediaFile!,
-                                        height: 100,
-                                        width: 100,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        height: 100,
-                                        width: 100,
-                                        color: Colors.grey[300],
-                                        child: Icon(Icons.image),
-                                      ))
+                                ? Image.file(
+                              _attachedMediaFile!,
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
+                            )
                                 : Container(
-                                    height: 100,
-                                    width: 100,
-                                    color: Colors.black,
-                                    child: Icon(
-                                      Icons.play_arrow,
-                                      color: Colors.white,
-                                      size: 40,
-                                    ),
-                                  ),
+                              height: 100,
+                              width: 100,
+                              color: Colors.grey[300],
+                              child: Icon(Icons.image),
+                            ))
+                                : Container(
+                              height: 100,
+                              width: 100,
+                              color: Colors.black,
+                              child: Icon(
+                                Icons.play_arrow,
+                                color: Colors.white,
+                                size: 40,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-
-// Reply and edit indicators
 
                   // Reply and edit indicators
                   MessageWidgets.buildReplyIndicator(
@@ -1962,342 +1948,319 @@ class DiscussionForumState extends State<DiscussionForum>
                     ),
                     child: _isUserBanned
                         ? Container(
-                            padding: EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red, width: 1),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.block, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You are banned from sending messages',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.block, color: Colors.red, size: 20),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'You are banned from sending messages',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.w500,
+                          ),
+                        ],
+                      ),
+                    )
+                        : SafeArea(
+                      child: Row(
+                        children: [
+                          // Pin icon button for media selection
+                          Container(
+                            decoration: BoxDecoration(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: _isUploading ? null : _showMediaOptions,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  child: _isUploading
+                                      ? Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Color(0xFF2196F3),
+                                      ),
                                     ),
+                                  )
+                                      : Icon(
+                                    Icons.attach_file,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[500],
+                                    size: 24,
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                          )
-                        : SafeArea(
-                            child: Row(
-                              children: [
-                                // UPDATED: Pin icon button for media selection
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.grey[700]
-                                        : Color(0xFFF5F5F5),
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[600]!
-                                          : Colors.grey[300]!,
-                                      width: 1,
+                          ),
+                          SizedBox(width: 12),
+
+                          // Enhanced text input field
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[700]
+                                    : Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: (_isTyping || _isEditing)
+                                      ? Color(0xFF2196F3)
+                                      : (themeProvider.isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey[300]!),
+                                  width: (_isTyping || _isEditing) ? 2 : 1,
+                                ),
+                                boxShadow:
+                                (_isTyping || _isEditing || _showMediaPreview)
+                                    ? [
+                                  BoxShadow(
+                                    color: Color(0xFF2196F3)
+                                        .withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ]
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Text field
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _messageController,
+                                      focusNode: _textFieldFocusNode,
+                                      onTap: () {
+                                        // Hide emoji picker when text field is tapped
+                                        if (_showEmojiPicker) {
+                                          setState(() {
+                                            _showEmojiPicker = false;
+                                          });
+                                          _emojiAnimationController.reverse();
+                                        }
+                                        // Auto scroll if at bottom when keyboard opens
+                                        Future.delayed(
+                                            Duration(milliseconds: 300), () {
+                                          if (!_showGoDownButton &&
+                                              _scrollController.hasClients) {
+                                            _scrollController.animateTo(
+                                              _scrollController
+                                                  .position.maxScrollExtent,
+                                              duration:
+                                              Duration(milliseconds: 200),
+                                              curve: Curves.easeOut,
+                                            );
+                                          }
+                                        });
+                                      },
+                                      onChanged: (text) {
+                                        if (text.length > 100) {
+                                          _messageController.text =
+                                              text.substring(0, 100);
+                                          _messageController.selection =
+                                              TextSelection.fromPosition(
+                                                TextPosition(offset: 100),
+                                              );
+                                        }
+                                      },
+                                      style: TextStyle(
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 3,
+                                      minLines: 1,
+                                      textCapitalization:
+                                      TextCapitalization.sentences,
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.only(
+                                            left: 20, top: 12, bottom: 12),
+                                        hintText: _isEditing
+                                            ? "Edit your message..."
+                                            : (_isReplying
+                                            ? "Reply to ${_replyingToSender}..."
+                                            : (_isListening
+                                            ? "Listening..."
+                                            : "Type...")),
+                                        hintStyle: TextStyle(
+                                          color: _isListening
+                                              ? Color(0xFF4CAF50)
+                                              : (themeProvider.isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[500]),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
                                     ),
+                                  ),
+                                  // Mic button
+                                  GestureDetector(
+                                    onTap: _toggleListening,
+                                    child: Container(
+                                      margin: EdgeInsets.only(right: 4),
+                                      padding: EdgeInsets.only(
+                                          right: 8, top: 8, bottom: 8),
+                                      decoration: BoxDecoration(
+                                        color: _isListening
+                                            ? Color(0xFF4CAF50).withOpacity(0.1)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Icon(
+                                        _isListening
+                                            ? Icons.mic
+                                            : Icons.mic_none,
+                                        color: _isListening
+                                            ? Color(0xFF4CAF50)
+                                            : (themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600]),
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                  // Emoji button inside text field
+                                  GestureDetector(
+                                    onTap: () {
+                                      FocusScope.of(context).unfocus();
+                                      Future.delayed(
+                                          Duration(milliseconds: 100), () {
+                                        _toggleEmojiPicker();
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: EdgeInsets.only(right: 16),
+                                      padding: EdgeInsets.all(0),
+                                      decoration: BoxDecoration(
+                                        color: _showEmojiPicker
+                                            ? Color(0xFF2196F3).withOpacity(0.1)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Icon(
+                                        _showEmojiPicker
+                                            ? Icons.keyboard
+                                            : Icons.emoji_emotions_outlined,
+                                        color: _showEmojiPicker
+                                            ? Color(0xFF2196F3)
+                                            : (themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600]),
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+
+                          // Send button
+                          AnimatedBuilder(
+                            animation: _sendButtonScaleAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _sendButtonScaleAnimation.value,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient:
+                                    (_isTyping || _isEditing || _showMediaPreview)
+                                        ? LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF1976D2),
+                                        Color(0xFF2196F3)
+                                      ],
+                                    )
+                                        : null,
+                                    color: !(_isTyping || _isEditing || _showMediaPreview)
+                                        ? (themeProvider.isDarkMode
+                                        ? Colors.grey[600]
+                                        : Colors.grey[400])
+                                        : null,
+                                    shape: BoxShape.circle,
+                                    boxShadow:
+                                    (_isTyping || _isEditing || _showMediaPreview)
+                                        ? [
+                                      BoxShadow(
+                                        color: Color(0xFF2196F3)
+                                            .withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ]
+                                        : null,
                                   ),
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      borderRadius: BorderRadius.circular(24),
-                                      onTap: _isUploading
-                                          ? null
-                                          : _showMediaOptions,
+                                      borderRadius: BorderRadius.circular(28),
+                                      onTap: (_isTyping ||
+                                          _isEditing ||
+                                          _showMediaPreview)
+                                          ? () => _sendMessage()
+                                          : null,
                                       child: Container(
                                         width: 44,
                                         height: 44,
-                                        child: _isUploading
-                                            ? Center(
-                                                child: SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Color(0xFF2196F3),
-                                                  ),
-                                                ),
-                                              )
-                                            : Icon(
-                                                Icons.attach_file,
-                                                color: themeProvider.isDarkMode
-                                                    ? Colors.grey[400]
-                                                    : Colors.grey[500],
-                                                size: 24,
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 12),
-
-                                // Enhanced text input field
-                                Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[700]
-                                          : Color(0xFFF5F5F5),
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(
-                                        color: (_isTyping || _isEditing)
-                                            ? Color(0xFF2196F3)
-                                            : (themeProvider.isDarkMode
-                                                ? Colors.grey[600]!
-                                                : Colors.grey[300]!),
-                                        width:
-                                            (_isTyping || _isEditing) ? 2 : 1,
-                                      ),
-                                      boxShadow: (_isTyping ||
+                                        decoration:
+                                        BoxDecoration(shape: BoxShape.circle),
+                                        child: Icon(
+                                          _isEditing
+                                              ? Icons.check
+                                              : (_isTyping
+                                              ? Icons.send_rounded
+                                              : Icons.send_outlined),
+                                          color: Colors.white,
+                                          size: (_isTyping ||
                                               _isEditing ||
                                               _showMediaPreview)
-                                          ? [
-                                              BoxShadow(
-                                                color: Color(0xFF2196F3)
-                                                    .withOpacity(0.2),
-                                                blurRadius: 8,
-                                                offset: Offset(0, 2),
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Text field
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _messageController,
-                                            focusNode: _textFieldFocusNode,
-                                            onTap: () {
-                                              // Hide emoji picker when text field is tapped
-                                              if (_showEmojiPicker) {
-                                                setState(() {
-                                                  _showEmojiPicker = false;
-                                                });
-                                                _emojiAnimationController
-                                                    .reverse();
-                                              }
-                                              // Auto scroll if at bottom when keyboard opens
-                                              Future.delayed(
-                                                  Duration(milliseconds: 300),
-                                                  () {
-                                                if (!_showGoDownButton &&
-                                                    _scrollController
-                                                        .hasClients) {
-                                                  _scrollController.animateTo(
-                                                    _scrollController.position
-                                                        .maxScrollExtent,
-                                                    duration: Duration(
-                                                        milliseconds: 200),
-                                                    curve: Curves.easeOut,
-                                                  );
-                                                }
-                                              });
-                                            },
-                                            onChanged: (text) {
-                                              if (text.length > 100) {
-                                                _messageController.text =
-                                                    text.substring(0, 100);
-                                                _messageController.selection =
-                                                    TextSelection.fromPosition(
-                                                  TextPosition(offset: 100),
-                                                );
-                                              }
-                                            },
-                                            style: TextStyle(
-                                              color: themeProvider.isDarkMode
-                                                  ? Colors.white
-                                                  : Colors.black87,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            maxLines: 3,
-                                            minLines: 1,
-                                            textCapitalization:
-                                                TextCapitalization.sentences,
-                                            decoration: InputDecoration(
-                                              contentPadding: EdgeInsets.only(
-                                                  left: 20,
-                                                  top: 12,
-                                                  bottom: 12),
-                                              hintText: _isEditing
-                                                  ? "Edit your message..."
-                                                  : (_isReplying
-                                                      ? "Reply to ${_replyingToSender}..."
-                                                      : (_isListening
-                                                          ? "Listening..."
-                                                          : "Type...")),
-                                              hintStyle: TextStyle(
-                                                color: _isListening
-                                                    ? Color(0xFF4CAF50)
-                                                    : (themeProvider.isDarkMode
-                                                        ? Colors.grey[400]
-                                                        : Colors.grey[500]),
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                              border: InputBorder.none,
-                                            ),
-                                          ),
+                                              ? 24
+                                              : 20,
                                         ),
-                                        // Mic button
-                                        GestureDetector(
-                                          onTap: _toggleListening,
-                                          child: Container(
-                                            margin: EdgeInsets.only(right: 4),
-                                            padding: EdgeInsets.only(
-                                                right: 8, top: 8, bottom: 8),
-                                            decoration: BoxDecoration(
-                                              color: _isListening
-                                                  ? Color(0xFF4CAF50)
-                                                      .withOpacity(0.1)
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Icon(
-                                              _isListening
-                                                  ? Icons.mic
-                                                  : Icons.mic_none,
-                                              color: _isListening
-                                                  ? Color(0xFF4CAF50)
-                                                  : (themeProvider.isDarkMode
-                                                      ? Colors.grey[400]
-                                                      : Colors.grey[600]),
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ),
-                                        // Emoji button inside text field
-                                        GestureDetector(
-                                          onTap: () {
-                                            FocusScope.of(context).unfocus();
-                                            Future.delayed(
-                                                Duration(milliseconds: 100),
-                                                () {
-                                              _toggleEmojiPicker();
-                                            });
-                                          },
-                                          child: Container(
-                                            margin: EdgeInsets.only(right: 16),
-                                            padding: EdgeInsets.all(0),
-                                            decoration: BoxDecoration(
-                                              color: _showEmojiPicker
-                                                  ? Color(0xFF2196F3)
-                                                      .withOpacity(0.1)
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Icon(
-                                              _showEmojiPicker
-                                                  ? Icons.keyboard
-                                                  : Icons
-                                                      .emoji_emotions_outlined,
-                                              color: _showEmojiPicker
-                                                  ? Color(0xFF2196F3)
-                                                  : (themeProvider.isDarkMode
-                                                      ? Colors.grey[400]
-                                                      : Colors.grey[600]),
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 12),
-
-                                // Send button
-                                AnimatedBuilder(
-                                  animation: _sendButtonScaleAnimation,
-                                  builder: (context, child) {
-                                    return Transform.scale(
-                                      scale: _sendButtonScaleAnimation.value,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          gradient: (_isTyping ||
-                                                  _isEditing ||
-                                                  _showMediaPreview)
-                                              ? LinearGradient(
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                  colors: [
-                                                    Color(0xFF1976D2),
-                                                    Color(0xFF2196F3)
-                                                  ],
-                                                )
-                                              : null,
-                                          color: !(_isTyping ||
-                                                  _isEditing ||
-                                                  _showMediaPreview)
-                                              ? (themeProvider.isDarkMode
-                                                  ? Colors.grey[600]
-                                                  : Colors.grey[400])
-                                              : null,
-                                          shape: BoxShape.circle,
-                                          boxShadow: (_isTyping ||
-                                                  _isEditing ||
-                                                  _showMediaPreview)
-                                              ? [
-                                                  BoxShadow(
-                                                    color: Color(0xFF2196F3)
-                                                        .withOpacity(0.3),
-                                                    blurRadius: 8,
-                                                    offset: Offset(0, 4),
-                                                  ),
-                                                ]
-                                              : null,
-                                        ),
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            borderRadius:
-                                                BorderRadius.circular(28),
-                                            onTap: (_isTyping ||
-                                                    _isEditing ||
-                                                    _showMediaPreview)
-                                                ? () => _sendMessage()
-                                                : null,
-                                            child: Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(
-                                                  shape: BoxShape.circle),
-                                              child: Icon(
-                                                _isEditing
-                                                    ? Icons.check
-                                                    : (_isTyping
-                                                        ? Icons.send_rounded
-                                                        : Icons.send_outlined),
-                                                color: Colors.white,
-                                                size: (_isTyping ||
-                                                        _isEditing ||
-                                                        _showMediaPreview)
-                                                    ? 24
-                                                    : 20,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
+                        ],
+                      ),
+                    ),
                   ),
                   if (_showEmojiPicker)
                     Container(
-                      height: MediaQuery.of(context).viewInsets.bottom > 0
-                          ? 280
-                          : 280,
+                      height: MediaQuery.of(context).viewInsets.bottom > 0 ? 280 : 280,
                       child: EmojiPickerWidget(
                         themeProvider: themeProvider,
                         emojiAnimationController: _emojiAnimationController,
