@@ -335,59 +335,74 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
   }
 
   Widget _buildShimmerCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Shimmer.fromColors(
+            baseColor: themeProvider.isDarkMode
+                ? Colors.grey[700]!
+                : Colors.grey[300]!,
+            highlightColor: themeProvider.isDarkMode
+                ? Colors.grey[600]!
+                : Colors.grey[100]!,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   Container(
-                    width: 80,
-                    height: 24,
+                    width: double.infinity,
+                    height: 20,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
+                  const SizedBox(height: 8),
                   Container(
-                    width: 24,
-                    height: 24,
+                    width: 200,
+                    height: 16,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                height: 20,
-                color: Colors.white,
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: 200,
-                height: 16,
-                color: Colors.white,
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+
 
   Widget _buildEmptyState(ThemeProvider themeProvider) {
     return Center(

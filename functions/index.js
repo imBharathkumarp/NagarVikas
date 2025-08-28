@@ -357,3 +357,148 @@ exports.checkUserBanStatus = functions.database
       return null;
     }
   });
+
+// Function to handle message reports
+exports.handleMessageReport = functions.database
+  .ref('/message_reports/{reportId}')
+  .onCreate(async (snapshot, context) => {
+    const reportData = snapshot.val();
+    const reportId = context.params.reportId;
+
+    try {
+      // Get the reported message details
+      const messageSnapshot = await admin.database().ref(`/discussion/${reportData.messageId}`).once('value');
+      const messageData = messageSnapshot.val();
+
+      if (!messageData) {
+        console.log('Reported message not found');
+        return null;
+      }
+
+      // Get reporter details
+      const reporterSnapshot = await admin.database().ref(`/users/${reportData.reporterId}`).once('value');
+      const reporterData = reporterSnapshot.val();
+
+      // Get reported user details
+      const reportedUserSnapshot = await admin.database().ref(`/users/${reportData.reportedUserId}`).once('value');
+      const reportedUserData = reportedUserSnapshot.val();
+
+      // Create admin notification
+      const adminNotification = {
+        type: 'message_report',
+        reportId: reportId,
+        messageId: reportData.messageId,
+        reportedUserId: reportData.reportedUserId,
+        reportedUserName: reportedUserData?.name || reportData.reportedUserName || 'Unknown User',
+        reporterId: reportData.reporterId,
+        reporterName: reporterData?.name || reportData.reporterName || 'Unknown User',
+        reason: reportData.reportReason,
+        messageContent: reportData.messageContent || messageData.message || 'Media/Poll content',
+        additionalDetails: reportData.additionalDetails || '',
+        timestamp: admin.database.ServerValue.TIMESTAMP,
+        status: 'pending',
+        priority: _getReportPriority(reportData.reportReason)
+      };
+
+      // Store in admin notifications
+      await admin.database().ref('/admin_notifications').push().set(adminNotification);
+
+      console.log(`Message report created: ${reportId} for reason: ${reportData.reportReason}`);
+      return null;
+    } catch (error) {
+      console.error('Error handling message report:', error);
+      return null;
+    }
+  });
+
+// Helper function to determine report priority
+function _getReportPriority(reason) {
+  const highPriorityReasons = ['harassment', 'hate_speech', 'privacy_violation'];
+  const mediumPriorityReasons = ['inappropriate_content', 'misinformation'];
+
+  if (highPriorityReasons.includes(reason)) {
+    return 'high';
+  } else if (mediumPriorityReasons.includes(reason)) {
+    return 'medium';
+  }
+  return 'low';
+}
+
+// Function to send notifications when reports are updated
+exports.sendReportUpdateNotification = functions.database
+  .ref('/message_reports/{reportId}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.val();
+    const after = change.after.val();
+
+    // Check if status has changed
+    if (before.status === after.status) {
+      console.log('Report status unchanged, no notification needed');
+      return null;
+    }
+
+    try {
+      const reportId = context.params.reportId;
+      const reporterId = after.reporterId;
+
+      if (!reporterId) {
+        console.log('No reporter ID found');
+        return null;
+      }
+
+      // Get reporter details
+      const userSnapshot = await admin.database().ref(`/users/${reporterId}`).once('value');
+      const userData = userSnapshot.val();
+
+      if (!userData || !userData.fcmToken) {
+        console.log('No FCM token found for reporter');
+        return null;
+      }
+
+      const newStatus = after.status;
+      let notificationBody = '';
+
+      switch (newStatus) {
+        case 'reviewed':
+          notificationBody = 'Your report has been reviewed by our moderation team.';
+          break;
+        case 'resolved':
+          notificationBody = 'Your report has been resolved. Thank you for helping keep our community safe.';
+          break;
+        case 'dismissed':
+          notificationBody = 'Your report has been reviewed and dismissed. No violation was found.';
+          break;
+        default:
+          notificationBody = `Your report status has been updated to ${newStatus}.`;
+      }
+
+      // Add admin note if provided
+      if (after.adminNote && after.adminNote !== before.adminNote) {
+        notificationBody += ` Note: ${after.adminNote}`;
+      }
+
+      const payload = {
+        notification: {
+          title: 'Report Update',
+          body: notificationBody,
+          icon: '@mipmap/ic_launcher',
+          sound: 'default',
+        },
+        data: {
+          reportId: reportId,
+          newStatus: newStatus,
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+      };
+
+      // Send notification
+      const response = await admin.messaging().sendToDevice(userData.fcmToken, payload);
+      console.log('Report update notification sent:', response);
+
+      return response;
+    } catch (error) {
+      console.error('Error sending report update notification:', error);
+      return null;
+    }
+  });
+

@@ -1,6 +1,7 @@
 // admin_drawer.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:nagarvikas/screen/reports_dashboard.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import '../theme/theme_provider.dart';
@@ -39,6 +40,11 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
     DrawerItem(
       icon: Icons.forum_rounded,
       title: 'Discussion Forum',
+      color: const Color(0xFF2196F3),
+    ),
+    DrawerItem(
+      icon: Icons.report,
+      title: 'Message Reports',
       color: const Color(0xFF2196F3),
     ),
     DrawerItem(
@@ -112,7 +118,7 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         final isDarkMode = themeProvider.isDarkMode;
-        
+
         return SlideTransition(
           position: _slideAnimation,
           child: Drawer(
@@ -211,7 +217,7 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
       itemBuilder: (context, index) {
         final item = _menuItems[index];
         final isLogout = index == _menuItems.length - 1;
-        
+
         return TweenAnimationBuilder<double>(
           duration: Duration(milliseconds: 400 + (index * 80)),
           tween: Tween(begin: 0.0, end: 1.0),
@@ -277,12 +283,17 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
           builder: (context) => const DiscussionForum(isAdmin: true),
         ));
         break;
-      case 2: // Banned Users
+      case 2: // Message Reports
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => const ReportsDashboard(),
+        ));
+        break;
+      case 3: // Banned Users
         Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => const BannedUsersDashboard(),
         ));
         break;
-      case 3: // Favorites
+      case 4: // Favorites
         Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => FavoritesPage(
             favoriteComplaints: widget.favoriteComplaints,
@@ -290,7 +301,7 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
           ),
         ));
         break;
-      case 4: // Logout
+      case 5: // Logout
         _showLogoutDialog(themeProvider);
         break;
     }
@@ -400,7 +411,7 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
     } catch (e) {
       if (!context.mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("Failed to logout. Please try again."),

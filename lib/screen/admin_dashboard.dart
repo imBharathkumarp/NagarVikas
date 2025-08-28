@@ -58,7 +58,7 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
     _fabScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _fabAnimationController, curve: Curves.easeInOut),
     );
-    
+
     // Card animation controller
     _cardAnimationController = AnimationController(
       duration: const Duration(milliseconds: 600),
@@ -124,7 +124,7 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
   void _startInitialAnimations() {
     // Start header animation immediately
     _headerAnimationController.forward();
-    
+
     // Start search animation after a short delay
     Timer(const Duration(milliseconds: 200), () {
       if (mounted) _searchAnimationController.forward();
@@ -145,101 +145,101 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
 
   Future<void> _fetchComplaints() async {
     DatabaseReference complaintsRef =
-        FirebaseDatabase.instance.ref('complaints');
+    FirebaseDatabase.instance.ref('complaints');
     DatabaseReference usersRef = FirebaseDatabase.instance.ref('users');
 
     _complaintsSubscription =
         complaintsRef.onValue.listen((complaintEvent) async {
-      if (!mounted) return;
+          if (!mounted) return;
 
-      final complaintData =
+          final complaintData =
           complaintEvent.snapshot.value as Map<dynamic, dynamic>?;
 
-      if (complaintData == null) {
-        if (mounted) {
-          setState(() {
-            totalComplaints = pendingComplaints =
-                inProgressComplaints = resolvedComplaints = 0;
-            complaints = [];
-            filteredComplaints = [];
-            isLoading = false;
-          });
-          // Start list animation when loading is complete
-          _listAnimationController.forward();
-        }
-        return;
-      }
+          if (complaintData == null) {
+            if (mounted) {
+              setState(() {
+                totalComplaints = pendingComplaints =
+                    inProgressComplaints = resolvedComplaints = 0;
+                complaints = [];
+                filteredComplaints = [];
+                isLoading = false;
+              });
+              // Start list animation when loading is complete
+              _listAnimationController.forward();
+            }
+            return;
+          }
 
-      List<Map<String, dynamic>> loadedComplaints = [];
-      int pending = 0, inProgress = 0, resolved = 0, total = 0;
+          List<Map<String, dynamic>> loadedComplaints = [];
+          int pending = 0, inProgress = 0, resolved = 0, total = 0;
 
-      for (var entry in complaintData.entries) {
-        final complaint = entry.value as Map<dynamic, dynamic>;
-        String userId = complaint["user_id"] ?? "Unknown";
+          for (var entry in complaintData.entries) {
+            final complaint = entry.value as Map<dynamic, dynamic>;
+            String userId = complaint["user_id"] ?? "Unknown";
 
-        DataSnapshot userSnapshot = await usersRef.child(userId).get();
-        Map<String, dynamic>? userData = userSnapshot.value != null
-            ? Map<String, dynamic>.from(userSnapshot.value as Map)
-            : null;
+            DataSnapshot userSnapshot = await usersRef.child(userId).get();
+            Map<String, dynamic>? userData = userSnapshot.value != null
+                ? Map<String, dynamic>.from(userSnapshot.value as Map)
+                : null;
 
-        String status = complaint["status"]?.toString() ?? "Pending";
-        if (status == "Pending") pending++;
-        if (status == "In Progress") inProgress++;
-        if (status == "Resolved") resolved++;
-        total++;
+            String status = complaint["status"]?.toString() ?? "Pending";
+            if (status == "Pending") pending++;
+            if (status == "In Progress") inProgress++;
+            if (status == "Resolved") resolved++;
+            total++;
 
-        String timestamp = complaint["timestamp"] ?? "Unknown";
-        String date = "Unknown", time = "Unknown";
+            String timestamp = complaint["timestamp"] ?? "Unknown";
+            String date = "Unknown", time = "Unknown";
 
-        if (timestamp != "Unknown") {
-          DateTime dateTime = DateTime.tryParse(timestamp) ?? DateTime.now();
-          date = "${dateTime.day}-${dateTime.month}-${dateTime.year}";
-          time = "${dateTime.hour}:${dateTime.minute}";
-        }
+            if (timestamp != "Unknown") {
+              DateTime dateTime = DateTime.tryParse(timestamp) ?? DateTime.now();
+              date = "${dateTime.day}-${dateTime.month}-${dateTime.year}";
+              time = "${dateTime.hour}:${dateTime.minute}";
+            }
 
-        String? mediaUrl =
-            complaint["media_url"] ?? complaint["image_url"] ?? "";
-        String mediaType = (complaint["media_type"] ??
+            String? mediaUrl =
+                complaint["media_url"] ?? complaint["image_url"] ?? "";
+            String mediaType = (complaint["media_type"] ??
                 (complaint["image_url"] != null ? "image" : "video"))
-            .toString()
-            .toLowerCase();
+                .toString()
+                .toLowerCase();
 
-        loadedComplaints.add({
-          "id": entry.key,
-          "issue_type": complaint["issue_type"] ?? "Unknown",
-          "city": complaint["city"] ?? "Unknown",
-          "state": complaint["state"] ?? "Unknown",
-          "location": complaint["location"] ?? "Unknown",
-          "description": complaint["description"] ?? "No description",
-          "date": date,
-          "time": time,
-          "status": status,
-          "media_url": (mediaUrl ?? '').isEmpty
-              ? 'https://picsum.photos/250?image=9'
-              : mediaUrl,
-          "media_type": mediaType,
-          "user_id": userId,
-          "user_name": userData?["name"] ?? "Unknown",
-          "user_email": userData?["email"] ?? "Unknown",
-        });
-      }
+            loadedComplaints.add({
+              "id": entry.key,
+              "issue_type": complaint["issue_type"] ?? "Unknown",
+              "city": complaint["city"] ?? "Unknown",
+              "state": complaint["state"] ?? "Unknown",
+              "location": complaint["location"] ?? "Unknown",
+              "description": complaint["description"] ?? "No description",
+              "date": date,
+              "time": time,
+              "status": status,
+              "media_url": (mediaUrl ?? '').isEmpty
+                  ? 'https://picsum.photos/250?image=9'
+                  : mediaUrl,
+              "media_type": mediaType,
+              "user_id": userId,
+              "user_name": userData?["name"] ?? "Unknown",
+              "user_email": userData?["email"] ?? "Unknown",
+            });
+          }
 
-      if (mounted) {
-        setState(() {
-          totalComplaints = total;
-          pendingComplaints = pending;
-          inProgressComplaints = inProgress;
-          resolvedComplaints = resolved;
-          complaints = loadedComplaints;
-          filteredComplaints = complaints;
-          isLoading = false;
+          if (mounted) {
+            setState(() {
+              totalComplaints = total;
+              pendingComplaints = pending;
+              inProgressComplaints = inProgress;
+              resolvedComplaints = resolved;
+              complaints = loadedComplaints;
+              filteredComplaints = complaints;
+              isLoading = false;
+            });
+
+            // Start card and list animations when data is loaded
+            _cardAnimationController.forward();
+            _listAnimationController.forward();
+          }
         });
-        
-        // Start card and list animations when data is loaded
-        _cardAnimationController.forward();
-        _listAnimationController.forward();
-      }
-    });
   }
 
   void _searchComplaints(String query) {
@@ -270,7 +270,7 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
         const end = Offset.zero;
         const curve = Curves.easeInOut;
         final tween =
-            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
         return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
@@ -282,7 +282,7 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
       builder: (context, themeProvider, child) {
         final screenWidth = MediaQuery.of(context).size.width;
         final isDarkMode = themeProvider.isDarkMode;
-        
+
         return Scaffold(
           drawer: AdminDrawer(
             favoriteComplaints: favoriteComplaints,
@@ -567,7 +567,7 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Filter Dropdown with animation
                   TweenAnimationBuilder<double>(
                     duration: Duration(milliseconds: 700 + 400),
@@ -675,8 +675,8 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: isDarkMode 
-                      ? Colors.grey[800]?.withOpacity(0.5) 
+                  color: isDarkMode
+                      ? Colors.grey[800]?.withOpacity(0.5)
                       : Colors.grey[100],
                   shape: BoxShape.circle,
                 ),
@@ -716,8 +716,8 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
         final complaint = filteredComplaints[index];
         final complaintId = complaint["id"] ?? complaint.hashCode.toString();
         final isFavorite = favoriteComplaints.any(
-            (fav) => (fav["id"] ?? fav.hashCode.toString()) == complaintId);
-        
+                (fav) => (fav["id"] ?? fav.hashCode.toString()) == complaintId);
+
         return TweenAnimationBuilder<double>(
           duration: Duration(milliseconds: 300 + (index * 100).clamp(0, 500)),
           tween: Tween(begin: 0.0, end: 1.0),
@@ -816,7 +816,7 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
     setState(() {
       final complaintId = complaint["id"] ?? complaint.hashCode.toString();
       final existingIndex = favoriteComplaints.indexWhere(
-          (fav) => (fav["id"] ?? fav.hashCode.toString()) == complaintId);
+              (fav) => (fav["id"] ?? fav.hashCode.toString()) == complaintId);
 
       if (existingIndex >= 0) {
         // Remove from favorites
@@ -862,7 +862,7 @@ class AdminDashboardState extends State<AdminDashboard> with TickerProviderState
     setState(() {
       final complaintId = complaint["id"] ?? complaint.hashCode.toString();
       favoriteComplaints.removeWhere(
-          (fav) => (fav["id"] ?? fav.hashCode.toString()) == complaintId);
+              (fav) => (fav["id"] ?? fav.hashCode.toString()) == complaintId);
     });
   }
 
@@ -1047,7 +1047,7 @@ class ComplaintCard extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         final isDarkMode = themeProvider.isDarkMode;
-        
+
         return MouseRegion(
           cursor: SystemMouseCursors.click,
           child: TweenAnimationBuilder(
@@ -1086,12 +1086,12 @@ class ComplaintCard extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: onTap ??
-                      () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ComplaintDetailPage(complaintId: complaint["id"]),
-                            ),
-                          ),
+                          () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ComplaintDetailPage(complaintId: complaint["id"]),
+                        ),
+                      ),
                   borderRadius: BorderRadius.circular(20),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -1118,7 +1118,7 @@ class ComplaintCard extends StatelessWidget {
                               color: isDarkMode ? Colors.grey[700] : Colors.grey[100],
                               boxShadow: [
                                 BoxShadow(
-                                  color: isDarkMode 
+                                  color: isDarkMode
                                       ? Colors.black.withOpacity(0.3)
                                       : Colors.black.withOpacity(0.1),
                                   blurRadius: 8,
@@ -1128,42 +1128,42 @@ class ComplaintCard extends StatelessWidget {
                             ),
                             child: complaint["media_type"] == "image"
                                 ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Image.network(
-                                      complaint["media_url"],
-                                      width: 64,
-                                      height: 64,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          Container(
-                                        decoration: BoxDecoration(
-                                          color: isDarkMode ? Colors.grey[700] : Colors.grey[200],
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                        child: Icon(
-                                          Icons.broken_image_rounded,
-                                          color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                                          size: 28,
-                                        ),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                complaint["media_url"],
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: isDarkMode ? Colors.grey[700] : Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        Icons.broken_image_rounded,
+                                        color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                        size: 28,
                                       ),
                                     ),
-                                  )
+                              ),
+                            )
                                 : Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.blue[400]!.withOpacity(0.2),
-                                          Colors.blue[600]!.withOpacity(0.1),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Icon(
-                                      Icons.videocam_rounded,
-                                      color: Colors.blue[600],
-                                      size: 28,
-                                    ),
-                                  ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.blue[400]!.withOpacity(0.2),
+                                    Colors.blue[600]!.withOpacity(0.1),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Icon(
+                                Icons.videocam_rounded,
+                                color: Colors.blue[600],
+                                size: 28,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 20),
@@ -1222,7 +1222,7 @@ class ComplaintCard extends StatelessWidget {
                                           duration: const Duration(milliseconds: 200),
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
-                                            color: isFavorite 
+                                            color: isFavorite
                                                 ? const Color(0xFFE57373).withOpacity(0.2)
                                                 : (isDarkMode ? Colors.grey[700] : Colors.grey[100]),
                                             borderRadius: BorderRadius.circular(10),
@@ -1352,8 +1352,8 @@ class ComplaintCard extends StatelessWidget {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: isDarkMode 
-                                        ? Colors.grey[750]?.withOpacity(0.5) 
+                                    color: isDarkMode
+                                        ? Colors.grey[750]?.withOpacity(0.5)
                                         : Colors.grey[50],
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
@@ -1378,7 +1378,7 @@ class ComplaintCard extends StatelessWidget {
                                         child: Container(
                                           padding: const EdgeInsets.all(4),
                                           decoration: BoxDecoration(
-                                            color: isDarkMode 
+                                            color: isDarkMode
                                                 ? Colors.teal.withOpacity(0.2)
                                                 : const Color(0xFF1565C0).withOpacity(0.1),
                                             borderRadius: BorderRadius.circular(6),
