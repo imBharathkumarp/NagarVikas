@@ -14,6 +14,7 @@ import '../../theme/theme_provider.dart';
 import 'emoji_picker.dart';
 import 'forum_logic.dart';
 import 'forum_animations.dart';
+import 'message_reporting_screen.dart';
 import 'message_widgets.dart';
 import 'poll_creation_widget.dart';
 import 'package:flutter/services.dart';
@@ -525,7 +526,7 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  /// Initialize speech to text
+  // Initialize speech to text
   void _initSpeech() async {
     _speech = stt.SpeechToText();
     _speechEnabled = await _speech.initialize();
@@ -597,7 +598,7 @@ class DiscussionForumState extends State<DiscussionForum>
     if (userId == null) return;
 
     DatabaseReference bannedUsersRef =
-        FirebaseDatabase.instance.ref("banned_users/$userId");
+    FirebaseDatabase.instance.ref("banned_users/$userId");
     bannedUsersRef.onValue.listen((event) {
       if (mounted) {
         setState(() {
@@ -617,7 +618,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Ban User',
               style: TextStyle(
@@ -629,7 +630,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'Are you sure you want to ban $userName? They will not be able to send messages until unbanned.',
               style: TextStyle(
                 color:
-                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -662,7 +663,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Ban User',
                   style:
-                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -982,7 +983,7 @@ class DiscussionForumState extends State<DiscussionForum>
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
             msg:
-                "Video file too large. Please choose a smaller file (max 50MB).");
+            "Video file too large. Please choose a smaller file (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -1036,7 +1037,7 @@ class DiscussionForumState extends State<DiscussionForum>
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
             msg:
-                "Video file too large. Please record a shorter video (max 50MB).");
+            "Video file too large. Please record a shorter video (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -1275,7 +1276,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Delete Message',
               style: TextStyle(
@@ -1287,7 +1288,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'Are you sure you want to delete this message? This action cannot be undone.',
               style: TextStyle(
                 color:
-                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -1325,7 +1326,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Delete',
                   style:
-                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -1335,7 +1336,7 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  /// Show edit/delete options for messages
+  /// Show edit/delete/report options for messages
   void _showMessageOptions(
       String messageId,
       String message,
@@ -1354,10 +1355,11 @@ class DiscussionForumState extends State<DiscussionForum>
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
@@ -1414,7 +1416,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 'Upvote ${isPoll ? "Poll" : "Message"}',
                 style: TextStyle(
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1436,7 +1438,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 'Downvote ${isPoll ? "Poll" : "Message"}',
                 style: TextStyle(
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1461,7 +1463,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 'Reply to ${isPoll ? "Poll" : "Message"}',
                 style: TextStyle(
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1476,6 +1478,32 @@ class DiscussionForumState extends State<DiscussionForum>
                 );
               },
             ),
+
+            // Report option - Show for messages that are not yours
+            if (!isMyMessage)
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.flag, color: Colors.orange),
+                ),
+                title: Text(
+                  'Report ${isPoll ? "Poll" : "Message"}',
+                  style: TextStyle(
+                    color:
+                    themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReportDialog(messageId, message, senderName, senderId, themeProvider);
+                },
+              ),
+
             // Don't allow editing polls or media messages
             if (isMyMessage && !hasMedia && !isPoll)
               ListTile(
@@ -1552,9 +1580,271 @@ class DiscussionForumState extends State<DiscussionForum>
                 },
               ),
           ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Show report dialog for a message
+  void _showReportDialog(String messageId, String message, String senderName,
+      String senderId, ThemeProvider themeProvider) {
+    if (_isUserBanned) {
+      Fluttertoast.showToast(msg: "You are banned from reporting messages");
+      return;
+    }
+
+    String selectedReason = 'Inappropriate Content';
+    final reasons = [
+      'Inappropriate Content',
+      'Spam or Advertising',
+      'Harassment or Bullying',
+      'Hate Speech',
+      'Violence or Threats',
+      'False Information',
+      'Other'
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.flag, color: Colors.orange, size: 20),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Report Message',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Message preview
+              Container(
+                padding: EdgeInsets.all(12),
+                margin: EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[700]?.withOpacity(0.5)
+                      : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[600]!
+                        : Colors.grey[300]!,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reporting message from: $senderName',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      message.isNotEmpty ? message : 'Media/Poll content',
+                      style: TextStyle(
+                        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                        fontSize: 13,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                'Why are you reporting this message?',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                  ),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedReason,
+                    isExpanded: true,
+                    dropdownColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                    items: reasons.map((reason) => DropdownMenuItem(
+                      value: reason,
+                      child: Text(
+                        reason,
+                        style: TextStyle(
+                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedReason = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => _submitReport(messageId, message, senderName, senderId, selectedReason),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 2,
+              ),
+              child: Text(
+                'Report',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Submit a report for a message
+  void _submitReport(String messageId, String message, String senderName,
+      String senderId, String reason) async {
+    if (userId == null || currentUserName == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    try {
+      // Show loading
+      Navigator.of(context).pop(); // Close dialog
+
+      // Show loading snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              SizedBox(width: 12),
+              Text('Submitting report...'),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Use the MessageReportingSystem instead of direct Firebase calls
+      final success = await MessageReportingSystem.submitReport(
+        messageId: messageId,
+        messageContent: message,
+        reportedUserId: senderId,
+        reportedUserName: senderName,
+        reportReason: reason,
+        additionalDetails: '', // You can add a field for this if needed
+      );
+
+      // Hide loading snackbar
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      if (success) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Report submitted successfully. Admins will review it shortly.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF4CAF50),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading snackbar
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      print('Error submitting report: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error, color: Colors.white, size: 20),
+              SizedBox(width: 12),
+              Text('Failed to submit report. Please try again.'),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
