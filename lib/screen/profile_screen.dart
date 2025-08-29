@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:nagarvikas/screen/report_issue_service.dart';
 import 'package:provider/provider.dart';
 import 'package:nagarvikas/screen/privacy_policy_page.dart';
 import '../theme/theme_provider.dart';
@@ -31,10 +32,20 @@ class ProfilePageState extends State<ProfilePage>
   bool isLoading = true;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late DatabaseReference _userRef;
+  static const bool ENABLE_PHONE_VERIFICATION =
+      false; // Set to true when you have billing
 
   // Animation controllers
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+
+  // Phone verification state variables
+  bool isPhoneVerifying = false;
+  bool isPhoneVerified = false;
+  bool showOtpField = false;
+  String verificationId = '';
+  int? resendToken;
+  final TextEditingController _otpController = TextEditingController();
 
   @override
   void initState() {
@@ -47,16 +58,16 @@ class ProfilePageState extends State<ProfilePage>
 
   // Firebase
   void _initFirebaseRef() {
-  User? user = _auth.currentUser;
-  if (user != null) {
-    _userRef = FirebaseDatabase.instance.ref().child('users').child(user.uid);
+    User? user = _auth.currentUser;
+    if (user != null) {
+      _userRef = FirebaseDatabase.instance.ref().child('users').child(user.uid);
+    }
   }
-  }
-
 
   @override
   void dispose() {
     _animationController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -77,41 +88,41 @@ class ProfilePageState extends State<ProfilePage>
 
   /// Fetches user data from Firebase Authentication and Realtime Database
   Future<void> _fetchUserData() async {
-  try {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      DatabaseReference userRef =
-          FirebaseDatabase.instance.ref().child('users').child(user.uid);
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DatabaseReference userRef =
+            FirebaseDatabase.instance.ref().child('users').child(user.uid);
 
-      final snapshot = await userRef.get();
-      if (snapshot.exists) {
-        Map<dynamic, dynamic>? data =
-            snapshot.value as Map<dynamic, dynamic>?;
-        setState(() {
-          name = data?['name'] ?? "User";
-          email = user.email ?? "No email";
-          userId = user.uid;
-          phoneNumber = data?['phone'] ?? "Not provided";  // 👈 THIS LINE
-          joinDate = _formatJoinDate(user.metadata.creationTime);
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          name = user.displayName ?? "User";
-          email = user.email ?? "No email";
-          userId = user.uid;
-          phoneNumber = "Not provided";  // 👈 AND THIS LINE TOO
-          joinDate = _formatJoinDate(user.metadata.creationTime);
-          isLoading = false;
-        });
+        final snapshot = await userRef.get();
+        if (snapshot.exists) {
+          Map<dynamic, dynamic>? data =
+              snapshot.value as Map<dynamic, dynamic>?;
+          setState(() {
+            name = data?['name'] ?? "User";
+            email = user.email ?? "No email";
+            userId = user.uid;
+            phoneNumber = data?['phone'] ?? "Not provided";
+            joinDate = _formatJoinDate(user.metadata.creationTime);
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            name = user.displayName ?? "User";
+            email = user.email ?? "No email";
+            userId = user.uid;
+            phoneNumber = "Not provided";
+            joinDate = _formatJoinDate(user.metadata.creationTime);
+            isLoading = false;
+          });
+        }
       }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
     }
-  } catch (e) {
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
   /// Fetches the count of complaints filed by the current user
   Future<void> _fetchComplaintsCount() async {
@@ -146,47 +157,174 @@ class ProfilePageState extends State<ProfilePage>
     }
   }
 
-
   // Update User Data in Firebase
-Future<void> _updateUserData(String field, String value) async {
-  try {
-    User? user = _auth.currentUser;
-    if (user != null) {
-      // Update in Firebase Realtime Database
-      await _userRef.update({field: value});
+  Future<void> _updateUserData(String field, String value) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        // Update in Firebase Realtime Database
+        await _userRef.update({field: value});
 
-      // Update local state
-      setState(() {
-        if (field == 'name') {
-          name = value;
-        } else if (field == 'phone') {
-          phoneNumber = value;
-        }
-      });
+        // Update local state
+        setState(() {
+          if (field == 'name') {
+            name = value;
+          } else if (field == 'phone') {
+            phoneNumber = value;
+          }
+        });
 
+        Fluttertoast.showToast(
+          msg:
+              "${field == 'name' ? 'Name' : 'Phone number'} updated successfully!",
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      print('Error updating $field: $e');
       Fluttertoast.showToast(
-        msg: "${field == 'name' ? 'Name' : 'Phone number'} updated successfully!",
-        backgroundColor: Colors.green,
+        msg:
+            "Error updating ${field == 'name' ? 'name' : 'phone number'}: ${e.toString()}",
+        backgroundColor: Colors.red,
         textColor: Colors.white,
+        toastLength: Toast.LENGTH_LONG,
       );
     }
-  } catch (e) {
-    print('Error updating $field: $e'); // For debugging
-    Fluttertoast.showToast(
-      msg: "Error updating ${field == 'name' ? 'name' : 'phone number'}: ${e.toString()}",
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-      toastLength: Toast.LENGTH_LONG,
-    );
   }
-}
 
-// Make sure your phone validation method is correct:
-bool _isValidPhoneNumber(String phone) {
-  // Remove any spaces or special characters
-  phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
-  return phone.length == 10 && RegExp(r'^[0-9]{10}$').hasMatch(phone);
-}
+  // Phone OTP verification methods (similar to register screen)
+  Future<void> _sendOtp(String phoneNumber) async {
+    if (!ENABLE_PHONE_VERIFICATION) {
+      Fluttertoast.showToast(msg: "Phone verification is currently disabled");
+      return;
+    }
+
+    if (!_isValidPhoneNumber(phoneNumber)) {
+      Fluttertoast.showToast(msg: "Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    setState(() {
+      isPhoneVerifying = true;
+    });
+
+    // Add +91 country code for India
+    String phoneWithCountryCode = '+91$phoneNumber';
+
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: phoneWithCountryCode,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification completed (Android only)
+          setState(() {
+            isPhoneVerified = true;
+            showOtpField = false;
+            isPhoneVerifying = false;
+          });
+          Fluttertoast.showToast(msg: "Phone number verified automatically!");
+
+          // Update the phone number in Firebase after verification
+          await _updateUserData("phone", phoneNumber);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          setState(() {
+            isPhoneVerifying = false;
+            showOtpField = false;
+          });
+
+          String errorMessage = "Verification failed. Please try again.";
+          if (e.code == 'invalid-phone-number') {
+            errorMessage = "Invalid phone number format.";
+          } else if (e.code == 'too-many-requests') {
+            errorMessage = "Too many requests. Please try again later.";
+          }
+
+          Fluttertoast.showToast(msg: errorMessage);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() {
+            this.verificationId = verificationId;
+            this.resendToken = resendToken;
+            showOtpField = true;
+            isPhoneVerifying = false;
+          });
+          Fluttertoast.showToast(msg: "OTP sent to $phoneWithCountryCode");
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          this.verificationId = verificationId;
+        },
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: resendToken,
+      );
+    } catch (e) {
+      setState(() {
+        isPhoneVerifying = false;
+        showOtpField = false;
+      });
+      Fluttertoast.showToast(msg: "Error: ${e.toString()}");
+    }
+  }
+
+  // Verify OTP method
+  Future<void> _verifyOtp(String phoneNumber) async {
+    String otp = _otpController.text.trim();
+
+    if (otp.length != 6) {
+      Fluttertoast.showToast(msg: "Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    setState(() {
+      isPhoneVerifying = true;
+    });
+
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otp,
+      );
+
+      // Verify the credential without affecting current auth state
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      // If current user exists and is different, sign back in with current user
+      User? currentUser = _auth.currentUser;
+      if (currentUser != null && currentUser.uid != userCredential.user!.uid) {
+        await FirebaseAuth.instance.signOut();
+        // You might need to handle re-authentication here depending on your app flow
+      }
+
+      setState(() {
+        isPhoneVerified = true;
+        showOtpField = false;
+        isPhoneVerifying = false;
+      });
+
+      Fluttertoast.showToast(msg: "Phone number verified successfully!");
+
+      // Update the phone number in Firebase after successful verification
+      await _updateUserData("phone", phoneNumber);
+    } catch (e) {
+      setState(() {
+        isPhoneVerifying = false;
+      });
+      Fluttertoast.showToast(msg: "Invalid OTP. Please try again.");
+    }
+  }
+
+  // Resend OTP method
+  Future<void> _resendOtp(String phoneNumber) async {
+    await _sendOtp(phoneNumber);
+  }
+
+  // Make sure your phone validation method is correct:
+  bool _isValidPhoneNumber(String phone) {
+    // Remove any spaces or special characters
+    phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    return phone.length == 10 && RegExp(r'^[0-9]{10}$').hasMatch(phone);
+  }
 
   String _formatJoinDate(DateTime? date) {
     if (date == null) return "Unknown";
@@ -266,14 +404,14 @@ bool _isValidPhoneNumber(String phone) {
               end: Alignment.bottomRight,
               colors: themeProvider.isDarkMode
                   ? [
-                Colors.grey[800]!,
-                Colors.grey[700]!,
-                Colors.teal[600]!,
-              ]
+                      Colors.grey[800]!,
+                      Colors.grey[700]!,
+                      Colors.teal[600]!,
+                    ]
                   : [
-                const Color(0xFF1565C0),
-                const Color(0xFF42A5F5),
-                const Color(0xFF04CCF0),
+                      const Color(0xFF1565C0),
+                      const Color(0xFF42A5F5),
+                      const Color(0xFF04CCF0),
                     ],
             ),
           ),
@@ -553,25 +691,28 @@ bool _isValidPhoneNumber(String phone) {
             const Color(0xFF2196F3), () => _forgotPassword(), themeProvider),
         _buildActionTile("Privacy Settings", Icons.privacy_tip_outlined,
             const Color(0xFF4CAF50), () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const PrivacyPolicyPage()));
-            }, themeProvider),
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const PrivacyPolicyPage()));
+        }, themeProvider),
         _buildActionTile(
             "Help Center", Icons.help_center_outlined, const Color(0xFFFF9800),
-                () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HelpCenterPage()),
-              );
-            }, themeProvider),
-        _buildActionTile("Report Issue", Icons.report_problem_outlined, const Color(0xFFE91E63), () {_showReportIssueDialog(themeProvider);}, themeProvider),
+            () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const HelpCenterPage()),
+          );
+        }, themeProvider),
+        _buildActionTile("Report Issue", Icons.report_problem_outlined,
+            const Color(0xFFE91E63), () {
+              ReportIssueService.showReportIssueDialog(context, themeProvider);
+        }, themeProvider),
         _buildActionTile(
             "Logout",
             Icons.logout_outlined,
             const Color(0xFFf44336),
-                () => _showLogoutDialog(themeProvider),
+            () => _showLogoutDialog(themeProvider),
             themeProvider),
       ],
       themeProvider,
@@ -581,7 +722,8 @@ bool _isValidPhoneNumber(String phone) {
   // 🔑 Forgot password logic using Firebase reset email
   Future<void> _forgotPassword() async {
     if (email.isEmpty || email == "Loading...") {
-      Fluttertoast.showToast(msg: "Email not available. Please try again later.");
+      Fluttertoast.showToast(
+          msg: "Email not available. Please try again later.");
       return;
     }
 
@@ -818,290 +960,433 @@ bool _isValidPhoneNumber(String phone) {
     );
   }
 
-  void _showReportIssueDialog(ThemeProvider themeProvider) {
-    final TextEditingController issueController = TextEditingController();
-    String selectedIssueType = 'Bug Report';
+  void _showEditDialog(String field, ThemeProvider themeProvider) {
+    final TextEditingController controller = TextEditingController();
+
+    // Set initial value
+    if (field == 'name') {
+      controller.text = name != "Loading..." ? name : "";
+    } else if (field == 'phone') {
+      controller.text = phoneNumber != "Not provided" ? phoneNumber : "";
+    }
+
+    // Reset verification state when opening dialog
+    if (field == 'phone') {
+      setState(() {
+        isPhoneVerified = false;
+        showOtpField = false;
+        isPhoneVerifying = false;
+        _otpController.clear();
+      });
+    }
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.report_problem, color: Color(0xFFE91E63)),
-              const SizedBox(width: 12),
-              Text(
-                "Report Issue",
-                style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
-            ],
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor:
+              themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            "Edit ${field == 'name' ? 'Name' : 'Phone Number'}",
+            style: TextStyle(
+              color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+            ),
           ),
           content: SizedBox(
             width: double.maxFinite,
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Issue Type",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+                // Main input field
+                if (field == 'phone') ...[
+                  // Phone number input with Send OTP button
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          keyboardType: TextInputType.phone,
+                          maxLength: 10,
+                          enabled: !isPhoneVerified,
+                          style: TextStyle(
+                            color: themeProvider.isDarkMode
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Phone Number (10 digits)',
+                            labelStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
+                            hintText: 'Enter 10-digit phone number',
+                            hintStyle: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[500]
+                                  : Colors.grey[500],
+                            ),
+                            border: const OutlineInputBorder(),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                  color: Color(0xFF42A5F5), width: 2),
+                            ),
+                            counterText: '',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: isPhoneVerified
+                              ? Colors.green.withOpacity(0.1)
+                              : ENABLE_PHONE_VERIFICATION
+                                  ? const Color(0xFF42A5F5).withOpacity(0.1)
+                                  : (themeProvider.isDarkMode
+                                      ? Colors.grey[700]
+                                      : Colors.grey[300]),
+                          border: Border.all(
+                            color: isPhoneVerified
+                                ? Colors.green
+                                : ENABLE_PHONE_VERIFICATION
+                                    ? const Color(0xFF42A5F5)
+                                    : (themeProvider.isDarkMode
+                                        ? Colors.grey[600]!
+                                        : Colors.grey[400]!),
+                          ),
+                        ),
+                        child: MaterialButton(
+                          onPressed: !ENABLE_PHONE_VERIFICATION
+                              ? null
+                              : (isPhoneVerified
+                                  ? null
+                                  : (isPhoneVerifying
+                                      ? null
+                                      : () {
+                                          setDialogState(() {
+                                            // Update dialog state
+                                          });
+                                          _sendOtp(controller.text.trim());
+                                        })),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          child: isPhoneVerifying && ENABLE_PHONE_VERIFICATION
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF42A5F5)),
+                                  ),
+                                )
+                              : isPhoneVerified && ENABLE_PHONE_VERIFICATION
+                                  ? const Icon(Icons.check_circle,
+                                      color: Colors.green, size: 20)
+                                  : Text(
+                                      ENABLE_PHONE_VERIFICATION
+                                          ? "Send OTP"
+                                          : "Disabled",
+                                      style: TextStyle(
+                                        color: ENABLE_PHONE_VERIFICATION
+                                            ? const Color(0xFF42A5F5)
+                                            : (themeProvider.isDarkMode
+                                                ? Colors.grey[500]
+                                                : Colors.grey[500]),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: selectedIssueType,
-                  dropdownColor: themeProvider.isDarkMode ? Colors.grey[700] : Colors.white,
-                  style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey,
+
+                  // Show disabled message if verification is disabled
+                  if (!ENABLE_PHONE_VERIFICATION) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      "Phone verification is currently disabled. You can still update your phone number.",
+                      style: TextStyle(
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[500]
+                            : Colors.grey[600],
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+
+                  // OTP Field (shown only after OTP is sent)
+                  if (showOtpField && ENABLE_PHONE_VERIFICATION) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _otpController,
+                            keyboardType: TextInputType.number,
+                            maxLength: 6,
+                            style: TextStyle(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Enter 6-digit OTP',
+                              labelStyle: TextStyle(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                              border: const OutlineInputBorder(),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey,
+                                ),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Colors.green, width: 2),
+                              ),
+                              counterText: '',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.green.withOpacity(0.1),
+                            border: Border.all(color: Colors.green),
+                          ),
+                          child: MaterialButton(
+                            onPressed: isPhoneVerifying
+                                ? null
+                                : () {
+                                    _verifyOtp(controller.text.trim());
+                                    setDialogState(() {
+                                      // Update dialog state
+                                    });
+                                  },
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            child: isPhoneVerifying
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.green),
+                                    ),
+                                  )
+                                : const Text(
+                                    "Verify",
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Resend OTP option
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Didn't receive OTP? ",
+                          style: TextStyle(
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: isPhoneVerifying
+                              ? null
+                              : () {
+                                  _resendOtp(controller.text.trim());
+                                },
+                          child: Text(
+                            "Resend",
+                            style: TextStyle(
+                              color: const Color(0xFF42A5F5),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ] else ...[
+                  // Name field (unchanged)
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.text,
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Full Name',
+                      labelStyle: TextStyle(
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[400]
+                            : Colors.grey[600],
+                      ),
+                      hintText: 'Enter your full name',
+                      hintStyle: TextStyle(
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[500]
+                            : Colors.grey[500],
+                      ),
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[600]!
+                              : Colors.grey,
+                        ),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Color(0xFF42A5F5), width: 2),
                       ),
                     ),
                   ),
-                  items: [
-                    'Bug Report',
-                    'Feature Request',
-                    'Login Issue',
-                    'App Crash',
-                    'Performance Issue',
-                    'Other'
-                  ].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedIssueType = newValue!;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Describe the Issue",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: issueController,
-                  maxLines: 4,
-                  style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Please describe the issue in detail...',
-                    hintStyle: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                    border: const OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
+                ],
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              onPressed: () {
+                // Reset state when canceling
+                if (field == 'phone') {
+                  setState(() {
+                    isPhoneVerified = false;
+                    showOtpField = false;
+                    isPhoneVerifying = false;
+                    _otpController.clear();
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: Text(
+                "Cancel",
+                style: TextStyle(
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
+                ),
+              ),
             ),
             ElevatedButton(
-              onPressed: () {
-                if (issueController.text.trim().isNotEmpty) {
-                  // Here you can add logic to send the report
-                  // For now, just show a confirmation
-                  Navigator.pop(context);
+              onPressed: () async {
+                String value = controller.text.trim();
+
+                // Validation
+                if (value.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Issue reported successfully! We will review it soon.'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please describe the issue'),
+                      content: Text(
+                          '${field == 'name' ? 'Name' : 'Phone number'} cannot be empty'),
                       backgroundColor: Colors.red,
                     ),
                   );
+                  return;
+                }
+
+                if (field == 'phone') {
+                  if (!_isValidPhoneNumber(value)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content:
+                            Text('Please enter a valid 10-digit phone number'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  // NEW: Check verification requirement
+                  if (ENABLE_PHONE_VERIFICATION && !isPhoneVerified) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Please verify your phone number with OTP first'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                }
+
+                if (field == 'name' && value.length < 2) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Name must be at least 2 characters long'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                // Close dialog first
+                Navigator.pop(context);
+
+                // Reset phone verification state
+                if (field == 'phone') {
+                  setState(() {
+                    isPhoneVerified = false;
+                    showOtpField = false;
+                    isPhoneVerifying = false;
+                    _otpController.clear();
+                  });
+                }
+
+                // Update the data in Firebase (only if not already updated during verification)
+                if (field == 'name' ||
+                    (field == 'phone' && !ENABLE_PHONE_VERIFICATION)) {
+                  await _updateUserData(field, value);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE91E63)),
-              child: const Text("Submit Report", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showEditProfileDialog(ThemeProvider themeProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.edit, color: Color(0xFF42A5F5)),
-            const SizedBox(width: 12),
-            Text(
-              "Edit Profile",
-              style: TextStyle(
-                color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF42A5F5),
+              ),
+              child: const Text(
+                "Save",
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
         ),
-        content: Text(
-          "Profile editing feature will be available in the next update.",
-          style: TextStyle(
-            color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.black87,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
       ),
     );
   }
-
-  void _showEditDialog(String field, ThemeProvider themeProvider) {
-  final TextEditingController controller = TextEditingController();
-
-  // Set initial value
-  if (field == 'name') {
-    controller.text = name != "Loading..." ? name : "";
-  } else if (field == 'phone') {
-    controller.text = phoneNumber != "Not provided" ? phoneNumber : "";
-  }
-
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        "Edit ${field == 'name' ? 'Name' : 'Phone Number'}",
-        style: TextStyle(
-          color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-        ),
-      ),
-      content: TextField(
-        controller: controller,
-        keyboardType: field == 'phone' ? TextInputType.phone : TextInputType.text,
-        maxLength: field == 'phone' ? 10 : null,
-        style: TextStyle(
-          color: themeProvider.isDarkMode ? Colors.white : Colors.black,
-        ),
-        decoration: InputDecoration(
-          labelText: field == 'name' ? 'Full Name' : 'Phone Number (10 digits)',
-          labelStyle: TextStyle(
-            color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-          ),
-          hintText: field == 'phone' ? 'Enter 10-digit phone number' : 'Enter your full name',
-          hintStyle: TextStyle(
-            color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[500],
-          ),
-          border: const OutlineInputBorder(),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey,
-            ),
-          ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF42A5F5), width: 2),
-          ),
-          counterText: field == 'phone' ? null : '', // Hide counter for name field
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(
-            "Cancel",
-            style: TextStyle(
-              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-            ),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            String value = controller.text.trim();
-
-            // Validation
-            if (value.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${field == 'name' ? 'Name' : 'Phone number'} cannot be empty'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-
-            if (field == 'phone') {
-              if (!_isValidPhoneNumber(value)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter a valid 10-digit phone number'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-            }
-
-            if (field == 'name' && value.length < 2) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Name must be at least 2 characters long'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-
-            // Close dialog first
-            Navigator.pop(context);
-
-            // Update the data in Firebase
-            await _updateUserData(field, value);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF42A5F5),
-          ),
-          child: const Text(
-            "Save",
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
   void _showLogoutDialog(ThemeProvider themeProvider) {
     showDialog(

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:nagarvikas/screen/discussion/search_message.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,9 +14,10 @@ import '../../theme/theme_provider.dart';
 import 'emoji_picker.dart';
 import 'forum_logic.dart';
 import 'forum_animations.dart';
+import 'message_reporting_screen.dart';
 import 'message_widgets.dart';
 import 'poll_creation_widget.dart';
-import 'poll_message_widget.dart';
+import 'package:flutter/services.dart';
 
 /// DiscussionForum with Image and Video Sharing
 /// Enhanced real-time chat interface with image/video upload and full-screen viewing capabilities
@@ -43,6 +46,8 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _isUploading = false;
   bool _isAdmin = false;
   bool _isUserBanned = false;
+  String? _highlightedMessageId;
+  Timer? _highlightTimer;
   Map<String, Map<String, dynamic>> _messageVotes = {}; // Cache message votes
   final DatabaseReference _votesRef = FirebaseDatabase.instance.ref("votes/");
 
@@ -62,6 +67,8 @@ class DiscussionForumState extends State<DiscussionForum>
   String? _replyingToSender;
   bool _isReplying = false;
   bool _showEmojiPicker = false;
+  final GlobalKey _messagesListKey = GlobalKey();
+  final Map<String, GlobalKey> _messageKeys = {};
 
   // Media attachment preview
   File? _attachedMediaFile;
@@ -187,6 +194,7 @@ class DiscussionForumState extends State<DiscussionForum>
     _messageAnimationController.dispose();
     _disclaimerController.dispose();
     _emojiAnimationController.dispose();
+    _highlightTimer?.cancel();
     super.dispose();
   }
 
@@ -280,23 +288,6 @@ class DiscussionForumState extends State<DiscussionForum>
     }
   }
 
-  /// Get vote counts for a message
-  Map<String, int> _getVoteCounts(String messageId) {
-    final votes = _messageVotes[messageId] ?? {};
-    int upvotes = 0;
-    int downvotes = 0;
-
-    votes.forEach((userId, voteData) {
-      if (voteData is Map && voteData['type'] == 'upvote') {
-        upvotes++;
-      } else if (voteData is Map && voteData['type'] == 'downvote') {
-        downvotes++;
-      }
-    });
-
-    return {'upvotes': upvotes, 'downvotes': downvotes};
-  }
-
   /// Check if current user has voted on a message
   String? _getUserVote(String messageId) {
     if (userId == null) return null;
@@ -323,6 +314,81 @@ class DiscussionForumState extends State<DiscussionForum>
           }
         });
       }
+    }
+  }
+
+  Future<void> _scrollToMessage(String messageId) async {
+    try {
+      // Get message details
+      final messageSnapshot = await _messagesRef.child(messageId).once();
+
+      // Get all messages to find the position
+      final allMessagesSnapshot = await _messagesRef.orderByChild("timestamp").once();
+
+      if (!allMessagesSnapshot.snapshot.exists) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No messages found'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      // Convert to list and sort by timestamp
+      Map<dynamic, dynamic> messagesMap =
+      allMessagesSnapshot.snapshot.value as Map<dynamic, dynamic>;
+      List<Map<String, dynamic>> messagesList = messagesMap.entries
+          .map((e) => {"key": e.key, ...Map<String, dynamic>.from(e.value)})
+          .toList();
+
+      messagesList.sort((a, b) => a["timestamp"].compareTo(b["timestamp"]));
+
+      // Find target index
+      int targetIndex = messagesList.indexWhere((msg) => msg["key"] == messageId);
+      if (targetIndex == -1) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Message not found in current view'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      // Highlight message
+      setState(() => _highlightedMessageId = messageId);
+
+      // Hide loading snackbar
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      // Estimate scroll position
+      double estimatedItemHeight = 100.0;
+      double scrollPosition = targetIndex * estimatedItemHeight;
+
+      // Smooth scroll
+      await Future.delayed(Duration(milliseconds: 50)); // Wait for UI to update
+      if (_scrollController.hasClients) {
+        double maxScrollExtent = _scrollController.position.maxScrollExtent;
+        double targetPosition = scrollPosition.clamp(0.0, maxScrollExtent);
+
+        await _scrollController.animateTo(
+          targetPosition,
+          duration: Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+
+      // Remove highlight after 1 second
+      _highlightTimer?.cancel();
+      _highlightTimer = Timer(Duration(seconds: 1), () {
+        if (mounted) {
+          setState(() => _highlightedMessageId = null);
+        }
+      });
+    } catch (e) {
+      print('Error finding message: $e');
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error finding message. Please try again.'), backgroundColor: Colors.red),
+      );
+      setState(() => _highlightedMessageId = null);
     }
   }
 
@@ -460,7 +526,7 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  /// Initialize speech to text
+  // Initialize speech to text
   void _initSpeech() async {
     _speech = stt.SpeechToText();
     _speechEnabled = await _speech.initialize();
@@ -532,7 +598,7 @@ class DiscussionForumState extends State<DiscussionForum>
     if (userId == null) return;
 
     DatabaseReference bannedUsersRef =
-        FirebaseDatabase.instance.ref("banned_users/$userId");
+    FirebaseDatabase.instance.ref("banned_users/$userId");
     bannedUsersRef.onValue.listen((event) {
       if (mounted) {
         setState(() {
@@ -552,7 +618,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Ban User',
               style: TextStyle(
@@ -564,7 +630,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'Are you sure you want to ban $userName? They will not be able to send messages until unbanned.',
               style: TextStyle(
                 color:
-                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -597,7 +663,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Ban User',
                   style:
-                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -917,7 +983,7 @@ class DiscussionForumState extends State<DiscussionForum>
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
             msg:
-                "Video file too large. Please choose a smaller file (max 50MB).");
+            "Video file too large. Please choose a smaller file (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -971,7 +1037,7 @@ class DiscussionForumState extends State<DiscussionForum>
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
             msg:
-                "Video file too large. Please record a shorter video (max 50MB).");
+            "Video file too large. Please record a shorter video (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -1132,6 +1198,26 @@ class DiscussionForumState extends State<DiscussionForum>
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
+// Add this new method right after _replyToMessage
+  void _jumpToMessage(String messageId) {
+    final messageKey = _messageKeys[messageId];
+    if (messageKey != null && messageKey.currentContext != null) {
+      Scrollable.ensureVisible(
+        messageKey.currentContext!,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.3, // Position the message 30% from top of screen
+      );
+
+      // Add a brief highlight animation
+      Future.delayed(Duration(milliseconds: 600), () {
+        if (messageKey.currentContext != null) {
+          // You can add a brief color flash here if desired
+        }
+      });
+    }
+  }
+
   void _clearReply() {
     setState(() {
       _isReplying = false;
@@ -1190,7 +1276,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Delete Message',
               style: TextStyle(
@@ -1202,7 +1288,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'Are you sure you want to delete this message? This action cannot be undone.',
               style: TextStyle(
                 color:
-                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -1240,7 +1326,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Delete',
                   style:
-                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -1250,7 +1336,7 @@ class DiscussionForumState extends State<DiscussionForum>
     );
   }
 
-  /// Show edit/delete options for messages
+  /// Show edit/delete/report options for messages
   void _showMessageOptions(
       String messageId,
       String message,
@@ -1269,10 +1355,11 @@ class DiscussionForumState extends State<DiscussionForum>
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
               width: 40,
               height: 4,
               decoration: BoxDecoration(
@@ -1281,6 +1368,39 @@ class DiscussionForumState extends State<DiscussionForum>
               ),
             ),
             SizedBox(height: 20),
+
+            // Copy message option - Show for all messages that have text content
+            if (message.isNotEmpty && !isPoll)
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF9C27B0).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.copy, color: Color(0xFF9C27B0)),
+                ),
+                title: Text(
+                  'Copy Message',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Copy message to clipboard
+                  Clipboard.setData(ClipboardData(text: message));
+                  Fluttertoast.showToast(
+                    msg: "Message copied to clipboard",
+                    toastLength: Toast.LENGTH_SHORT,
+                    backgroundColor: Color(0xFF9C27B0),
+                    textColor: Colors.white,
+                  );
+                },
+              ),
 
             // Vote options for everyone
             ListTile(
@@ -1296,7 +1416,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 'Upvote ${isPoll ? "Poll" : "Message"}',
                 style: TextStyle(
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1318,7 +1438,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 'Downvote ${isPoll ? "Poll" : "Message"}',
                 style: TextStyle(
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1343,7 +1463,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 'Reply to ${isPoll ? "Poll" : "Message"}',
                 style: TextStyle(
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1358,6 +1478,32 @@ class DiscussionForumState extends State<DiscussionForum>
                 );
               },
             ),
+
+            // Report option - Show for messages that are not yours
+            if (!isMyMessage)
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.flag, color: Colors.orange),
+                ),
+                title: Text(
+                  'Report ${isPoll ? "Poll" : "Message"}',
+                  style: TextStyle(
+                    color:
+                    themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReportDialog(messageId, message, senderName, senderId, themeProvider);
+                },
+              ),
+
             // Don't allow editing polls or media messages
             if (isMyMessage && !hasMedia && !isPoll)
               ListTile(
@@ -1434,9 +1580,271 @@ class DiscussionForumState extends State<DiscussionForum>
                 },
               ),
           ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Show report dialog for a message
+  void _showReportDialog(String messageId, String message, String senderName,
+      String senderId, ThemeProvider themeProvider) {
+    if (_isUserBanned) {
+      Fluttertoast.showToast(msg: "You are banned from reporting messages");
+      return;
+    }
+
+    String selectedReason = 'Inappropriate Content';
+    final reasons = [
+      'Inappropriate Content',
+      'Spam or Advertising',
+      'Harassment or Bullying',
+      'Hate Speech',
+      'Violence or Threats',
+      'False Information',
+      'Other'
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.flag, color: Colors.orange, size: 20),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Report Message',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Message preview
+              Container(
+                padding: EdgeInsets.all(12),
+                margin: EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[700]?.withOpacity(0.5)
+                      : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[600]!
+                        : Colors.grey[300]!,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reporting message from: $senderName',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      message.isNotEmpty ? message : 'Media/Poll content',
+                      style: TextStyle(
+                        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                        fontSize: 13,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                'Why are you reporting this message?',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                  ),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedReason,
+                    isExpanded: true,
+                    dropdownColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                    items: reasons.map((reason) => DropdownMenuItem(
+                      value: reason,
+                      child: Text(
+                        reason,
+                        style: TextStyle(
+                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedReason = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => _submitReport(messageId, message, senderName, senderId, selectedReason),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 2,
+              ),
+              child: Text(
+                'Report',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Submit a report for a message
+  void _submitReport(String messageId, String message, String senderName,
+      String senderId, String reason) async {
+    if (userId == null || currentUserName == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    try {
+      // Show loading
+      Navigator.of(context).pop(); // Close dialog
+
+      // Show loading snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              SizedBox(width: 12),
+              Text('Submitting report...'),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Use the MessageReportingSystem instead of direct Firebase calls
+      final success = await MessageReportingSystem.submitReport(
+        messageId: messageId,
+        messageContent: message,
+        reportedUserId: senderId,
+        reportedUserName: senderName,
+        reportReason: reason,
+        additionalDetails: '', // You can add a field for this if needed
+      );
+
+      // Hide loading snackbar
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      if (success) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Report submitted successfully. Admins will review it shortly.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF4CAF50),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading snackbar
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      print('Error submitting report: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error, color: Colors.white, size: 20),
+              SizedBox(width: 12),
+              Text('Failed to submit report. Please try again.'),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -1445,12 +1853,12 @@ class DiscussionForumState extends State<DiscussionForum>
       return Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
+        themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
         appBar: AppBar(
           elevation: 0,
           centerTitle: true,
           backgroundColor:
-              themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+          themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           title: Column(
             children: [
               Text(
@@ -1459,7 +1867,7 @@ class DiscussionForumState extends State<DiscussionForum>
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color:
-                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1478,6 +1886,35 @@ class DiscussionForumState extends State<DiscussionForum>
           iconTheme: IconThemeData(
             color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
           ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.search,
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                size: 24,
+              ),
+              onPressed: () async {
+                final result = await showSearch(
+                  context: context,
+                  delegate: MessageSearchDelegate(
+                    themeProvider: themeProvider,
+                    messagesRef: _messagesRef,
+                    onMessageFound: (messageId) {
+                      // This function is called when a search result is clicked
+                      _scrollToMessage(messageId);
+                    },
+                  ),
+                );
+
+                // Handle the result returned when search is closed
+                if (result != null && result.isNotEmpty) {
+                  _scrollToMessage(result);
+                }
+              },
+              tooltip: 'Search messages',
+            ),
+            SizedBox(width: 8),
+          ],
           flexibleSpace: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -1535,14 +1972,12 @@ class DiscussionForumState extends State<DiscussionForum>
                             ? Colors.grey[900]
                             : Color(0xFFF8F9FA),
                       ),
-                      child: StreamBuilder(
+                      child: StreamBuilder<DatabaseEvent>(
                         stream: _messagesRef.orderByChild("timestamp").onValue,
-                        builder:
-                            (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                        builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                           if (!snapshot.hasData ||
                               snapshot.data?.snapshot.value == null) {
-                            return MessageWidgets.buildEmptyState(
-                                themeProvider);
+                            return MessageWidgets.buildEmptyState(themeProvider);
                           }
 
                           // Convert snapshot to list of messages
@@ -1552,9 +1987,9 @@ class DiscussionForumState extends State<DiscussionForum>
                           List<Map<String, dynamic>> messagesList = messagesMap
                               .entries
                               .map((e) => {
-                                    "key": e.key,
-                                    ...Map<String, dynamic>.from(e.value)
-                                  })
+                            "key": e.key,
+                            ...Map<String, dynamic>.from(e.value)
+                          })
                               .toList();
 
                           // Sort by timestamp (ascending)
@@ -1568,6 +2003,12 @@ class DiscussionForumState extends State<DiscussionForum>
                           for (int i = 0; i < messagesList.length; i++) {
                             final message = messagesList[i];
                             bool isMe = message["senderId"] == userId;
+                            final messageId = message["key"];
+
+                            // Ensure message key exists
+                            if (!_messageKeys.containsKey(messageId)) {
+                              _messageKeys[messageId] = GlobalKey();
+                            }
 
                             // Get message date
                             DateTime? messageDate;
@@ -1576,8 +2017,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                   message["createdAt"] ?? message["timestamp"];
                               if (timestamp is int) {
                                 messageDate =
-                                    DateTime.fromMillisecondsSinceEpoch(
-                                        timestamp);
+                                    DateTime.fromMillisecondsSinceEpoch(timestamp);
                               }
                             } catch (e) {
                               print('Error parsing date: $e');
@@ -1585,8 +2025,7 @@ class DiscussionForumState extends State<DiscussionForum>
 
                             // Add date separator if date changed and message date exists
                             if (messageDate != null) {
-                              final dateString =
-                                  ForumLogic.getDateString(messageDate);
+                              final dateString = ForumLogic.getDateString(messageDate);
                               if (dateString != lastDateString) {
                                 messageWidgets.add(
                                     MessageWidgets.buildDateSeparator(
@@ -1595,48 +2034,71 @@ class DiscussionForumState extends State<DiscussionForum>
                               }
 
                               // Add message only if we have a valid date
-                              messageWidgets.add(MessageWidgets.buildMessage(
-                                message,
-                                isMe,
-                                themeProvider,
-                                _showFullScreenImage,
-                                _showFullScreenVideo,
-                                _replyToMessage,
-                                _showMessageOptions,
-                                _isAdmin,
-                                userId!,
-                                // NEW: Add voting parameters
-                                _messageVotes,
-                                _voteMessage,
-                                (messageId) => _getUserVote(messageId) ?? '',
-                              ));
+                              messageWidgets.add(
+                                Container(
+                                  key: _messageKeys[messageId],
+                                  child: MessageWidgets.buildMessage(
+                                    message,
+                                    isMe,
+                                    themeProvider,
+                                    _showFullScreenImage,
+                                    _showFullScreenVideo,
+                                    _replyToMessage,
+                                    _showMessageOptions,
+                                    _isAdmin,
+                                    userId!,
+                                    // Add voting parameters
+                                    _messageVotes,
+                                    _voteMessage,
+                                        (messageId) => _getUserVote(messageId) ?? '',
+                                    // Add jumping functionality
+                                    onJumpToMessage: _scrollToMessage,
+                                    // Add highlighting parameters
+                                    isHighlighted: _highlightedMessageId == message["key"],
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+
+                          // Ensure all messages have keys for jumping functionality
+                          for (int i = 0; i < messagesList.length; i++) {
+                            final messageId = messagesList[i]["key"];
+                            if (!_messageKeys.containsKey(messageId)) {
+                              _messageKeys[messageId] = GlobalKey();
                             }
                           }
 
                           final listView = ListView(
+                            key: _messagesListKey,
                             controller: _scrollController,
                             padding: EdgeInsets.symmetric(vertical: 8),
                             children: messageWidgets.isNotEmpty
                                 ? messageWidgets
                                 : messagesList.map((message) {
-                                    bool isMe = message["senderId"] == userId;
-                                    return MessageWidgets.buildMessage(
-                                      message,
-                                      isMe,
-                                      themeProvider,
-                                      _showFullScreenImage,
-                                      _showFullScreenVideo,
-                                      _replyToMessage,
-                                      _showMessageOptions,
-                                      _isAdmin,
-                                      userId!,
-                                      // NEW: Add voting parameters
-                                      _messageVotes,
-                                      _voteMessage,
-                                      (messageId) =>
-                                          _getUserVote(messageId) ?? '',
-                                    );
-                                  }).toList(),
+                              bool isMe = message["senderId"] == userId;
+                              final messageId = message["key"];
+
+                              return Container(
+                                key: _messageKeys[messageId],
+                                child: MessageWidgets.buildMessage(
+                                  message,
+                                  isMe,
+                                  themeProvider,
+                                  _showFullScreenImage,
+                                  _showFullScreenVideo,
+                                  _replyToMessage,
+                                  _showMessageOptions,
+                                  _isAdmin,
+                                  userId!,
+                                  // Add voting parameters
+                                  _messageVotes,
+                                  _voteMessage,
+                                      (messageId) => _getUserVote(messageId) ?? '',
+                                  onJumpToMessage: _jumpToMessage,
+                                ),
+                              );
+                            }).toList(),
                           );
 
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1644,8 +2106,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                 !_showGoDownButton) {
                               // Multiple jumps to ensure we reach absolute bottom
                               for (int i = 0; i <= 10; i++) {
-                                Future.delayed(Duration(milliseconds: i * 50),
-                                    () {
+                                Future.delayed(Duration(milliseconds: i * 50), () {
                                   if (_scrollController.hasClients &&
                                       !_showGoDownButton) {
                                     _scrollController.jumpTo(_scrollController
@@ -1716,34 +2177,32 @@ class DiscussionForumState extends State<DiscussionForum>
                             borderRadius: BorderRadius.circular(8),
                             child: _attachedMediaType == "image"
                                 ? (_attachedMediaFile != null
-                                    ? Image.file(
-                                        _attachedMediaFile!,
-                                        height: 100,
-                                        width: 100,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        height: 100,
-                                        width: 100,
-                                        color: Colors.grey[300],
-                                        child: Icon(Icons.image),
-                                      ))
+                                ? Image.file(
+                              _attachedMediaFile!,
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
+                            )
                                 : Container(
-                                    height: 100,
-                                    width: 100,
-                                    color: Colors.black,
-                                    child: Icon(
-                                      Icons.play_arrow,
-                                      color: Colors.white,
-                                      size: 40,
-                                    ),
-                                  ),
+                              height: 100,
+                              width: 100,
+                              color: Colors.grey[300],
+                              child: Icon(Icons.image),
+                            ))
+                                : Container(
+                              height: 100,
+                              width: 100,
+                              color: Colors.black,
+                              child: Icon(
+                                Icons.play_arrow,
+                                color: Colors.white,
+                                size: 40,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-
-// Reply and edit indicators
 
                   // Reply and edit indicators
                   MessageWidgets.buildReplyIndicator(
@@ -1779,342 +2238,319 @@ class DiscussionForumState extends State<DiscussionForum>
                     ),
                     child: _isUserBanned
                         ? Container(
-                            padding: EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red, width: 1),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.block, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You are banned from sending messages',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.block, color: Colors.red, size: 20),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'You are banned from sending messages',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.w500,
+                          ),
+                        ],
+                      ),
+                    )
+                        : SafeArea(
+                      child: Row(
+                        children: [
+                          // Pin icon button for media selection
+                          Container(
+                            decoration: BoxDecoration(
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: _isUploading ? null : _showMediaOptions,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  child: _isUploading
+                                      ? Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Color(0xFF2196F3),
+                                      ),
                                     ),
+                                  )
+                                      : Icon(
+                                    Icons.attach_file,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[500],
+                                    size: 24,
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                          )
-                        : SafeArea(
-                            child: Row(
-                              children: [
-                                // UPDATED: Pin icon button for media selection
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.grey[700]
-                                        : Color(0xFFF5F5F5),
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[600]!
-                                          : Colors.grey[300]!,
-                                      width: 1,
+                          ),
+                          SizedBox(width: 12),
+
+                          // Enhanced text input field
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[700]
+                                    : Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: (_isTyping || _isEditing)
+                                      ? Color(0xFF2196F3)
+                                      : (themeProvider.isDarkMode
+                                      ? Colors.grey[600]!
+                                      : Colors.grey[300]!),
+                                  width: (_isTyping || _isEditing) ? 2 : 1,
+                                ),
+                                boxShadow:
+                                (_isTyping || _isEditing || _showMediaPreview)
+                                    ? [
+                                  BoxShadow(
+                                    color: Color(0xFF2196F3)
+                                        .withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ]
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Text field
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _messageController,
+                                      focusNode: _textFieldFocusNode,
+                                      onTap: () {
+                                        // Hide emoji picker when text field is tapped
+                                        if (_showEmojiPicker) {
+                                          setState(() {
+                                            _showEmojiPicker = false;
+                                          });
+                                          _emojiAnimationController.reverse();
+                                        }
+                                        // Auto scroll if at bottom when keyboard opens
+                                        Future.delayed(
+                                            Duration(milliseconds: 300), () {
+                                          if (!_showGoDownButton &&
+                                              _scrollController.hasClients) {
+                                            _scrollController.animateTo(
+                                              _scrollController
+                                                  .position.maxScrollExtent,
+                                              duration:
+                                              Duration(milliseconds: 200),
+                                              curve: Curves.easeOut,
+                                            );
+                                          }
+                                        });
+                                      },
+                                      onChanged: (text) {
+                                        if (text.length > 100) {
+                                          _messageController.text =
+                                              text.substring(0, 100);
+                                          _messageController.selection =
+                                              TextSelection.fromPosition(
+                                                TextPosition(offset: 100),
+                                              );
+                                        }
+                                      },
+                                      style: TextStyle(
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 3,
+                                      minLines: 1,
+                                      textCapitalization:
+                                      TextCapitalization.sentences,
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.only(
+                                            left: 20, top: 12, bottom: 12),
+                                        hintText: _isEditing
+                                            ? "Edit your message..."
+                                            : (_isReplying
+                                            ? "Reply to ${_replyingToSender}..."
+                                            : (_isListening
+                                            ? "Listening..."
+                                            : "Type...")),
+                                        hintStyle: TextStyle(
+                                          color: _isListening
+                                              ? Color(0xFF4CAF50)
+                                              : (themeProvider.isDarkMode
+                                              ? Colors.grey[400]
+                                              : Colors.grey[500]),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
                                     ),
+                                  ),
+                                  // Mic button
+                                  GestureDetector(
+                                    onTap: _toggleListening,
+                                    child: Container(
+                                      margin: EdgeInsets.only(right: 4),
+                                      padding: EdgeInsets.only(
+                                          right: 8, top: 8, bottom: 8),
+                                      decoration: BoxDecoration(
+                                        color: _isListening
+                                            ? Color(0xFF4CAF50).withOpacity(0.1)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Icon(
+                                        _isListening
+                                            ? Icons.mic
+                                            : Icons.mic_none,
+                                        color: _isListening
+                                            ? Color(0xFF4CAF50)
+                                            : (themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600]),
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                  // Emoji button inside text field
+                                  GestureDetector(
+                                    onTap: () {
+                                      FocusScope.of(context).unfocus();
+                                      Future.delayed(
+                                          Duration(milliseconds: 100), () {
+                                        _toggleEmojiPicker();
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: EdgeInsets.only(right: 16),
+                                      padding: EdgeInsets.all(0),
+                                      decoration: BoxDecoration(
+                                        color: _showEmojiPicker
+                                            ? Color(0xFF2196F3).withOpacity(0.1)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Icon(
+                                        _showEmojiPicker
+                                            ? Icons.keyboard
+                                            : Icons.emoji_emotions_outlined,
+                                        color: _showEmojiPicker
+                                            ? Color(0xFF2196F3)
+                                            : (themeProvider.isDarkMode
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600]),
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+
+                          // Send button
+                          AnimatedBuilder(
+                            animation: _sendButtonScaleAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _sendButtonScaleAnimation.value,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient:
+                                    (_isTyping || _isEditing || _showMediaPreview)
+                                        ? LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF1976D2),
+                                        Color(0xFF2196F3)
+                                      ],
+                                    )
+                                        : null,
+                                    color: !(_isTyping || _isEditing || _showMediaPreview)
+                                        ? (themeProvider.isDarkMode
+                                        ? Colors.grey[600]
+                                        : Colors.grey[400])
+                                        : null,
+                                    shape: BoxShape.circle,
+                                    boxShadow:
+                                    (_isTyping || _isEditing || _showMediaPreview)
+                                        ? [
+                                      BoxShadow(
+                                        color: Color(0xFF2196F3)
+                                            .withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ]
+                                        : null,
                                   ),
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      borderRadius: BorderRadius.circular(24),
-                                      onTap: _isUploading
-                                          ? null
-                                          : _showMediaOptions,
+                                      borderRadius: BorderRadius.circular(28),
+                                      onTap: (_isTyping ||
+                                          _isEditing ||
+                                          _showMediaPreview)
+                                          ? () => _sendMessage()
+                                          : null,
                                       child: Container(
                                         width: 44,
                                         height: 44,
-                                        child: _isUploading
-                                            ? Center(
-                                                child: SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Color(0xFF2196F3),
-                                                  ),
-                                                ),
-                                              )
-                                            : Icon(
-                                                Icons.attach_file,
-                                                color: themeProvider.isDarkMode
-                                                    ? Colors.grey[400]
-                                                    : Colors.grey[500],
-                                                size: 24,
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 12),
-
-                                // Enhanced text input field
-                                Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode
-                                          ? Colors.grey[700]
-                                          : Color(0xFFF5F5F5),
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(
-                                        color: (_isTyping || _isEditing)
-                                            ? Color(0xFF2196F3)
-                                            : (themeProvider.isDarkMode
-                                                ? Colors.grey[600]!
-                                                : Colors.grey[300]!),
-                                        width:
-                                            (_isTyping || _isEditing) ? 2 : 1,
-                                      ),
-                                      boxShadow: (_isTyping ||
+                                        decoration:
+                                        BoxDecoration(shape: BoxShape.circle),
+                                        child: Icon(
+                                          _isEditing
+                                              ? Icons.check
+                                              : (_isTyping
+                                              ? Icons.send_rounded
+                                              : Icons.send_outlined),
+                                          color: Colors.white,
+                                          size: (_isTyping ||
                                               _isEditing ||
                                               _showMediaPreview)
-                                          ? [
-                                              BoxShadow(
-                                                color: Color(0xFF2196F3)
-                                                    .withOpacity(0.2),
-                                                blurRadius: 8,
-                                                offset: Offset(0, 2),
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Text field
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _messageController,
-                                            focusNode: _textFieldFocusNode,
-                                            onTap: () {
-                                              // Hide emoji picker when text field is tapped
-                                              if (_showEmojiPicker) {
-                                                setState(() {
-                                                  _showEmojiPicker = false;
-                                                });
-                                                _emojiAnimationController
-                                                    .reverse();
-                                              }
-                                              // Auto scroll if at bottom when keyboard opens
-                                              Future.delayed(
-                                                  Duration(milliseconds: 300),
-                                                  () {
-                                                if (!_showGoDownButton &&
-                                                    _scrollController
-                                                        .hasClients) {
-                                                  _scrollController.animateTo(
-                                                    _scrollController.position
-                                                        .maxScrollExtent,
-                                                    duration: Duration(
-                                                        milliseconds: 200),
-                                                    curve: Curves.easeOut,
-                                                  );
-                                                }
-                                              });
-                                            },
-                                            onChanged: (text) {
-                                              if (text.length > 100) {
-                                                _messageController.text =
-                                                    text.substring(0, 100);
-                                                _messageController.selection =
-                                                    TextSelection.fromPosition(
-                                                  TextPosition(offset: 100),
-                                                );
-                                              }
-                                            },
-                                            style: TextStyle(
-                                              color: themeProvider.isDarkMode
-                                                  ? Colors.white
-                                                  : Colors.black87,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            maxLines: 3,
-                                            minLines: 1,
-                                            textCapitalization:
-                                                TextCapitalization.sentences,
-                                            decoration: InputDecoration(
-                                              contentPadding: EdgeInsets.only(
-                                                  left: 20,
-                                                  top: 12,
-                                                  bottom: 12),
-                                              hintText: _isEditing
-                                                  ? "Edit your message..."
-                                                  : (_isReplying
-                                                      ? "Reply to ${_replyingToSender}..."
-                                                      : (_isListening
-                                                          ? "Listening..."
-                                                          : "Type...")),
-                                              hintStyle: TextStyle(
-                                                color: _isListening
-                                                    ? Color(0xFF4CAF50)
-                                                    : (themeProvider.isDarkMode
-                                                        ? Colors.grey[400]
-                                                        : Colors.grey[500]),
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                              border: InputBorder.none,
-                                            ),
-                                          ),
+                                              ? 24
+                                              : 20,
                                         ),
-                                        // Mic button
-                                        GestureDetector(
-                                          onTap: _toggleListening,
-                                          child: Container(
-                                            margin: EdgeInsets.only(right: 4),
-                                            padding: EdgeInsets.only(
-                                                right: 8, top: 8, bottom: 8),
-                                            decoration: BoxDecoration(
-                                              color: _isListening
-                                                  ? Color(0xFF4CAF50)
-                                                      .withOpacity(0.1)
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Icon(
-                                              _isListening
-                                                  ? Icons.mic
-                                                  : Icons.mic_none,
-                                              color: _isListening
-                                                  ? Color(0xFF4CAF50)
-                                                  : (themeProvider.isDarkMode
-                                                      ? Colors.grey[400]
-                                                      : Colors.grey[600]),
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ),
-                                        // Emoji button inside text field
-                                        GestureDetector(
-                                          onTap: () {
-                                            FocusScope.of(context).unfocus();
-                                            Future.delayed(
-                                                Duration(milliseconds: 100),
-                                                () {
-                                              _toggleEmojiPicker();
-                                            });
-                                          },
-                                          child: Container(
-                                            margin: EdgeInsets.only(right: 16),
-                                            padding: EdgeInsets.all(0),
-                                            decoration: BoxDecoration(
-                                              color: _showEmojiPicker
-                                                  ? Color(0xFF2196F3)
-                                                      .withOpacity(0.1)
-                                                  : Colors.transparent,
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Icon(
-                                              _showEmojiPicker
-                                                  ? Icons.keyboard
-                                                  : Icons
-                                                      .emoji_emotions_outlined,
-                                              color: _showEmojiPicker
-                                                  ? Color(0xFF2196F3)
-                                                  : (themeProvider.isDarkMode
-                                                      ? Colors.grey[400]
-                                                      : Colors.grey[600]),
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 12),
-
-                                // Send button
-                                AnimatedBuilder(
-                                  animation: _sendButtonScaleAnimation,
-                                  builder: (context, child) {
-                                    return Transform.scale(
-                                      scale: _sendButtonScaleAnimation.value,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          gradient: (_isTyping ||
-                                                  _isEditing ||
-                                                  _showMediaPreview)
-                                              ? LinearGradient(
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                  colors: [
-                                                    Color(0xFF1976D2),
-                                                    Color(0xFF2196F3)
-                                                  ],
-                                                )
-                                              : null,
-                                          color: !(_isTyping ||
-                                                  _isEditing ||
-                                                  _showMediaPreview)
-                                              ? (themeProvider.isDarkMode
-                                                  ? Colors.grey[600]
-                                                  : Colors.grey[400])
-                                              : null,
-                                          shape: BoxShape.circle,
-                                          boxShadow: (_isTyping ||
-                                                  _isEditing ||
-                                                  _showMediaPreview)
-                                              ? [
-                                                  BoxShadow(
-                                                    color: Color(0xFF2196F3)
-                                                        .withOpacity(0.3),
-                                                    blurRadius: 8,
-                                                    offset: Offset(0, 4),
-                                                  ),
-                                                ]
-                                              : null,
-                                        ),
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            borderRadius:
-                                                BorderRadius.circular(28),
-                                            onTap: (_isTyping ||
-                                                    _isEditing ||
-                                                    _showMediaPreview)
-                                                ? () => _sendMessage()
-                                                : null,
-                                            child: Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(
-                                                  shape: BoxShape.circle),
-                                              child: Icon(
-                                                _isEditing
-                                                    ? Icons.check
-                                                    : (_isTyping
-                                                        ? Icons.send_rounded
-                                                        : Icons.send_outlined),
-                                                color: Colors.white,
-                                                size: (_isTyping ||
-                                                        _isEditing ||
-                                                        _showMediaPreview)
-                                                    ? 24
-                                                    : 20,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
+                        ],
+                      ),
+                    ),
                   ),
                   if (_showEmojiPicker)
                     Container(
-                      height: MediaQuery.of(context).viewInsets.bottom > 0
-                          ? 280
-                          : 280,
+                      height: MediaQuery.of(context).viewInsets.bottom > 0 ? 280 : 280,
                       child: EmojiPickerWidget(
                         themeProvider: themeProvider,
                         emojiAnimationController: _emojiAnimationController,
