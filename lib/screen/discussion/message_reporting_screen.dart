@@ -303,14 +303,36 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
     });
   }
 
+  void _ensureVisible() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // Small delay to ensure keyboard is fully visible
+        Future.delayed(Duration(milliseconds: 100), () {
+          if (mounted) {
+            // This will trigger a rebuild with proper constraints
+            setState(() {});
+          }
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: keyboardHeight > 0 ? 16 : 24
+      ),
       child: Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
+          maxHeight: keyboardHeight > 0
+              ? screenHeight - keyboardHeight
+              : screenHeight * 0.8,
           maxWidth: 500,
         ),
         decoration: BoxDecoration(
@@ -415,10 +437,11 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
             ),
 
             // Report reasons
-            Flexible(
+            Expanded(
               child: Container(
                 margin: EdgeInsets.all(20),
                 child: SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -515,6 +538,7 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                         controller: _detailsController,
                         maxLines: 3,
                         maxLength: 500,
+                        onTap: _ensureVisible,
                         style: TextStyle(
                           color: widget.themeProvider.isDarkMode ? Colors.white : Colors.black87,
                         ),
@@ -555,7 +579,12 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
 
             // Action buttons
             Container(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 0,
+                  bottom: keyboardHeight > 0 ? 12 : 20
+              ),
               child: Row(
                 children: [
                   Expanded(
