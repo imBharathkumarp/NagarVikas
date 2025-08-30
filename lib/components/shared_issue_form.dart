@@ -48,6 +48,8 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
   bool _isListening = false;
   final NotificationService _notificationService =
   NotificationService(); // Add this
+  bool _isAnonymous = false;
+
 
   int get _remainingCharacters => 250 - _descriptionController.text.length;
   bool get _canSubmit {
@@ -310,7 +312,9 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
       final DatabaseReference ref =
       FirebaseDatabase.instance.ref("complaints").push();
       await ref.set({
-        'user_id': FirebaseAuth.instance.currentUser?.uid,
+        'user_id': _isAnonymous ? 'anonymous' : FirebaseAuth.instance.currentUser?.uid,
+'is_anonymous': _isAnonymous,
+
         'issue_type': widget.issueType,
         'state': _selectedState,
         'city': _selectedCity,
@@ -353,7 +357,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
       Fluttertoast.showToast(msg: "Submitted Successfully");
       if (mounted) {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const DoneScreen()));
+            context, MaterialPageRoute(builder: (_) => DoneScreen(isAnonymous: _isAnonymous,)));
       }
     } catch (e) {
       Fluttertoast.showToast(msg: "Submission failed: $e");
@@ -617,6 +621,35 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
                 ),
               ),
               SizedBox(height: isVerySmallScreen ? 16 : 24),
+Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Text(
+      "Submit as Anonymous",
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+      ),
+    ),
+   Switch(
+  value: _isAnonymous,
+  onChanged: (value) {
+    setState(() {
+      _isAnonymous = value;
+    });
+  },
+  activeColor: Colors.white,        // Thumb color when ON
+  activeTrackColor: Colors.blue,    // Track color when ON
+  inactiveThumbColor: Colors.grey,  // Thumb color when OFF
+  inactiveTrackColor: Colors.black26, // Track color when OFF
+),
+
+
+  ],
+),
+SizedBox(height: 16),
+
 
               // Location Section
               FadeInUp(

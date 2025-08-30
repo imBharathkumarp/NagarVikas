@@ -58,18 +58,26 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
 
       // Fetch user data
       String userId = data['user_id'] ?? '';
-      final userSnapshot =
-      await FirebaseDatabase.instance.ref('users/$userId').get();
-      if (userSnapshot.exists) {
-        final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
-        data['user_name'] = userData['name'] ?? 'Unknown';
-        data['user_email'] = userData['email'] ?? 'N/A';
-        data['user_phone'] = userData['phone'] ?? 'Not Provided';
-      } else {
-        data['user_name'] = 'Unknown';
-        data['user_email'] = 'N/A';
-        data['user_phone'] = 'Not Provided';
-      }
+bool isAnonymous = data['is_anonymous'] ?? false;
+
+if (isAnonymous || userId == 'anonymous') {
+  data['user_name'] = 'Anonymous';
+  data['user_email'] = 'Hidden';
+  data['user_phone'] = 'Hidden';
+} else {
+  final userSnapshot = await FirebaseDatabase.instance.ref('users/$userId').get();
+  if (userSnapshot.exists) {
+    final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
+    data['user_name'] = userData['name'] ?? 'Unknown';
+    data['user_email'] = userData['email'] ?? 'N/A';
+    data['user_phone'] = userData['phone'] ?? 'Not Provided';
+  } else {
+    data['user_name'] = 'Unknown';
+    data['user_email'] = 'N/A';
+    data['user_phone'] = 'Not Provided';
+  }
+}
+
 
       setState(() {
         complaint = data;

@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import '../theme/theme_provider.dart';
 
 class DoneScreen extends StatelessWidget {
-  const DoneScreen({super.key});
+  final bool isAnonymous;
+
+const DoneScreen({Key? key, required this.isAnonymous}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -26,33 +28,38 @@ class DoneScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/done.png',
-                    width: 350, height: 350), // Image
-                SizedBox(height: 20),
+                Image.asset('assets/done.png', width: 350, height: 350),
+                const SizedBox(height: 20),
                 Text(
                   "Done!",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color:
-                        themeProvider.isDarkMode ? Colors.white : Colors.black,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black,
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
-                  "We will get in touch with you if more information is required.",
+                  isAnonymous
+                      ? "Your complaint was submitted anonymously.\nIt will not show in 'My Complaints'."
+                      : "We will get in touch with you if more information is required.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color:
-                        themeProvider.isDarkMode ? Colors.white : Colors.black,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black,
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text(
-                  "Please note that the estimated time for your issue to be resolved will be 10 to 12 hours. And if you placed complaint between 12PM-8AM then resolving time will start from the next morning ie. After 8AM.\n"
-                  "You can check your issue status in the My Complaints tab.",
+                  isAnonymous
+                      ? "Admins will process your anonymous complaint. You can’t track it in 'My Complaints'."
+                      : "You can check your issue status in the My Complaints tab.\n\n"
+                        "Estimated resolution time: 10–12 hours (complaints between 12PM–8AM will be processed after 8AM).",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
