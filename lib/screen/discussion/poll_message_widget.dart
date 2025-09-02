@@ -38,7 +38,8 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
   @override
   void initState() {
     super.initState();
-    _pollRef = FirebaseDatabase.instance.ref("polls/${widget.pollData['pollId']}");
+    _pollRef =
+        FirebaseDatabase.instance.ref("polls/${widget.pollData['pollId']}");
     _animationController = AnimationController(
       duration: Duration(milliseconds: 500),
       vsync: this,
@@ -46,7 +47,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    
+
     _loadPollData();
     _animationController.forward();
   }
@@ -76,7 +77,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
 
     if (pollData['votes'] != null) {
       final votesMap = Map<String, dynamic>.from(pollData['votes']);
-      
+
       // Process votes for each option
       for (String option in pollData['options']) {
         _votes[option] = [];
@@ -84,7 +85,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
           final optionVotes = Map<String, dynamic>.from(votesMap[option]);
           _votes[option] = optionVotes.keys.toList();
           _totalVotes += optionVotes.length;
-          
+
           // Check if current user voted for this option
           if (optionVotes.containsKey(widget.currentUserId)) {
             _userVotes.add(option);
@@ -106,7 +107,9 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
         // Toggle vote for this option
         if (_userVotes.contains(option)) {
           // Remove vote
-          await _pollRef.child('votes/$option/${widget.currentUserId}').remove();
+          await _pollRef
+              .child('votes/$option/${widget.currentUserId}')
+              .remove();
         } else {
           // Add vote
           await _pollRef.child('votes/$option/${widget.currentUserId}').set({
@@ -117,20 +120,20 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
       } else {
         // Single choice - remove all previous votes and add new one
         final updates = <String, dynamic>{};
-        
+
         // Remove from all options
         for (String opt in _pollDetails!['options']) {
           if (_userVotes.contains(opt)) {
             updates['votes/$opt/${widget.currentUserId}'] = null;
           }
         }
-        
+
         // Add to selected option
         updates['votes/$option/${widget.currentUserId}'] = {
           'votedAt': ServerValue.timestamp,
           'voterName': widget.pollData['senderName'] ?? 'Unknown User',
         };
-        
+
         await _pollRef.update(updates);
       }
 
@@ -145,6 +148,300 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  // Show All Voters
+  void _showAllVoters() {
+    if (_totalVotes == 0) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: 450,
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            decoration: BoxDecoration(
+              color: widget.themeProvider.isDarkMode
+                  ? Colors.grey[850]
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.poll,
+                        color: Color(0xFF2196F3),
+                        size: 24,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Poll Results',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: widget.themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              '${_totalVotes} ${_totalVotes == 1 ? 'vote' : 'votes'} total',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: widget.themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(
+                          Icons.close,
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Voters list organized by options
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      children: _votes.entries
+                          .where((entry) => entry.value.isNotEmpty)
+                          .map((entry) {
+                        final option = entry.key;
+                        final voters = entry.value;
+                        final percentage = _getVotePercentage(option);
+
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: widget.themeProvider.isDarkMode
+                                ? Colors.grey[800]
+                                : Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: widget.themeProvider.isDarkMode
+                                  ? Colors.grey[700]!
+                                  : Colors.grey[200]!,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Option header
+                              Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF2196F3).withOpacity(0.1),
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(11)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        option,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: widget.themeProvider.isDarkMode
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF2196F3),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${(percentage * 100).toInt()}% (${voters.length})',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Voters for this option
+                              Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Column(
+                                  children: voters.map((voterId) {
+                                    return FutureBuilder<String>(
+                                      future: _getVoterName(voterId),
+                                      builder: (context, snapshot) {
+                                        final voterName =
+                                            snapshot.data ?? 'Loading...';
+                                        return Container(
+                                          margin: EdgeInsets.only(bottom: 8),
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                widget.themeProvider.isDarkMode
+                                                    ? Colors.grey[700]
+                                                    : Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 28,
+                                                height: 28,
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      ForumLogic.getAvatarColor(
+                                                          voterName),
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    voterName.isNotEmpty
+                                                        ? voterName[0]
+                                                            .toUpperCase()
+                                                        : '?',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  voterName,
+                                                  style: TextStyle(
+                                                    color: widget.themeProvider
+                                                            .isDarkMode
+                                                        ? Colors.white
+                                                        : Colors.black87,
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (voterId ==
+                                                  widget.currentUserId)
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Color(0xFF2196F3)
+                                                        .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: Text(
+                                                    'You',
+                                                    style: TextStyle(
+                                                      color: Color(0xFF2196F3),
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<String> _getVoterName(String userId) async {
+    try {
+      // Try to get from poll votes first (which might have cached voter names)
+      if (_pollDetails != null && _pollDetails!['votes'] != null) {
+        final votesMap = Map<String, dynamic>.from(_pollDetails!['votes']);
+        for (String option in votesMap.keys) {
+          final optionVotes = Map<String, dynamic>.from(votesMap[option] ?? {});
+          if (optionVotes.containsKey(userId) &&
+              optionVotes[userId]['voterName'] != null) {
+            return optionVotes[userId]['voterName'];
+          }
+        }
+      }
+
+      // Fallback to users database
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/$userId/displayName')
+          .get();
+
+      if (userSnapshot.exists) {
+        return userSnapshot.value.toString();
+      }
+
+      return 'Unknown User';
+    } catch (e) {
+      print('Error getting voter name: $e');
+      return 'Unknown User';
     }
   }
 
@@ -187,7 +484,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
     final options = List<String>.from(_pollDetails!['options'] ?? []);
     final allowMultiple = _pollDetails!['allowMultipleAnswers'] ?? false;
     final createdAt = _pollDetails!['createdAt'];
-    
+
     final timeString = ForumLogic.formatTime(createdAt);
 
     return FadeTransition(
@@ -217,8 +514,10 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(18),
                 topRight: Radius.circular(18),
-                bottomLeft: widget.isMe ? Radius.circular(18) : Radius.circular(4),
-                bottomRight: widget.isMe ? Radius.circular(4) : Radius.circular(18),
+                bottomLeft:
+                    widget.isMe ? Radius.circular(18) : Radius.circular(4),
+                bottomRight:
+                    widget.isMe ? Radius.circular(4) : Radius.circular(18),
               ),
               boxShadow: [
                 BoxShadow(
@@ -249,9 +548,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                         child: Icon(
                           Icons.poll,
                           size: 16,
-                          color: widget.isMe
-                              ? Colors.white
-                              : Color(0xFF2196F3),
+                          color: widget.isMe ? Colors.white : Color(0xFF2196F3),
                         ),
                       ),
                       SizedBox(width: 8),
@@ -271,7 +568,8 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                       ),
                       if (allowMultiple)
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: widget.isMe
                                 ? Colors.white.withOpacity(0.2)
@@ -281,9 +579,8 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                           child: Text(
                             'Multiple',
                             style: TextStyle(
-                              color: widget.isMe
-                                  ? Colors.white70
-                                  : Colors.orange,
+                              color:
+                                  widget.isMe ? Colors.white70 : Colors.orange,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),
@@ -347,19 +644,23 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                                       alignment: Alignment.centerLeft,
                                       child: AnimatedContainer(
                                         duration: Duration(milliseconds: 800),
-                                        width: MediaQuery.of(context).size.width * 
-                                               0.65 * percentage,
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                0.65 *
+                                                percentage,
                                         height: double.infinity,
                                         decoration: BoxDecoration(
                                           color: isSelected
-                                              ? Color(0xFF2196F3).withOpacity(0.2)
+                                              ? Color(0xFF2196F3)
+                                                  .withOpacity(0.2)
                                               : optionColor.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                       ),
                                     ),
                                   ),
-                                
+
                                 // Option content
                                 Row(
                                   children: [
@@ -433,14 +734,16 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                                               : (widget.themeProvider.isDarkMode
                                                   ? Colors.grey[700]
                                                   : Colors.grey[100]),
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                         child: Text(
                                           '${(percentage * 100).toInt()}% ($voteCount)',
                                           style: TextStyle(
                                             color: widget.isMe
                                                 ? Colors.white70
-                                                : (widget.themeProvider.isDarkMode
+                                                : (widget.themeProvider
+                                                        .isDarkMode
                                                     ? Colors.grey[400]
                                                     : Colors.grey[600]),
                                             fontSize: 11,
@@ -474,19 +777,60 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                                 : Colors.grey[600]),
                       ),
                       SizedBox(width: 4),
-                      Text(
-                        _totalVotes == 0 
-                            ? 'No votes yet'
-                            : _totalVotes == 1
-                                ? '1 vote'
-                                : '$_totalVotes votes',
-                        style: TextStyle(
-                          color: widget.isMe
-                              ? Colors.white70
-                              : (widget.themeProvider.isDarkMode
-                                  ? Colors.grey[400]
-                                  : Colors.grey[600]),
-                          fontSize: 12,
+                      GestureDetector(
+                        onTap: _totalVotes > 0 ? () => _showAllVoters() : null,
+                        child: Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: _totalVotes > 0
+                              ? BoxDecoration(
+                                  color: widget.isMe
+                                      ? Colors.white.withOpacity(0.1)
+                                      : Color(0xFF2196F3).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: widget.isMe
+                                        ? Colors.white.withOpacity(0.3)
+                                        : Color(0xFF2196F3).withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                )
+                              : null,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _totalVotes == 0
+                                    ? 'No votes yet'
+                                    : _totalVotes == 1
+                                        ? '1 vote'
+                                        : '$_totalVotes votes',
+                                style: TextStyle(
+                                  color: widget.isMe
+                                      ? Colors.white70
+                                      : (widget.themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600]),
+                                  fontSize: 12,
+                                  fontWeight: _totalVotes > 0
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              if (_totalVotes > 0) ...[
+                                SizedBox(width: 4),
+                                Icon(
+                                  Icons.visibility,
+                                  size: 12,
+                                  color: widget.isMe
+                                      ? Colors.white70
+                                      : (widget.themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600]),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                       Spacer(),
