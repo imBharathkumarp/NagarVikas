@@ -69,6 +69,8 @@ class DiscussionForumState extends State<DiscussionForum>
   bool _showEmojiPicker = false;
   final GlobalKey _messagesListKey = GlobalKey();
   final Map<String, GlobalKey> _messageKeys = {};
+  DateTime? _clearChatTimestamp; // Track when chat was cleared
+  bool _showRestoreButton = false; // Show restore button when chat is cleared
 
   // Media attachment preview
   File? _attachedMediaFile;
@@ -104,6 +106,7 @@ class DiscussionForumState extends State<DiscussionForum>
     );
     _checkTermsAgreement();
     _checkUserBanStatus();
+    _loadChatClearTimestamp();
     _messagesRef.onValue.listen((event) {
       if (event.snapshot.exists) {
         final messagesData =
@@ -392,6 +395,138 @@ class DiscussionForumState extends State<DiscussionForum>
     }
   }
 
+  /// Clear chat locally (hide messages from this device only)
+  /// Clear chat locally (hide messages from this device only)
+  void _clearChatLocally() {
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return AlertDialog(
+            backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            title: Text(
+              'Clear Chat',
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'This will hide all current messages from your device only. Other users will still see all messages. You can restore them anytime using the restore button.',
+              style: TextStyle(
+                color:
+                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final now = DateTime.now();
+                  await _saveChatClearTimestamp(now);
+                  setState(() {
+                    _clearChatTimestamp = now;
+                    _showRestoreButton = true;
+                  });
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Chat cleared from this device'),
+                      backgroundColor: Color(0xFF4CAF50),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Clear Chat',
+                  style: TextStyle(
+                    color: Color(0xFF2196F3),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Restore all cleared chat messages
+  void _restoreAllMessages() {
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return AlertDialog(
+            backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            title: Text(
+              'Restore Chat',
+              style: TextStyle(
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'This will restore all previously cleared messages. You will see the complete chat history again.',
+              style: TextStyle(
+                color:
+                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await _clearChatClearTimestamp();
+                  setState(() {
+                    _clearChatTimestamp = null;
+                    _showRestoreButton = false;
+                  });
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('All messages restored'),
+                      backgroundColor: Color(0xFF4CAF50),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Restore All',
+                  style: TextStyle(
+                    color: Color(0xFF4CAF50),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   /// Show poll creation dialog
   void _showPollCreation() {
     if (_isUserBanned) {
@@ -606,6 +741,53 @@ class DiscussionForumState extends State<DiscussionForum>
         });
       }
     });
+  }
+
+  /// Load chat clear timestamp from SharedPreferences
+  Future<void> _loadChatClearTimestamp() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String key = 'chat_clear_timestamp_${userId ?? 'anonymous'}';
+    int? timestamp = prefs.getInt(key);
+
+    setState(() {
+      if (timestamp != null) {
+        _clearChatTimestamp = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        _showRestoreButton = true;
+      } else {
+        _clearChatTimestamp = null;
+        _showRestoreButton = false;
+      }
+    });
+  }
+
+  /// Save chat clear timestamp to SharedPreferences
+  Future<void> _saveChatClearTimestamp(DateTime timestamp) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String key = 'chat_clear_timestamp_${userId ?? 'anonymous'}';
+    await prefs.setInt(key, timestamp.millisecondsSinceEpoch);
+  }
+
+  /// Clear the saved chat clear timestamp
+  Future<void> _clearChatClearTimestamp() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String key = 'chat_clear_timestamp_${userId ?? 'anonymous'}';
+    await prefs.remove(key);
+  }
+
+  /// Check if a message should be hidden based on clear timestamp
+  bool _shouldHideMessage(Map<String, dynamic> messageData) {
+    if (_clearChatTimestamp == null) return false;
+
+    try {
+      final messageTimestamp = messageData["createdAt"] ?? messageData["timestamp"];
+      if (messageTimestamp is int) {
+        final messageDate = DateTime.fromMillisecondsSinceEpoch(messageTimestamp);
+        return messageDate.isBefore(_clearChatTimestamp!);
+      }
+    } catch (e) {
+      print('Error checking message timestamp: $e');
+    }
+    return false;
   }
 
   /// Ban a user (admin only)
@@ -1702,6 +1884,68 @@ class DiscussionForumState extends State<DiscussionForum>
               },
               tooltip: 'Search messages',
             ),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert,
+                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+              ),
+              onSelected: (value) {
+                switch (value) {
+                  case 'clear_chat':
+                    _clearChatLocally();
+                    break;
+                  case 'restore_chat':
+                    _restoreAllMessages();
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'clear_chat',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.clear_all,
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
+                            : Colors.black87,
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Clear Chat',
+                        style: TextStyle(
+                          color: themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_showRestoreButton)
+                  PopupMenuItem<String>(
+                    value: 'restore_chat',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.restore,
+                          color: Color(0xFF4CAF50),
+                          size: 20,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Restore All Messages',
+                          style: TextStyle(
+                            color: Color(0xFF4CAF50),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
             SizedBox(width: 8),
           ],
           flexibleSpace: Container(
@@ -1753,6 +1997,49 @@ class DiscussionForumState extends State<DiscussionForum>
                       _hideDisclaimer,
                     ),
 
+                  // Restore button at top
+                  if (_showRestoreButton)
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _restoreAllMessages,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF4CAF50).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Color(0xFF4CAF50),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.restore,
+                                  color: Color(0xFF4CAF50),
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Tap to restore all cleared messages',
+                                  style: TextStyle(
+                                    color: Color(0xFF4CAF50),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Real-time message list with date separators
                   Expanded(
                     child: Container(
@@ -1779,6 +2066,7 @@ class DiscussionForumState extends State<DiscussionForum>
                             "key": e.key,
                             ...Map<String, dynamic>.from(e.value)
                           })
+                              .where((message) => !_shouldHideMessage(message))
                               .toList();
 
                           // Sort by timestamp (ascending)
