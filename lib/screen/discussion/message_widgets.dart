@@ -138,12 +138,23 @@ class MessageWidgets {
 
                         // Message content - Handle different message types
                         if (isPollMessage)
-                        // Poll message
+                          // Poll message
                           PollMessageWidget(
                             pollData: messageData,
                             isMe: isMe,
                             themeProvider: themeProvider,
                             currentUserId: currentUserId,
+                            onMessageOptions: (messageId, messageText, senderName, senderId, hasMedia, isMyMessage) {
+                              onMessageOptions(
+                                messageId,
+                                messageText,
+                                themeProvider,
+                                hasMedia,
+                                isMyMessage,
+                                senderId,
+                                senderName,
+                              );
+                            },
                           )
                         else
                         // Regular message bubble for text, image, video
