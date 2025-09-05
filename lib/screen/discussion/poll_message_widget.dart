@@ -750,7 +750,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                   );
                 } else {
                   // Fallback to old behavior
-                  if (widget.isMe || _isAdmin()) {
+                  if (widget.isMe) {
                     _showDeleteConfirmation();
                   }
                 }
@@ -1152,10 +1152,12 @@ class _EditPollDialogState extends State<EditPollDialog> {
   @override
   void initState() {
     super.initState();
-    _questionController = TextEditingController(text: widget.pollData['question'] ?? '');
+    _questionController =
+        TextEditingController(text: widget.pollData['question'] ?? '');
     _optionControllers = (widget.pollData['options'] as List<dynamic>?)
-        ?.map((option) => TextEditingController(text: option.toString()))
-        .toList() ?? [];
+            ?.map((option) => TextEditingController(text: option.toString()))
+            .toList() ??
+        [];
 
     // Ensure at least 2 options
     while (_optionControllers.length < 2) {
@@ -1241,7 +1243,8 @@ class _EditPollDialogState extends State<EditPollDialog> {
           maxWidth: 500,
         ),
         decoration: BoxDecoration(
-          color: widget.themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+          color:
+              widget.themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -1315,11 +1318,13 @@ class _EditPollDialogState extends State<EditPollDialog> {
                       decoration: BoxDecoration(
                         color: Colors.orange.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                        border:
+                            Border.all(color: Colors.orange.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                          Icon(Icons.warning_amber,
+                              color: Colors.orange, size: 20),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -1446,7 +1451,8 @@ class _EditPollDialogState extends State<EditPollDialog> {
                                         : Colors.black87,
                                   ),
                                   maxLength: 100,
-                                  textCapitalization: TextCapitalization.sentences,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
                                   decoration: InputDecoration(
                                     hintText: 'Option ${index + 1}',
                                     hintStyle: TextStyle(
