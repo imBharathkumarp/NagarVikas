@@ -1836,6 +1836,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                     _showMessageOptions,
                                     _isAdmin,
                                     userId!,
+                                    currentUserName,
                                     // Add voting parameters
                                     _messageVotes,
                                     _voteMessage,
@@ -1880,6 +1881,7 @@ class DiscussionForumState extends State<DiscussionForum>
                                   _showMessageOptions,
                                   _isAdmin,
                                   userId!,
+                                  currentUserName,
                                   // Add voting parameters
                                   _messageVotes,
                                   _voteMessage,
