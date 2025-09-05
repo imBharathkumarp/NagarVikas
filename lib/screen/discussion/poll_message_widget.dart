@@ -750,7 +750,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                   );
                 } else {
                   // Fallback to old behavior
-                  if (widget.isMe || _isAdmin()) {
+                  if (widget.isMe) {
                     _showDeleteConfirmation();
                   }
                 }
