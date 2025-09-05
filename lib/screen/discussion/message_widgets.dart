@@ -18,7 +18,7 @@ class MessageWidgets {
       Function(String) onVideoTap,
       Function(String, String, String) onReply,
       Function(String, String, ThemeProvider, bool, bool, String, String)
-      onMessageOptions,
+          onMessageOptions,
       bool isAdmin,
       String currentUserId,
       String? currentUserName,
@@ -27,7 +27,7 @@ class MessageWidgets {
       Function(String, bool) onVote,
       Function(String) getUserVote,
       {Function(String)? onJumpToMessage,
-        bool isHighlighted = false}) {
+      bool isHighlighted = false}) {
     final timeString = ForumLogic.formatTime(
         messageData["createdAt"] ?? messageData["timestamp"]);
     final hasReply = messageData["replyTo"] != null;
