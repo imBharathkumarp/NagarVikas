@@ -11,6 +11,7 @@ class PollMessageWidget extends StatefulWidget {
   final String currentUserId;
   final VoidCallback? onVotesUpdated;
   final bool isAdmin;
+  final String? currentUserName;
   final Function(String)? onPollDeleted;
   final Function(String, String, String, String, bool, bool)? onMessageOptions;
 
@@ -22,6 +23,7 @@ class PollMessageWidget extends StatefulWidget {
     required this.currentUserId,
     this.onVotesUpdated,
     this.isAdmin = true,
+    required this.currentUserName,
     this.onPollDeleted,
     this.onMessageOptions,
   });
@@ -124,7 +126,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
           // Add vote
           await _pollRef.child('votes/$option/${widget.currentUserId}').set({
             'votedAt': ServerValue.timestamp,
-            'voterName': widget.pollData['senderName'] ?? 'Unknown User',
+            'voterName': widget.currentUserName ?? 'Unknown User',
           });
         }
       } else {
@@ -141,7 +143,7 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
         // Add to selected option
         updates['votes/$option/${widget.currentUserId}'] = {
           'votedAt': ServerValue.timestamp,
-          'voterName': widget.pollData['senderName'] ?? 'Unknown User',
+          'voterName': widget.currentUserName ?? 'Unknown User',
         };
 
         await _pollRef.update(updates);

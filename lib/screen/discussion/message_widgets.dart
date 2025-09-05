@@ -18,16 +18,16 @@ class MessageWidgets {
       Function(String) onVideoTap,
       Function(String, String, String) onReply,
       Function(String, String, ThemeProvider, bool, bool, String, String)
-          onMessageOptions,
+      onMessageOptions,
       bool isAdmin,
       String currentUserId,
+      String? currentUserName,
       // NEW PARAMETERS for voting
       Map<String, Map<String, dynamic>> messageVotes,
       Function(String, bool) onVote,
       Function(String) getUserVote,
-// Parameters for jump to message functionality
       {Function(String)? onJumpToMessage,
-      bool isHighlighted = false}) {
+        bool isHighlighted = false}) {
     final timeString = ForumLogic.formatTime(
         messageData["createdAt"] ?? messageData["timestamp"]);
     final hasReply = messageData["replyTo"] != null;
@@ -145,6 +145,7 @@ class MessageWidgets {
                             isMe: isMe,
                             themeProvider: themeProvider,
                             currentUserId: currentUserId,
+                            currentUserName: currentUserName,
                             onMessageOptions: (messageId, messageText,
                                 senderName, senderId, hasMedia, isMyMessage) {
                               onMessageOptions(
