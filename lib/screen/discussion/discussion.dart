@@ -1345,7 +1345,7 @@ class DiscussionForumState extends State<DiscussionForum>
       bool isMyMessage,
       String senderId,
       String senderName) {
-    final isPoll = message.isEmpty && hasMedia;
+    final isPoll = message.isEmpty && hasMedia || (message.isNotEmpty && hasMedia && messageId.contains('poll'));
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1504,8 +1504,8 @@ class DiscussionForumState extends State<DiscussionForum>
                 },
               ),
 
-            // Don't allow editing polls or media messages
-            if (isMyMessage && !hasMedia && !isPoll)
+              // Allow editing polls only by creator, regular messages by owner
+              if (isMyMessage && !hasMedia && message.isNotEmpty)
               ListTile(
                 leading: Container(
                   padding: EdgeInsets.all(8),
@@ -1529,32 +1529,64 @@ class DiscussionForumState extends State<DiscussionForum>
                   _startEditingMessage(messageId, message);
                 },
               ),
-            if (isMyMessage || _isAdmin)
-              ListTile(
-                leading: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+              if (isMyMessage || _isAdmin)
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.delete, color: Colors.red),
                   ),
-                  child: Icon(Icons.delete, color: Colors.red),
-                ),
-                title: Text(
-                  _isAdmin && !isMyMessage
-                      ? 'Delete ${isPoll ? "Poll" : "Message"} (Admin)'
-                      : 'Delete ${isPoll ? "Poll" : "Message"}',
-                  style: TextStyle(
-                    color: themeProvider.isDarkMode
-                        ? Colors.white
-                        : Colors.black87,
-                    fontWeight: FontWeight.w600,
+                  title: Text(
+                    _isAdmin && !isMyMessage
+                        ? 'Delete ${isPoll ? "Poll" : "Message"} (Admin)'
+                        : 'Delete ${isPoll ? "Poll" : "Message"}',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteMessage(messageId);
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _deleteMessage(messageId);
-                },
-              ),
+
+// Add edit option for polls created by user
+              if (isPoll && isMyMessage)
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.edit, color: Colors.orange),
+                  ),
+                  title: Text(
+                    'Edit Poll',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // This will be handled by the poll widget's long press
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Use the edit button on the poll to modify it'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
             if (_isAdmin && !isMyMessage && senderId != userId)
               ListTile(
                 leading: Container(

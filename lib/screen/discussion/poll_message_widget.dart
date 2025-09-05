@@ -12,6 +12,7 @@ class PollMessageWidget extends StatefulWidget {
   final VoidCallback? onVotesUpdated;
   final bool isAdmin;
   final Function(String)? onPollDeleted;
+  final Function(String, String, String, String, bool, bool)? onMessageOptions;
 
   const PollMessageWidget({
     super.key,
@@ -22,6 +23,7 @@ class PollMessageWidget extends StatefulWidget {
     this.onVotesUpdated,
     this.isAdmin = true,
     this.onPollDeleted,
+    this.onMessageOptions,
   });
 
   @override
@@ -582,6 +584,74 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
     }
   }
 
+  void _showEditPoll() {
+    if (_pollDetails == null) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return EditPollDialog(
+          pollData: _pollDetails!,
+          themeProvider: widget.themeProvider,
+          onPollUpdated: (updatedQuestion, updatedOptions) {
+            _updatePoll(updatedQuestion, updatedOptions);
+          },
+        );
+      },
+    );
+  }
+
+  void _updatePoll(String newQuestion, List<String> newOptions) async {
+    try {
+      final updates = <String, dynamic>{};
+      updates['question'] = newQuestion;
+      updates['options'] = newOptions;
+      updates['lastEditedAt'] = ServerValue.timestamp;
+      updates['isEdited'] = true;
+
+      await _pollRef.update(updates);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('Poll updated successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error updating poll: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('Failed to update poll. Please try again.'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   double _getVotePercentage(String option) {
     if (_totalVotes == 0) return 0.0;
     return (_votes[option]?.length ?? 0) / _totalVotes;
@@ -668,8 +738,21 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
             ),
             child: GestureDetector(
               onLongPress: () {
-                if (widget.isMe || _isAdmin()) {
-                  _showDeleteConfirmation();
+                // Call the message options from the parent
+                if (widget.onMessageOptions != null) {
+                  widget.onMessageOptions!(
+                    widget.pollData['pollId'] ?? widget.pollData['key'] ?? '',
+                    _pollDetails?['question'] ?? '',
+                    widget.pollData['senderName'] ?? 'Unknown User',
+                    widget.pollData['senderId'] ?? '',
+                    true, // hasMedia - polls are considered special content
+                    widget.isMe,
+                  );
+                } else {
+                  // Fallback to old behavior
+                  if (widget.isMe || _isAdmin()) {
+                    _showDeleteConfirmation();
+                  }
                 }
               },
               child: Padding(
@@ -732,9 +815,25 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
                             ),
                           ),
 
-                        // Delete button for poll creator or admin
-                        if (widget.isMe || widget.isAdmin) ...[
+                        // Edit and Delete buttons for poll creator only (not admin)
+                        if (widget.isMe) ...[
                           SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _showEditPoll(),
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                Icons.edit,
+                                size: 16,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 4),
                           GestureDetector(
                             onTap: () => _showDeleteConfirmation(),
                             child: Container(
@@ -1023,6 +1122,458 @@ class _PollMessageWidgetState extends State<PollMessageWidget>
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class EditPollDialog extends StatefulWidget {
+  final Map<String, dynamic> pollData;
+  final ThemeProvider themeProvider;
+  final Function(String, List<String>) onPollUpdated;
+
+  const EditPollDialog({
+    Key? key,
+    required this.pollData,
+    required this.themeProvider,
+    required this.onPollUpdated,
+  }) : super(key: key);
+
+  @override
+  _EditPollDialogState createState() => _EditPollDialogState();
+}
+
+class _EditPollDialogState extends State<EditPollDialog> {
+  late TextEditingController _questionController;
+  late List<TextEditingController> _optionControllers;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _questionController = TextEditingController(text: widget.pollData['question'] ?? '');
+    _optionControllers = (widget.pollData['options'] as List<dynamic>?)
+        ?.map((option) => TextEditingController(text: option.toString()))
+        .toList() ?? [];
+
+    // Ensure at least 2 options
+    while (_optionControllers.length < 2) {
+      _optionControllers.add(TextEditingController());
+    }
+  }
+
+  @override
+  void dispose() {
+    _questionController.dispose();
+    for (var controller in _optionControllers) {
+      controller.dispose();
+    }
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _addOption() {
+    if (_optionControllers.length < 10) {
+      setState(() {
+        _optionControllers.add(TextEditingController());
+      });
+      Future.delayed(Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
+
+  void _removeOption(int index) {
+    if (_optionControllers.length > 2) {
+      setState(() {
+        _optionControllers[index].dispose();
+        _optionControllers.removeAt(index);
+      });
+    }
+  }
+
+  void _updatePoll() {
+    final question = _questionController.text.trim();
+    final options = _optionControllers
+        .map((controller) => controller.text.trim())
+        .where((option) => option.isNotEmpty)
+        .toList();
+
+    if (question.isEmpty) {
+      _showError('Please enter a question');
+      return;
+    }
+
+    if (options.length < 2) {
+      _showError('Please provide at least 2 options');
+      return;
+    }
+
+    widget.onPollUpdated(question, options);
+    Navigator.of(context).pop();
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.all(16),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+          maxWidth: 500,
+        ),
+        decoration: BoxDecoration(
+          color: widget.themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 20,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.edit,
+                      color: Colors.orange,
+                      size: 24,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Edit Poll',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: widget.themeProvider.isDarkMode
+                            ? Colors.white
+                            : Colors.black87,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(
+                      Icons.close,
+                      color: widget.themeProvider.isDarkMode
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Warning
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Note: Existing votes will be preserved where possible',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: widget.themeProvider.isDarkMode
+                                    ? Colors.orange[300]
+                                    : Colors.orange[700],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 16),
+
+                    // Question input
+                    Text(
+                      'Question',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: widget.themeProvider.isDarkMode
+                            ? Colors.white
+                            : Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: widget.themeProvider.isDarkMode
+                            ? Colors.grey[800]
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.grey[600]!
+                              : Colors.grey[300]!,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _questionController,
+                        style: TextStyle(
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
+                          fontSize: 16,
+                        ),
+                        maxLines: 3,
+                        maxLength: 200,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Ask a question...',
+                          hintStyle: TextStyle(
+                            color: widget.themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[500],
+                          ),
+                          contentPadding: EdgeInsets.all(16),
+                          border: InputBorder.none,
+                          counterStyle: TextStyle(
+                            color: widget.themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[500],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: 24),
+
+                    // Options section
+                    Row(
+                      children: [
+                        Text(
+                          'Options',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: widget.themeProvider.isDarkMode
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
+                        Spacer(),
+                        Text(
+                          '${_optionControllers.length}/10',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: widget.themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+
+                    // Option inputs
+                    ...List.generate(_optionControllers.length, (index) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: widget.themeProvider.isDarkMode
+                                      ? Colors.grey[800]
+                                      : Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: widget.themeProvider.isDarkMode
+                                        ? Colors.grey[600]!
+                                        : Colors.grey[300]!,
+                                  ),
+                                ),
+                                child: TextField(
+                                  controller: _optionControllers[index],
+                                  style: TextStyle(
+                                    color: widget.themeProvider.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                  maxLength: 100,
+                                  textCapitalization: TextCapitalization.sentences,
+                                  decoration: InputDecoration(
+                                    hintText: 'Option ${index + 1}',
+                                    hintStyle: TextStyle(
+                                      color: widget.themeProvider.isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[500],
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    border: InputBorder.none,
+                                    counterText: '',
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (_optionControllers.length > 2) ...[
+                              SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () => _removeOption(index),
+                                icon: Icon(
+                                  Icons.remove_circle_outline,
+                                  color: Colors.red,
+                                ),
+                                tooltip: 'Remove option',
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }),
+
+                    // Add option button
+                    if (_optionControllers.length < 10)
+                      GestureDetector(
+                        onTap: _addOption,
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                              style: BorderStyle.solid,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add,
+                                color: Colors.orange,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Add Option',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Footer buttons
+            Container(
+              padding: EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _updatePoll,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: Text(
+                        'Update Poll',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
