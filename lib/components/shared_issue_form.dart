@@ -13,7 +13,7 @@ import 'package:dio/dio.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import '../screen/done_screen.dart';
+import '../screen/user/done_screen.dart';
 import '../service/local_status_storage.dart';
 import '../theme/theme_provider.dart';
 
