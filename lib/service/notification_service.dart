@@ -164,3 +164,50 @@ class NotificationService {
     await _flutterLocalNotificationsPlugin.cancel(id);
   }
 }
+extension EveryoneNotifications on NotificationService {
+  Future<void> showEveryoneNotification({
+    required String senderName,
+    required String messageText,
+    String? messageId,
+  }) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'everyone_channel',
+      'Everyone Notifications',
+      channelDescription: 'Notifications when someone mentions @everyone',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+      color: Color(0xFF2196F3),
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    // Truncate message if too long
+    final truncatedMessage = messageText.length > 100 
+        ? '${messageText.substring(0, 100)}...' 
+        : messageText;
+
+    await _flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000, // Unique ID
+      '@everyone from $senderName',
+      truncatedMessage,
+      platformChannelSpecifics,
+      payload: messageId ?? 'everyone_message',
+    );
+  }
+}
