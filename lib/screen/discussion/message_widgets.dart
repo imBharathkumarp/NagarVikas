@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../theme/theme_provider.dart';
 import 'forum_logic.dart';
 import 'poll_message_widget.dart';
+import '../../widgets/mention_text_widget.dart';
+import '../../service/eveyone_notification_service.dart';
 
 class MessageWidgets {
   /// Build message widget with image and video support
@@ -112,8 +114,14 @@ class MessageWidgets {
                                   width: 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: ForumLogic.getAvatarColor(
-                                        messageData["senderName"] ?? "Unknown"),
+                                    color: EveryoneNotificationService
+                                            .containsEveryone(
+                                                messageData["message"] ?? "")
+                                        ? Color(
+                                            0xFFFF9800) // Orange dot for @everyone messages
+                                        : ForumLogic.getAvatarColor(
+                                            messageData["senderName"] ??
+                                                "Unknown"),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -123,9 +131,15 @@ class MessageWidgets {
                                   style: TextStyle(
                                     color: _currentlyHighlighted
                                         ? Color(0xFF2E86AB)
-                                        : (themeProvider.isDarkMode
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600]),
+                                        : (EveryoneNotificationService
+                                                .containsEveryone(
+                                                    messageData["message"] ??
+                                                        "")
+                                            ? Color(
+                                                0xFFFF9800) // Orange text for @everyone messages
+                                            : (themeProvider.isDarkMode
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600])),
                                     fontSize: 12,
                                     fontWeight: _currentlyHighlighted
                                         ? FontWeight.bold
@@ -218,7 +232,7 @@ class MessageWidgets {
                                               : [
                                                   Color(0xFF1976D2),
                                                   Color(0xFF2196F3)
-                                                ],
+                                                ], // Regular blue for all messages
                                         )
                                       : null,
                                   color: isMe
@@ -242,9 +256,17 @@ class MessageWidgets {
                                     BoxShadow(
                                       color: _currentlyHighlighted
                                           ? Color(0xFF87CEEB).withOpacity(0.4)
-                                          : (themeProvider.isDarkMode
-                                              ? Colors.black26
-                                              : Colors.grey.withOpacity(0.1)),
+                                          : (EveryoneNotificationService
+                                                  .containsEveryone(
+                                                      messageData["message"] ??
+                                                          "")
+                                              ? // Orange shadow for @everyone
+                                              (themeProvider.isDarkMode
+                                                  ? Colors.black26
+                                                  : Colors.grey
+                                                      .withOpacity(0.1))
+                                              : Colors
+                                                  .transparent), // fallback else
                                       blurRadius:
                                           _currentlyHighlighted ? 12 : 8,
                                       offset: Offset(
@@ -253,9 +275,7 @@ class MessageWidgets {
                                   ],
                                   border: _currentlyHighlighted
                                       ? Border.all(
-                                          color: Color(0xFF87CEEB),
-                                          width: 1.5,
-                                        )
+                                          color: Color(0xFF87CEEB), width: 1.5)
                                       : (!isMe && !themeProvider.isDarkMode
                                           ? Border.all(
                                               color:
@@ -599,9 +619,10 @@ class MessageWidgets {
                                         ),
                                       ),
                                     ] else if (hasText) ...[
-                                      Text(
-                                        messageData["message"],
-                                        style: TextStyle(
+                                      // Message text with @everyone mention highlighted (only blue text, no background)
+                                      MentionTextWidget(
+                                        text: messageData["message"],
+                                        textStyle: TextStyle(
                                           color: isMe
                                               ? Colors.white
                                               : (themeProvider.isDarkMode
@@ -611,6 +632,7 @@ class MessageWidgets {
                                           fontWeight: FontWeight.w500,
                                           height: 1.4,
                                         ),
+                                        
                                       ),
                                     ],
 

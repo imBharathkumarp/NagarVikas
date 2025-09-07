@@ -18,6 +18,9 @@ import 'message_reporting_screen.dart';
 import 'message_widgets.dart';
 import 'poll_creation_widget.dart';
 import 'package:flutter/services.dart';
+import '../../service/eveyone_notification_service.dart';
+import '../../widgets/mention_text_field.dart';
+import '../../service/notification_service.dart';
 
 /// DiscussionForum with Image and Video Sharing
 /// Enhanced real-time chat interface with image/video upload and full-screen viewing capabilities
@@ -50,6 +53,9 @@ class DiscussionForumState extends State<DiscussionForum>
   Timer? _highlightTimer;
   Map<String, Map<String, dynamic>> _messageVotes = {}; // Cache message votes
   final DatabaseReference _votesRef = FirebaseDatabase.instance.ref("votes/");
+  StreamSubscription<DatabaseEvent>? _everyoneNotificationSubscription;
+  bool _hasEveryoneMention = false;
+  OverlayEntry? _mentionOverlay;
 
 // Animation controllers for enhanced UI
   late AnimationController _sendButtonAnimationController;
@@ -133,12 +139,24 @@ class DiscussionForumState extends State<DiscussionForum>
       },
     );
 
+    if (userId != null) {
+      _everyoneNotificationSubscription = EveryoneNotificationService()
+          .listenForEveryoneNotifications(userId!, (notificationData) {
+        // Show local notification
+        NotificationService().showEveryoneNotification(
+          senderName: notificationData['senderName'] ?? 'Someone',
+          messageText: notificationData['messageText'] ?? '',
+          messageId: notificationData['messageId'],
+        );
+      });
+    }
     _messageController.addListener(() {
       setState(() {
         _isTyping = _messageController.text.trim().isNotEmpty;
+        _hasEveryoneMention = EveryoneNotificationService.containsEveryone(
+            _messageController.text);
       });
     });
-
     // Auto-scroll to bottom when new messages arrive (only if user is already near bottom)
     _messagesRef
         .orderByChild("timestamp")
@@ -198,6 +216,8 @@ class DiscussionForumState extends State<DiscussionForum>
     _disclaimerController.dispose();
     _emojiAnimationController.dispose();
     _highlightTimer?.cancel();
+    _everyoneNotificationSubscription?.cancel();
+    _mentionOverlay?.remove();
     super.dispose();
   }
 
@@ -220,6 +240,217 @@ class DiscussionForumState extends State<DiscussionForum>
     } catch (e) {
       print('Error loading votes for message $messageId: $e');
     }
+  }
+
+  Widget _buildEnhancedTextInput(ThemeProvider themeProvider) {
+    return Container(
+      decoration: BoxDecoration(
+        color: themeProvider.isDarkMode ? Colors.grey[700] : Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: (_isTyping || _isEditing)
+              ? Color(0xFF2196F3)
+              : (themeProvider.isDarkMode
+                  ? Colors.grey[600]!
+                  : Colors.grey[300]!),
+          width: (_isTyping || _isEditing) ? 2 : 1,
+        ),
+        boxShadow: (_isTyping || _isEditing || _showMediaPreview)
+            ? [
+                BoxShadow(
+                  color: Color(0xFF2196F3)
+                      .withOpacity(0.2), // Remove _hasEveryoneMention condition
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Text field with @everyone support
+              Expanded(
+                child: MentionTextField(
+                  controller: _messageController,
+                  focusNode: _textFieldFocusNode,
+                  hintText: _isEditing
+                      ? "Edit your message..."
+                      : (_isReplying
+                          ? "Reply to ${_replyingToSender}..."
+                          : (_isListening
+                              ? "Listening..."
+                              : "Type a message...")),
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 3,
+                  minLines: 1,
+                  onChanged: (text) {
+                    if (text.length > 1000) {
+                      _messageController.text = text.substring(0, 1000);
+                      _messageController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: 1000),
+                      );
+                    }
+                  },
+                  onTap: () {
+                    // Hide emoji picker when text field is tapped
+                    if (_showEmojiPicker) {
+                      setState(() {
+                        _showEmojiPicker = false;
+                      });
+                      _emojiAnimationController.reverse();
+                    }
+                    // Auto scroll if at bottom when keyboard opens
+                    Future.delayed(Duration(milliseconds: 300), () {
+                      if (!_showGoDownButton && _scrollController.hasClients) {
+                        _scrollController.animateTo(
+                          _scrollController.position.maxScrollExtent,
+                          duration: Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    });
+                  },
+                ),
+              ),
+
+              // Mic button
+              GestureDetector(
+                onTap: _toggleListening,
+                child: Container(
+                  margin: EdgeInsets.only(right: 4),
+                  padding: EdgeInsets.only(right: 8, top: 8, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: _isListening
+                        ? Color(0xFF4CAF50).withOpacity(0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    _isListening ? Icons.mic : Icons.mic_none,
+                    color: _isListening
+                        ? Color(0xFF4CAF50)
+                        : (themeProvider.isDarkMode
+                            ? Colors.grey[400]
+                            : Colors.grey[600]),
+                    size: 20,
+                  ),
+                ),
+              ),
+
+              // Emoji button
+              GestureDetector(
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                  Future.delayed(Duration(milliseconds: 100), () {
+                    _toggleEmojiPicker();
+                  });
+                },
+                child: Container(
+                  margin: EdgeInsets.only(right: 16),
+                  padding: EdgeInsets.all(0),
+                  decoration: BoxDecoration(
+                    color: _showEmojiPicker
+                        ? Color(0xFF2196F3).withOpacity(0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    _showEmojiPicker
+                        ? Icons.keyboard
+                        : Icons.emoji_emotions_outlined,
+                    color: _showEmojiPicker
+                        ? Color(0xFF2196F3)
+                        : (themeProvider.isDarkMode
+                            ? Colors.grey[400]
+                            : Colors.grey[600]),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ADD THIS METHOD - Enhanced send button with @everyone confirmation
+  Widget _buildSendButton(ThemeProvider themeProvider) {
+    return AnimatedBuilder(
+      animation: _sendButtonScaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _sendButtonScaleAnimation.value,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: (_isTyping || _isEditing || _showMediaPreview)
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF1976D2),
+                        Color(0xFF2196F3)
+                      ], // Remove _hasEveryoneMention condition
+                    )
+                  : null,
+              color: !(_isTyping || _isEditing || _showMediaPreview)
+                  ? (themeProvider.isDarkMode
+                      ? Colors.grey[600]
+                      : Colors.grey[400])
+                  : null,
+              shape: BoxShape.circle,
+              boxShadow: (_isTyping || _isEditing || _showMediaPreview)
+                  ? [
+                      BoxShadow(
+                        color: Color(0xFF2196F3).withOpacity(
+                            0.3), // Remove _hasEveryoneMention condition
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(28),
+                onTap: (_isTyping || _isEditing || _showMediaPreview)
+                    ? () {
+                        _sendMessage(); // Remove confirmation dialog
+                      }
+                    : null,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(shape: BoxShape.circle),
+                  child: Icon(
+                    _isEditing
+                        ? Icons.check
+                        : (_isTyping
+                            ? Icons.send_rounded
+                            : Icons
+                                .send_outlined), // Remove _hasEveryoneMention condition
+                    color: Colors.white,
+                    size: (_isTyping || _isEditing || _showMediaPreview)
+                        ? 24
+                        : 20,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /// Vote on a message (upvote or downvote)
@@ -326,19 +557,21 @@ class DiscussionForumState extends State<DiscussionForum>
       final messageSnapshot = await _messagesRef.child(messageId).once();
 
       // Get all messages to find the position
-      final allMessagesSnapshot = await _messagesRef.orderByChild("timestamp").once();
+      final allMessagesSnapshot =
+          await _messagesRef.orderByChild("timestamp").once();
 
       if (!allMessagesSnapshot.snapshot.exists) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No messages found'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('No messages found'), backgroundColor: Colors.red),
         );
         return;
       }
 
       // Convert to list and sort by timestamp
       Map<dynamic, dynamic> messagesMap =
-      allMessagesSnapshot.snapshot.value as Map<dynamic, dynamic>;
+          allMessagesSnapshot.snapshot.value as Map<dynamic, dynamic>;
       List<Map<String, dynamic>> messagesList = messagesMap.entries
           .map((e) => {"key": e.key, ...Map<String, dynamic>.from(e.value)})
           .toList();
@@ -346,11 +579,14 @@ class DiscussionForumState extends State<DiscussionForum>
       messagesList.sort((a, b) => a["timestamp"].compareTo(b["timestamp"]));
 
       // Find target index
-      int targetIndex = messagesList.indexWhere((msg) => msg["key"] == messageId);
+      int targetIndex =
+          messagesList.indexWhere((msg) => msg["key"] == messageId);
       if (targetIndex == -1) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Message not found in current view'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Message not found in current view'),
+              backgroundColor: Colors.red),
         );
         return;
       }
@@ -389,7 +625,9 @@ class DiscussionForumState extends State<DiscussionForum>
       print('Error finding message: $e');
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error finding message. Please try again.'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error finding message. Please try again.'),
+            backgroundColor: Colors.red),
       );
       setState(() => _highlightedMessageId = null);
     }
@@ -404,7 +642,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Clear Chat',
               style: TextStyle(
@@ -416,7 +654,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'This will hide all current messages from your device only. Other users will still see all messages. You can restore them anytime using the restore button.',
               style: TextStyle(
                 color:
-                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -470,7 +708,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Restore Chat',
               style: TextStyle(
@@ -482,7 +720,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'This will restore all previously cleared messages. You will see the complete chat history again.',
               style: TextStyle(
                 color:
-                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -733,7 +971,7 @@ class DiscussionForumState extends State<DiscussionForum>
     if (userId == null) return;
 
     DatabaseReference bannedUsersRef =
-    FirebaseDatabase.instance.ref("banned_users/$userId");
+        FirebaseDatabase.instance.ref("banned_users/$userId");
     bannedUsersRef.onValue.listen((event) {
       if (mounted) {
         setState(() {
@@ -779,9 +1017,11 @@ class DiscussionForumState extends State<DiscussionForum>
     if (_clearChatTimestamp == null) return false;
 
     try {
-      final messageTimestamp = messageData["createdAt"] ?? messageData["timestamp"];
+      final messageTimestamp =
+          messageData["createdAt"] ?? messageData["timestamp"];
       if (messageTimestamp is int) {
-        final messageDate = DateTime.fromMillisecondsSinceEpoch(messageTimestamp);
+        final messageDate =
+            DateTime.fromMillisecondsSinceEpoch(messageTimestamp);
         return messageDate.isBefore(_clearChatTimestamp!);
       }
     } catch (e) {
@@ -800,7 +1040,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Ban User',
               style: TextStyle(
@@ -812,7 +1052,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'Are you sure you want to ban $userName? They will not be able to send messages until unbanned.',
               style: TextStyle(
                 color:
-                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -845,7 +1085,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Ban User',
                   style:
-                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -1165,7 +1405,7 @@ class DiscussionForumState extends State<DiscussionForum>
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
             msg:
-            "Video file too large. Please choose a smaller file (max 50MB).");
+                "Video file too large. Please choose a smaller file (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -1219,7 +1459,7 @@ class DiscussionForumState extends State<DiscussionForum>
       if (fileSize > 50 * 1024 * 1024) {
         Fluttertoast.showToast(
             msg:
-            "Video file too large. Please record a shorter video (max 50MB).");
+                "Video file too large. Please record a shorter video (max 50MB).");
         setState(() {
           _isUploading = false;
         });
@@ -1301,13 +1541,21 @@ class DiscussionForumState extends State<DiscussionForum>
     final finalMediaUrl = _attachedMediaUrl ?? mediaUrl;
     final finalMediaType = _attachedMediaType ?? mediaType;
 
-    if ((_messageController.text.trim().isEmpty && finalMediaUrl == null) ||
+    // Get message text and check for @everyone mention
+    final messageText = _messageController.text.trim();
+    final hasEveryoneMention =
+        EveryoneNotificationService.containsEveryone(messageText);
+
+    // Validate message content
+    if ((messageText.isEmpty && finalMediaUrl == null) ||
         currentUserName == null) return;
 
+    // Animate send button
     _sendButtonAnimationController.forward().then((_) {
       _sendButtonAnimationController.reverse();
     });
 
+    // Prepare message data
     Map<String, dynamic> messageData = {
       "senderId": userId,
       "senderName": currentUserName,
@@ -1316,8 +1564,12 @@ class DiscussionForumState extends State<DiscussionForum>
     };
 
     // Add message text if present
-    if (_messageController.text.trim().isNotEmpty) {
-      messageData["message"] = _messageController.text.trim();
+    if (messageText.isNotEmpty) {
+      messageData["message"] = messageText;
+      // Mark if message contains @everyone
+      if (hasEveryoneMention) {
+        messageData["hasEveryoneMention"] = true;
+      }
     }
 
     // Add media URL and type if present
@@ -1335,13 +1587,127 @@ class DiscussionForumState extends State<DiscussionForum>
       messageData["replyToSender"] = _replyingToSender ?? 'Unknown User';
     }
 
-    _messagesRef.push().set(messageData);
+    // Send the message to Firebase
+    final messageRef = _messagesRef.push();
+    final messageId = messageRef.key!;
 
+    messageRef.set(messageData).then((_) {
+      print('Message sent successfully with ID: $messageId');
+
+      // If message contains @everyone, send notifications to all users
+      if (hasEveryoneMention && messageText.isNotEmpty) {
+        print('Sending @everyone notifications for message: $messageId');
+
+        EveryoneNotificationService()
+            .sendEveryoneNotification(
+          messageId: messageId,
+          senderId: userId!,
+          senderName: currentUserName!,
+          messageText: messageText,
+        )
+            .then((_) {
+          print('@everyone notifications sent successfully');
+
+          // Show success feedback to sender
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.alternate_email, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Message sent to everyone successfully'),
+                  ),
+                ],
+              ),
+              backgroundColor: Color(0xFF4CAF50),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }).catchError((error) {
+          print('Error sending @everyone notification: $error');
+
+          // Show error feedback to user
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Message sent but failed to notify all users'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: () {
+                  // Retry sending @everyone notification
+                  EveryoneNotificationService().sendEveryoneNotification(
+                    messageId: messageId,
+                    senderId: userId!,
+                    senderName: currentUserName!,
+                    messageText: messageText,
+                  );
+                },
+              ),
+            ),
+          );
+        });
+      }
+    }).catchError((error) {
+      print('Error sending message: $error');
+
+      // Show error feedback for message send failure
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('Failed to send message. Please try again.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: () {
+              // Retry sending the message
+              _sendMessage(mediaUrl: finalMediaUrl, mediaType: finalMediaType);
+            },
+          ),
+        ),
+      );
+      return; // Don't clear the input if message failed to send
+    });
+
+    // Clear input and states after successful message preparation
     _messageController.clear();
     _clearReply();
     _clearMediaPreview(); // Clear media preview after sending
+
     setState(() {
       _isTyping = false;
+      _hasEveryoneMention = false; // Reset @everyone state
     });
 
     // Hide emoji picker after sending
@@ -1352,12 +1718,14 @@ class DiscussionForumState extends State<DiscussionForum>
       _emojiAnimationController.reverse();
     }
 
-    // Force scroll to bottom after sending message
+    // Force scroll to bottom after sending message with multiple attempts
+    // This ensures the new message is visible even with media content
     Future.delayed(Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
 
-        // Additional jumps for media content
+        // Additional jumps for media content loading
+        // This handles cases where images/videos take time to load
         for (int i = 1; i <= 8; i++) {
           Future.delayed(Duration(milliseconds: i * 125), () {
             if (_scrollController.hasClients) {
@@ -1368,6 +1736,114 @@ class DiscussionForumState extends State<DiscussionForum>
         }
       }
     });
+
+    // Add haptic feedback for successful message send
+    HapticFeedback.lightImpact();
+  }
+
+  void _showEveryoneConfirmation(VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return AlertDialog(
+            backgroundColor:
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.alternate_email,
+                  color: Color(0xFF2196F3),
+                  size: 24,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Notify Everyone?',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your message contains @everyone. This will send a notification to all users in the forum.',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white70
+                        : Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: Color(0xFF2196F3).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          color: Color(0xFF2196F3), size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Use @everyone responsibly for important announcements only.',
+                          style: TextStyle(
+                            color: Color(0xFF2196F3),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onConfirm();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF2196F3),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  'Send to Everyone',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _replyToMessage(String messageId, String message, String senderName) {
@@ -1458,7 +1934,7 @@ class DiscussionForumState extends State<DiscussionForum>
         builder: (context, themeProvider, child) {
           return AlertDialog(
             backgroundColor:
-            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             title: Text(
               'Delete Message',
               style: TextStyle(
@@ -1470,7 +1946,7 @@ class DiscussionForumState extends State<DiscussionForum>
               'Are you sure you want to delete this message? This action cannot be undone.',
               style: TextStyle(
                 color:
-                themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                    themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
             actions: [
@@ -1508,7 +1984,7 @@ class DiscussionForumState extends State<DiscussionForum>
                 child: Text(
                   'Delete',
                   style:
-                  TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -1527,7 +2003,8 @@ class DiscussionForumState extends State<DiscussionForum>
       bool isMyMessage,
       String senderId,
       String senderName) {
-    final isPoll = message.isEmpty && hasMedia || (message.isNotEmpty && hasMedia && messageId.contains('poll'));
+    final isPoll = message.isEmpty && hasMedia ||
+        (message.isNotEmpty && hasMedia && messageId.contains('poll'));
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1542,28 +2019,60 @@ class DiscussionForumState extends State<DiscussionForum>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(2),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            SizedBox(height: 20),
+              SizedBox(height: 20),
 
-            // Copy message option - Show for all messages that have text content
-            if (message.isNotEmpty && !isPoll)
+              // Copy message option - Show for all messages that have text content
+              if (message.isNotEmpty && !isPoll)
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF9C27B0).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.copy, color: Color(0xFF9C27B0)),
+                  ),
+                  title: Text(
+                    'Copy Message',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Copy message to clipboard
+                    Clipboard.setData(ClipboardData(text: message));
+                    Fluttertoast.showToast(
+                      msg: "Message copied to clipboard",
+                      toastLength: Toast.LENGTH_SHORT,
+                      backgroundColor: Color(0xFF9C27B0),
+                      textColor: Colors.white,
+                    );
+                  },
+                ),
+
+              // Vote options for everyone
               ListTile(
                 leading: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(0xFF9C27B0).withOpacity(0.1),
+                    color: Color(0xFF4CAF50).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.copy, color: Color(0xFF9C27B0)),
+                  child: Icon(Icons.thumb_up, color: Color(0xFF4CAF50)),
                 ),
                 title: Text(
-                  'Copy Message',
+                  'Upvote ${isPoll ? "Poll" : "Message"}',
                   style: TextStyle(
                     color: themeProvider.isDarkMode
                         ? Colors.white
@@ -1573,144 +2082,117 @@ class DiscussionForumState extends State<DiscussionForum>
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  // Copy message to clipboard
-                  Clipboard.setData(ClipboardData(text: message));
-                  Fluttertoast.showToast(
-                    msg: "Message copied to clipboard",
-                    toastLength: Toast.LENGTH_SHORT,
-                    backgroundColor: Color(0xFF9C27B0),
-                    textColor: Colors.white,
+                  _voteMessage(messageId, true);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.thumb_down, color: Colors.red),
+                ),
+                title: Text(
+                  'Downvote ${isPoll ? "Poll" : "Message"}',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _voteMessage(messageId, false);
+                },
+              ),
+
+              Divider(color: Colors.grey[400]),
+
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.reply, color: Color(0xFF2196F3)),
+                ),
+                title: Text(
+                  'Reply to ${isPoll ? "Poll" : "Message"}',
+                  style: TextStyle(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _replyToMessage(
+                    messageId,
+                    message.isNotEmpty
+                        ? message
+                        : (isPoll ? "Poll" : (hasMedia ? "Media" : "Message")),
+                    senderName,
                   );
                 },
               ),
 
-            // Vote options for everyone
-            ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFF4CAF50).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.thumb_up, color: Color(0xFF4CAF50)),
-              ),
-              title: Text(
-                'Upvote ${isPoll ? "Poll" : "Message"}',
-                style: TextStyle(
-                  color:
-                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _voteMessage(messageId, true);
-              },
-            ),
-            ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.thumb_down, color: Colors.red),
-              ),
-              title: Text(
-                'Downvote ${isPoll ? "Poll" : "Message"}',
-                style: TextStyle(
-                  color:
-                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _voteMessage(messageId, false);
-              },
-            ),
-
-            Divider(color: Colors.grey[400]),
-
-            ListTile(
-              leading: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFF2196F3).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.reply, color: Color(0xFF2196F3)),
-              ),
-              title: Text(
-                'Reply to ${isPoll ? "Poll" : "Message"}',
-                style: TextStyle(
-                  color:
-                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _replyToMessage(
-                  messageId,
-                  message.isNotEmpty
-                      ? message
-                      : (isPoll ? "Poll" : (hasMedia ? "Media" : "Message")),
-                  senderName,
-                );
-              },
-            ),
-
-            // Report option - Show for messages that are not yours
-            if (!isMyMessage)
-              ListTile(
-                leading: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+              // Report option - Show for messages that are not yours
+              if (!isMyMessage)
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.flag, color: Colors.orange),
                   ),
-                  child: Icon(Icons.flag, color: Colors.orange),
-                ),
-                title: Text(
-                  'Report ${isPoll ? "Poll" : "Message"}',
-                  style: TextStyle(
-                    color:
-                    themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                    fontWeight: FontWeight.w600,
+                  title: Text(
+                    'Report ${isPoll ? "Poll" : "Message"}',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showReportDialog(messageId, message, senderName, senderId,
+                        themeProvider);
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _showReportDialog(messageId, message, senderName, senderId, themeProvider);
-                },
-              ),
 
               // Allow editing polls only by creator, regular messages by owner
               if (isMyMessage && !hasMedia && message.isNotEmpty)
-              ListTile(
-                leading: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFFF9800).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFFF9800).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.edit, color: Color(0xFFFF9800)),
                   ),
-                  child: Icon(Icons.edit, color: Color(0xFFFF9800)),
-                ),
-                title: Text(
-                  'Edit Message',
-                  style: TextStyle(
-                    color: themeProvider.isDarkMode
-                        ? Colors.white
-                        : Colors.black87,
-                    fontWeight: FontWeight.w600,
+                  title: Text(
+                    'Edit Message',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _startEditingMessage(messageId, message);
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _startEditingMessage(messageId, message);
-                },
-              ),
               if (isMyMessage || _isAdmin)
                 ListTile(
                   leading: Container(
@@ -1763,37 +2245,38 @@ class DiscussionForumState extends State<DiscussionForum>
                     // This will be handled by the poll widget's long press
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Use the edit button on the poll to modify it'),
+                        content: Text(
+                            'Use the edit button on the poll to modify it'),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                 ),
-            if (_isAdmin && !isMyMessage && senderId != userId)
-              ListTile(
-                leading: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+              if (_isAdmin && !isMyMessage && senderId != userId)
+                ListTile(
+                  leading: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.block, color: Colors.orange),
                   ),
-                  child: Icon(Icons.block, color: Colors.orange),
-                ),
-                title: Text(
-                  'Ban User',
-                  style: TextStyle(
-                    color: themeProvider.isDarkMode
-                        ? Colors.white
-                        : Colors.black87,
-                    fontWeight: FontWeight.w600,
+                  title: Text(
+                    'Ban User',
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _banUser(senderId, senderName);
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _banUser(senderId, senderName);
-                },
-              ),
-          ],
+            ],
           ),
         ),
       ),
@@ -1824,12 +2307,12 @@ class DiscussionForumState extends State<DiscussionForum>
       return Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor:
-        themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
+            themeProvider.isDarkMode ? Colors.grey[900] : Color(0xFFF8F9FA),
         appBar: AppBar(
           elevation: 0,
           centerTitle: true,
           backgroundColor:
-          themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           title: Column(
             children: [
               Text(
@@ -1838,7 +2321,7 @@ class DiscussionForumState extends State<DiscussionForum>
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color:
-                  themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -2007,7 +2490,8 @@ class DiscussionForumState extends State<DiscussionForum>
                           onTap: _restoreAllMessages,
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
                               color: Color(0xFF4CAF50).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
@@ -2050,10 +2534,12 @@ class DiscussionForumState extends State<DiscussionForum>
                       ),
                       child: StreamBuilder<DatabaseEvent>(
                         stream: _messagesRef.orderByChild("timestamp").onValue,
-                        builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                        builder:
+                            (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                           if (!snapshot.hasData ||
                               snapshot.data?.snapshot.value == null) {
-                            return MessageWidgets.buildEmptyState(themeProvider);
+                            return MessageWidgets.buildEmptyState(
+                                themeProvider);
                           }
 
                           // Convert snapshot to list of messages
@@ -2063,9 +2549,9 @@ class DiscussionForumState extends State<DiscussionForum>
                           List<Map<String, dynamic>> messagesList = messagesMap
                               .entries
                               .map((e) => {
-                            "key": e.key,
-                            ...Map<String, dynamic>.from(e.value)
-                          })
+                                    "key": e.key,
+                                    ...Map<String, dynamic>.from(e.value)
+                                  })
                               .where((message) => !_shouldHideMessage(message))
                               .toList();
 
@@ -2094,7 +2580,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                   message["createdAt"] ?? message["timestamp"];
                               if (timestamp is int) {
                                 messageDate =
-                                    DateTime.fromMillisecondsSinceEpoch(timestamp);
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                        timestamp);
                               }
                             } catch (e) {
                               print('Error parsing date: $e');
@@ -2102,7 +2589,8 @@ class DiscussionForumState extends State<DiscussionForum>
 
                             // Add date separator if date changed and message date exists
                             if (messageDate != null) {
-                              final dateString = ForumLogic.getDateString(messageDate);
+                              final dateString =
+                                  ForumLogic.getDateString(messageDate);
                               if (dateString != lastDateString) {
                                 messageWidgets.add(
                                     MessageWidgets.buildDateSeparator(
@@ -2128,11 +2616,13 @@ class DiscussionForumState extends State<DiscussionForum>
                                     // Add voting parameters
                                     _messageVotes,
                                     _voteMessage,
-                                        (messageId) => _getUserVote(messageId) ?? '',
+                                    (messageId) =>
+                                        _getUserVote(messageId) ?? '',
                                     // Add jumping functionality
                                     onJumpToMessage: _scrollToMessage,
                                     // Add highlighting parameters
-                                    isHighlighted: _highlightedMessageId == message["key"],
+                                    isHighlighted:
+                                        _highlightedMessageId == message["key"],
                                   ),
                                 ),
                               );
@@ -2154,30 +2644,31 @@ class DiscussionForumState extends State<DiscussionForum>
                             children: messageWidgets.isNotEmpty
                                 ? messageWidgets
                                 : messagesList.map((message) {
-                              bool isMe = message["senderId"] == userId;
-                              final messageId = message["key"];
+                                    bool isMe = message["senderId"] == userId;
+                                    final messageId = message["key"];
 
-                              return Container(
-                                key: _messageKeys[messageId],
-                                child: MessageWidgets.buildMessage(
-                                  message,
-                                  isMe,
-                                  themeProvider,
-                                  _showFullScreenImage,
-                                  _showFullScreenVideo,
-                                  _replyToMessage,
-                                  _showMessageOptions,
-                                  _isAdmin,
-                                  userId!,
-                                  currentUserName,
-                                  // Add voting parameters
-                                  _messageVotes,
-                                  _voteMessage,
-                                      (messageId) => _getUserVote(messageId) ?? '',
-                                  onJumpToMessage: _jumpToMessage,
-                                ),
-                              );
-                            }).toList(),
+                                    return Container(
+                                      key: _messageKeys[messageId],
+                                      child: MessageWidgets.buildMessage(
+                                        message,
+                                        isMe,
+                                        themeProvider,
+                                        _showFullScreenImage,
+                                        _showFullScreenVideo,
+                                        _replyToMessage,
+                                        _showMessageOptions,
+                                        _isAdmin,
+                                        userId!,
+                                        currentUserName,
+                                        // Add voting parameters
+                                        _messageVotes,
+                                        _voteMessage,
+                                        (messageId) =>
+                                            _getUserVote(messageId) ?? '',
+                                        onJumpToMessage: _jumpToMessage,
+                                      ),
+                                    );
+                                  }).toList(),
                           );
 
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2185,7 +2676,8 @@ class DiscussionForumState extends State<DiscussionForum>
                                 !_showGoDownButton) {
                               // Multiple jumps to ensure we reach absolute bottom
                               for (int i = 0; i <= 10; i++) {
-                                Future.delayed(Duration(milliseconds: i * 50), () {
+                                Future.delayed(Duration(milliseconds: i * 50),
+                                    () {
                                   if (_scrollController.hasClients &&
                                       !_showGoDownButton) {
                                     _scrollController.jumpTo(_scrollController
@@ -2256,28 +2748,28 @@ class DiscussionForumState extends State<DiscussionForum>
                             borderRadius: BorderRadius.circular(8),
                             child: _attachedMediaType == "image"
                                 ? (_attachedMediaFile != null
-                                ? Image.file(
-                              _attachedMediaFile!,
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            )
+                                    ? Image.file(
+                                        _attachedMediaFile!,
+                                        height: 100,
+                                        width: 100,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        height: 100,
+                                        width: 100,
+                                        color: Colors.grey[300],
+                                        child: Icon(Icons.image),
+                                      ))
                                 : Container(
-                              height: 100,
-                              width: 100,
-                              color: Colors.grey[300],
-                              child: Icon(Icons.image),
-                            ))
-                                : Container(
-                              height: 100,
-                              width: 100,
-                              color: Colors.black,
-                              child: Icon(
-                                Icons.play_arrow,
-                                color: Colors.white,
-                                size: 40,
-                              ),
-                            ),
+                                    height: 100,
+                                    width: 100,
+                                    color: Colors.black,
+                                    child: Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 40,
+                                    ),
+                                  ),
                           ),
                         ],
                       ),
@@ -2317,319 +2809,97 @@ class DiscussionForumState extends State<DiscussionForum>
                     ),
                     child: _isUserBanned
                         ? Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red, width: 1),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.block, color: Colors.red, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'You are banned from sending messages',
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                        : SafeArea(
-                      child: Row(
-                        children: [
-                          // Pin icon button for media selection
-                          Container(
+                            padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: themeProvider.isDarkMode
-                                  ? Colors.grey[700]
-                                  : Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: themeProvider.isDarkMode
-                                    ? Colors.grey[600]!
-                                    : Colors.grey[300]!,
-                                width: 1,
-                              ),
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red, width: 1),
                             ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(24),
-                                onTap: _isUploading ? null : _showMediaOptions,
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  child: _isUploading
-                                      ? Center(
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Color(0xFF2196F3),
-                                      ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.block, color: Colors.red, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'You are banned from sending messages',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  )
-                                      : Icon(
-                                    Icons.attach_file,
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[500],
-                                    size: 24,
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ),
-                          SizedBox(width: 12),
-
-                          // Enhanced text input field
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode
-                                    ? Colors.grey[700]
-                                    : Color(0xFFF5F5F5),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: (_isTyping || _isEditing)
-                                      ? Color(0xFF2196F3)
-                                      : (themeProvider.isDarkMode
-                                      ? Colors.grey[600]!
-                                      : Colors.grey[300]!),
-                                  width: (_isTyping || _isEditing) ? 2 : 1,
-                                ),
-                                boxShadow:
-                                (_isTyping || _isEditing || _showMediaPreview)
-                                    ? [
-                                  BoxShadow(
-                                    color: Color(0xFF2196F3)
-                                        .withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ]
-                                    : null,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Text field
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _messageController,
-                                      focusNode: _textFieldFocusNode,
-                                      onTap: () {
-                                        // Hide emoji picker when text field is tapped
-                                        if (_showEmojiPicker) {
-                                          setState(() {
-                                            _showEmojiPicker = false;
-                                          });
-                                          _emojiAnimationController.reverse();
-                                        }
-                                        // Auto scroll if at bottom when keyboard opens
-                                        Future.delayed(
-                                            Duration(milliseconds: 300), () {
-                                          if (!_showGoDownButton &&
-                                              _scrollController.hasClients) {
-                                            _scrollController.animateTo(
-                                              _scrollController
-                                                  .position.maxScrollExtent,
-                                              duration:
-                                              Duration(milliseconds: 200),
-                                              curve: Curves.easeOut,
-                                            );
-                                          }
-                                        });
-                                      },
-                                      onChanged: (text) {
-                                        if (text.length > 100) {
-                                          _messageController.text =
-                                              text.substring(0, 100);
-                                          _messageController.selection =
-                                              TextSelection.fromPosition(
-                                                TextPosition(offset: 100),
-                                              );
-                                        }
-                                      },
-                                      style: TextStyle(
-                                        color: themeProvider.isDarkMode
-                                            ? Colors.white
-                                            : Colors.black87,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 3,
-                                      minLines: 1,
-                                      textCapitalization:
-                                      TextCapitalization.sentences,
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.only(
-                                            left: 20, top: 12, bottom: 12),
-                                        hintText: _isEditing
-                                            ? "Edit your message..."
-                                            : (_isReplying
-                                            ? "Reply to ${_replyingToSender}..."
-                                            : (_isListening
-                                            ? "Listening..."
-                                            : "Type...")),
-                                        hintStyle: TextStyle(
-                                          color: _isListening
-                                              ? Color(0xFF4CAF50)
-                                              : (themeProvider.isDarkMode
-                                              ? Colors.grey[400]
-                                              : Colors.grey[500]),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                  // Mic button
-                                  GestureDetector(
-                                    onTap: _toggleListening,
-                                    child: Container(
-                                      margin: EdgeInsets.only(right: 4),
-                                      padding: EdgeInsets.only(
-                                          right: 8, top: 8, bottom: 8),
-                                      decoration: BoxDecoration(
-                                        color: _isListening
-                                            ? Color(0xFF4CAF50).withOpacity(0.1)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Icon(
-                                        _isListening
-                                            ? Icons.mic
-                                            : Icons.mic_none,
-                                        color: _isListening
-                                            ? Color(0xFF4CAF50)
-                                            : (themeProvider.isDarkMode
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600]),
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                  // Emoji button inside text field
-                                  GestureDetector(
-                                    onTap: () {
-                                      FocusScope.of(context).unfocus();
-                                      Future.delayed(
-                                          Duration(milliseconds: 100), () {
-                                        _toggleEmojiPicker();
-                                      });
-                                    },
-                                    child: Container(
-                                      margin: EdgeInsets.only(right: 16),
-                                      padding: EdgeInsets.all(0),
-                                      decoration: BoxDecoration(
-                                        color: _showEmojiPicker
-                                            ? Color(0xFF2196F3).withOpacity(0.1)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Icon(
-                                        _showEmojiPicker
-                                            ? Icons.keyboard
-                                            : Icons.emoji_emotions_outlined,
-                                        color: _showEmojiPicker
-                                            ? Color(0xFF2196F3)
-                                            : (themeProvider.isDarkMode
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600]),
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 12),
-
-                          // Send button
-                          AnimatedBuilder(
-                            animation: _sendButtonScaleAnimation,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: _sendButtonScaleAnimation.value,
-                                child: Container(
+                          )
+                        : SafeArea(
+                            child: Row(
+                              children: [
+                                // Pin icon button for media selection
+                                Container(
                                   decoration: BoxDecoration(
-                                    gradient:
-                                    (_isTyping || _isEditing || _showMediaPreview)
-                                        ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF1976D2),
-                                        Color(0xFF2196F3)
-                                      ],
-                                    )
-                                        : null,
-                                    color: !(_isTyping || _isEditing || _showMediaPreview)
-                                        ? (themeProvider.isDarkMode
-                                        ? Colors.grey[600]
-                                        : Colors.grey[400])
-                                        : null,
-                                    shape: BoxShape.circle,
-                                    boxShadow:
-                                    (_isTyping || _isEditing || _showMediaPreview)
-                                        ? [
-                                      BoxShadow(
-                                        color: Color(0xFF2196F3)
-                                            .withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ]
-                                        : null,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[700]
+                                        : Color(0xFFF5F5F5),
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[600]!
+                                          : Colors.grey[300]!,
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      borderRadius: BorderRadius.circular(28),
-                                      onTap: (_isTyping ||
-                                          _isEditing ||
-                                          _showMediaPreview)
-                                          ? () => _sendMessage()
-                                          : null,
+                                      borderRadius: BorderRadius.circular(24),
+                                      onTap: _isUploading
+                                          ? null
+                                          : _showMediaOptions,
                                       child: Container(
                                         width: 44,
                                         height: 44,
-                                        decoration:
-                                        BoxDecoration(shape: BoxShape.circle),
-                                        child: Icon(
-                                          _isEditing
-                                              ? Icons.check
-                                              : (_isTyping
-                                              ? Icons.send_rounded
-                                              : Icons.send_outlined),
-                                          color: Colors.white,
-                                          size: (_isTyping ||
-                                              _isEditing ||
-                                              _showMediaPreview)
-                                              ? 24
-                                              : 20,
-                                        ),
+                                        child: _isUploading
+                                            ? Center(
+                                                child: SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Color(0xFF2196F3),
+                                                  ),
+                                                ),
+                                              )
+                                            : Icon(
+                                                Icons.attach_file,
+                                                color: themeProvider.isDarkMode
+                                                    ? Colors.grey[400]
+                                                    : Colors.grey[500],
+                                                size: 24,
+                                              ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              );
-                            },
+                                SizedBox(width: 12),
+
+                                // Enhanced text input field with @everyone support
+                                Expanded(
+                                  child: _buildEnhancedTextInput(themeProvider),
+                                ),
+                                SizedBox(width: 12),
+
+                                // Enhanced send button
+                                _buildSendButton(themeProvider),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
                   ),
                   if (_showEmojiPicker)
                     Container(
-                      height: MediaQuery.of(context).viewInsets.bottom > 0 ? 280 : 280,
+                      height: MediaQuery.of(context).viewInsets.bottom > 0
+                          ? 280
+                          : 280,
                       child: EmojiPickerWidget(
                         themeProvider: themeProvider,
                         emojiAnimationController: _emojiAnimationController,
@@ -2676,5 +2946,10 @@ class DiscussionForumState extends State<DiscussionForum>
         ),
       );
     });
+  }
+
+  static bool hasEveryoneMention(Map<String, dynamic> messageData) {
+    final message = messageData["message"] ?? "";
+    return EveryoneNotificationService.containsEveryone(message);
   }
 }
