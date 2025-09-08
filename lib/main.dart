@@ -177,8 +177,8 @@ Future<void> handleAdminLogin(BuildContext context) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('isAdmin', true);
   if (context.mounted) {
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => MainNavigationWrapper()));
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (context) => MainNavigationWrapper()));
   }
 }
 
@@ -219,7 +219,8 @@ class WelcomeScreen extends StatefulWidget {
   WelcomeScreenState createState() => WelcomeScreenState();
 }
 
-class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMixin {
+class WelcomeScreenState extends State<WelcomeScreen>
+    with TickerProviderStateMixin {
   bool _isLoading = false;
   late AnimationController _buttonAnimationController;
   late Animation<double> _buttonScaleAnimation;
@@ -232,7 +233,8 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
       vsync: this,
     );
     _buttonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _buttonAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+          parent: _buttonAnimationController, curve: Curves.easeInOut),
     );
   }
 
@@ -274,7 +276,8 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
 
     return Scaffold(
       backgroundColor: isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
-      drawer: _buildModernDrawer(context, isDarkMode, screenWidth, screenHeight),
+      drawer:
+          _buildModernDrawer(context, isDarkMode, screenWidth, screenHeight),
 
       // Main Body with matching login design
       body: Container(
@@ -291,12 +294,13 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(
-              horizontal: screenWidth * 0.08,
-              vertical: screenHeight * 0.05
-            ),
+                horizontal: screenWidth * 0.08, vertical: screenHeight * 0.05),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 100,
+                minHeight: screenHeight -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom -
+                    100,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -319,7 +323,9 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                           "Let's make your community better",
                           style: TextStyle(
                             fontSize: screenWidth * 0.04,
-                            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            color: isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -364,8 +370,16 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: isDarkMode
-                                    ? [Colors.teal.withOpacity(0.3), Colors.teal.withOpacity(0.1)]
-                                    : [const Color(0xFF1565C0).withOpacity(0.1), const Color(0xFF42A5F5).withOpacity(0.05)],
+                                    ? [
+                                        Colors.teal.withOpacity(0.3),
+                                        Colors.teal.withOpacity(0.1)
+                                      ]
+                                    : [
+                                        const Color(0xFF1565C0)
+                                            .withOpacity(0.1),
+                                        const Color(0xFF42A5F5)
+                                            .withOpacity(0.05)
+                                      ],
                               ),
                               shape: BoxShape.circle,
                               border: Border.all(
@@ -380,7 +394,9 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                               width: screenWidth * 0.35,
                               height: screenWidth * 0.35,
                               fit: BoxFit.contain,
-                              color: isDarkMode ? Colors.white.withOpacity(0.9) : null,
+                              color: isDarkMode
+                                  ? Colors.white.withOpacity(0.9)
+                                  : null,
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -436,7 +452,10 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                             shaderCallback: (bounds) => LinearGradient(
                               colors: isDarkMode
                                   ? [Colors.teal[300]!, Colors.teal[100]!]
-                                  : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                                  : [
+                                      const Color(0xFF1565C0),
+                                      const Color(0xFF42A5F5)
+                                    ],
                             ).createShader(bounds),
                             child: Text(
                               "Facing Civic Issues?",
@@ -477,9 +496,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.08,
-            vertical: 20
-          ),
+              horizontal: screenWidth * 0.08, vertical: 20),
           child: AnimatedBuilder(
             animation: _buttonScaleAnimation,
             builder: (context, child) {
@@ -512,8 +529,7 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                       shadowColor: Colors.transparent,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)
-                      ),
+                          borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: _isLoading
@@ -522,7 +538,8 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Row(
@@ -549,7 +566,8 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
     );
   }
 
-  Widget _buildModernDrawer(BuildContext context, bool isDarkMode, double screenWidth, double screenHeight) {
+  Widget _buildModernDrawer(BuildContext context, bool isDarkMode,
+      double screenWidth, double screenHeight) {
     return Drawer(
       backgroundColor: isDarkMode ? Colors.grey[800] : Colors.white,
       child: Column(
@@ -622,13 +640,12 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                       : Colors.grey[50],
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDarkMode
-                        ? Colors.grey[600]!
-                        : Colors.grey[200]!,
+                    color: isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
                   ),
                 ),
                 child: SwitchListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   title: Text(
                     "Dark Mode",
                     style: TextStyle(
@@ -651,18 +668,27 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: isDarkMode
-                            ? [Colors.teal.withOpacity(0.2), Colors.teal.withOpacity(0.1)]
-                            : [const Color(0xFF1565C0).withOpacity(0.1), const Color(0xFF42A5F5).withOpacity(0.05)],
+                            ? [
+                                Colors.teal.withOpacity(0.2),
+                                Colors.teal.withOpacity(0.1)
+                              ]
+                            : [
+                                const Color(0xFF1565C0).withOpacity(0.1),
+                                const Color(0xFF42A5F5).withOpacity(0.05)
+                              ],
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.dark_mode_rounded,
-                      color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                      color: isDarkMode
+                          ? Colors.teal[300]
+                          : const Color(0xFF1565C0),
                       size: 22,
                     ),
                   ),
-                  activeColor: isDarkMode ? Colors.teal : const Color(0xFF1565C0),
+                  activeColor:
+                      isDarkMode ? Colors.teal : const Color(0xFF1565C0),
                 ),
               ),
             ),
@@ -682,7 +708,8 @@ class WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMi
                 ),
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(

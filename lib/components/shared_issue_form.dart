@@ -47,9 +47,8 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   final NotificationService _notificationService =
-  NotificationService(); // Add this
+      NotificationService(); // Add this
   bool _isAnonymous = false;
-
 
   int get _remainingCharacters => 250 - _descriptionController.text.length;
   bool get _canSubmit {
@@ -158,21 +157,21 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
     if (permission == LocationPermission.deniedForever) {
       Fluttertoast.showToast(
           msg:
-          "Location permission permanently denied. Please enable it from settings.");
+              "Location permission permanently denied. Please enable it from settings.");
       await openAppSettings();
       return;
     }
 
     try {
       Position position = await Geolocator.getCurrentPosition(
-        // ignore: deprecated_member_use
+          // ignore: deprecated_member_use
           desiredAccuracy: LocationAccuracy.high);
       final placemarks =
-      await placemarkFromCoordinates(position.latitude, position.longitude);
+          await placemarkFromCoordinates(position.latitude, position.longitude);
       final place = placemarks.first;
       setState(() {
         _locationController.text =
-        "${place.subLocality}, ${place.street}, ${place.locality}, ${place.administrativeArea}, ${place.country}, ${place.isoCountryCode}";
+            "${place.subLocality}, ${place.street}, ${place.locality}, ${place.administrativeArea}, ${place.country}, ${place.isoCountryCode}";
       });
     } catch (e) {
       Fluttertoast.showToast(msg: "Failed to get location: $e");
@@ -185,7 +184,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
       builder: (_) => AlertDialog(
         title: Text("Remove ${isVideo ? 'video' : 'image'}?"),
         content:
-        Text("Do you want to remove the ${isVideo ? 'video' : 'image'}?"),
+            Text("Do you want to remove the ${isVideo ? 'video' : 'image'}?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -218,7 +217,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
     }
 
     final pickedFile =
-    await ImagePicker().pickImage(source: ImageSource.gallery);
+        await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {
@@ -235,7 +234,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
     }
 
     final pickedFile =
-    await ImagePicker().pickVideo(source: ImageSource.gallery);
+        await ImagePicker().pickVideo(source: ImageSource.gallery);
     if (pickedFile != null) {
       final controller = VideoPlayerController.file(File(pickedFile.path));
       await controller.initialize();
@@ -310,11 +309,11 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
       }
 
       final DatabaseReference ref =
-      FirebaseDatabase.instance.ref("complaints").push();
+          FirebaseDatabase.instance.ref("complaints").push();
       await ref.set({
-        'user_id': _isAnonymous ? 'anonymous' : FirebaseAuth.instance.currentUser?.uid,
-'is_anonymous': _isAnonymous,
-
+        'user_id':
+            _isAnonymous ? 'anonymous' : FirebaseAuth.instance.currentUser?.uid,
+        'is_anonymous': _isAnonymous,
         'issue_type': widget.issueType,
         'state': _selectedState,
         'city': _selectedCity,
@@ -342,7 +341,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
       // Save notification in local storage for admin
       await LocalStatusStorage.saveAdminNotification({
         'message':
-        'New ${widget.issueType} complaint submitted by $userName from $_selectedCity, $_selectedState and is pending review.',
+            'New ${widget.issueType} complaint submitted by $userName from $_selectedCity, $_selectedState and is pending review.',
         'timestamp': DateTime.now().toIso8601String(),
         'complaint_id': ref.key,
         'status': 'Pending',
@@ -357,7 +356,11 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
       Fluttertoast.showToast(msg: "Submitted Successfully");
       if (mounted) {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => DoneScreen(isAnonymous: _isAnonymous,)));
+            context,
+            MaterialPageRoute(
+                builder: (_) => DoneScreen(
+                      isAnonymous: _isAnonymous,
+                    )));
       }
     } catch (e) {
       Fluttertoast.showToast(msg: "Submission failed: $e");
@@ -379,7 +382,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
   }
 
   InputDecoration _inputDecoration(String hint,
-      {required bool isFilled, required ThemeProvider themeProvider}) =>
+          {required bool isFilled, required ThemeProvider themeProvider}) =>
       InputDecoration(
         hintText: hint,
         filled: true,
@@ -390,7 +393,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
           color: themeProvider.isDarkMode ? Colors.white70 : null,
         ),
         contentPadding:
-        const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+            const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
@@ -399,7 +402,7 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide:
-          BorderSide(color: isFilled ? Colors.blue : Colors.red, width: 2),
+              BorderSide(color: isFilled ? Colors.blue : Colors.red, width: 2),
         ),
       );
 
@@ -411,12 +414,17 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
     final isVerySmallScreen = screenWidth < 360;
 
     // Responsive padding and sizing
-    final horizontalPadding = isVerySmallScreen ? 12.0 : (isSmallScreen ? 16.0 : 20.0);
-    final cardPadding = isVerySmallScreen ? 16.0 : (isSmallScreen ? 20.0 : 24.0);
+    final horizontalPadding =
+        isVerySmallScreen ? 12.0 : (isSmallScreen ? 16.0 : 20.0);
+    final cardPadding =
+        isVerySmallScreen ? 16.0 : (isSmallScreen ? 20.0 : 24.0);
     final iconSize = isVerySmallScreen ? 24.0 : 28.0;
-    final headerImageHeight = isVerySmallScreen ? 140.0 : (isSmallScreen ? 160.0 : 200.0);
-    final videoHeight = isVerySmallScreen ? 120.0 : (isSmallScreen ? 140.0 : 180.0);
-    final imagePreviewHeight = isVerySmallScreen ? 120.0 : (isSmallScreen ? 140.0 : 160.0);
+    final headerImageHeight =
+        isVerySmallScreen ? 140.0 : (isSmallScreen ? 160.0 : 200.0);
+    final videoHeight =
+        isVerySmallScreen ? 120.0 : (isSmallScreen ? 140.0 : 180.0);
+    final imagePreviewHeight =
+        isVerySmallScreen ? 120.0 : (isSmallScreen ? 140.0 : 160.0);
 
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
       return Container(
@@ -426,13 +434,13 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
             end: Alignment.bottomCenter,
             colors: themeProvider.isDarkMode
                 ? [
-              Colors.grey[900]!,
-              Colors.grey[850]!,
-            ]
+                    Colors.grey[900]!,
+                    Colors.grey[850]!,
+                  ]
                 : [
-              const Color(0xFFF8F9FA),
-              const Color(0xFFFFFFFF),
-            ],
+                    const Color(0xFFF8F9FA),
+                    const Color(0xFFFFFFFF),
+                  ],
           ),
         ),
         child: SingleChildScrollView(
@@ -446,11 +454,17 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
                   width: double.infinity,
                   padding: EdgeInsets.all(cardPadding),
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-                    borderRadius: BorderRadius.circular(isVerySmallScreen ? 16 : 20),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[800]
+                        : Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(isVerySmallScreen ? 16 : 20),
                     boxShadow: [
                       BoxShadow(
-                        color: (themeProvider.isDarkMode ? Colors.black : Colors.grey).withOpacity(0.1),
+                        color: (themeProvider.isDarkMode
+                                ? Colors.black
+                                : Colors.grey)
+                            .withOpacity(0.1),
                         spreadRadius: 2,
                         blurRadius: 10,
                         offset: const Offset(0, 3),
@@ -462,126 +476,137 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
                       // Header row with responsive layout
                       isVerySmallScreen
                           ? Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
-                              ),
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF42A5F5).withOpacity(0.3),
-                                  spreadRadius: 2,
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.report_problem,
-                              size: iconSize,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                widget.headingText,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: isVerySmallScreen ? 16 : 18,
-                                  color: themeProvider.isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                widget.infoText,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: isVerySmallScreen ? 12 : 14,
-                                  color: themeProvider.isDarkMode
-                                      ? Colors.grey[300]
-                                      : Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                          : Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
-                              ),
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF42A5F5).withOpacity(0.3),
-                                  spreadRadius: 2,
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.report_problem,
-                              size: iconSize,
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(width: isSmallScreen ? 12 : 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  widget.headingText,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isSmallScreen ? 18 : 20,
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    letterSpacing: 0.5,
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF42A5F5),
+                                        Color(0xFF1565C0)
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF42A5F5)
+                                            .withOpacity(0.3),
+                                        spreadRadius: 2,
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                                  child: Icon(
+                                    Icons.report_problem,
+                                    size: iconSize,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.infoText,
-                                  style: TextStyle(
-                                    fontSize: isSmallScreen ? 13 : 14,
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.grey[300]
-                                        : Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
+                                const SizedBox(height: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      widget.headingText,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: isVerySmallScreen ? 16 : 18,
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      widget.infoText,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: isVerySmallScreen ? 12 : 14,
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.grey[300]
+                                            : Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF42A5F5),
+                                        Color(0xFF1565C0)
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF42A5F5)
+                                            .withOpacity(0.3),
+                                        spreadRadius: 2,
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
+                                  child: Icon(
+                                    Icons.report_problem,
+                                    size: iconSize,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: isSmallScreen ? 12 : 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.headingText,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isSmallScreen ? 18 : 20,
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.white
+                                              : Colors.black87,
+                                          letterSpacing: 0.5,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        widget.infoText,
+                                        style: TextStyle(
+                                          fontSize: isSmallScreen ? 13 : 14,
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.grey[300]
+                                              : Colors.grey[600],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
                       SizedBox(height: isVerySmallScreen ? 16 : 20),
                       ZoomIn(
                         child: Container(
-                          height: 180, // Add height constraint to reduce image size
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          height:
+                              180, // Add height constraint to reduce image size
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(15),
                             color: Colors.white,
@@ -621,35 +646,34 @@ class _SharedIssueFormState extends State<SharedIssueForm> {
                 ),
               ),
               SizedBox(height: isVerySmallScreen ? 16 : 24),
-Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    Text(
-      "Submit as Anonymous",
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-      ),
-    ),
-   Switch(
-  value: _isAnonymous,
-  onChanged: (value) {
-    setState(() {
-      _isAnonymous = value;
-    });
-  },
-  activeColor: Colors.white,        // Thumb color when ON
-  activeTrackColor: Colors.blue,    // Track color when ON
-  inactiveThumbColor: Colors.grey,  // Thumb color when OFF
-  inactiveTrackColor: Colors.black26, // Track color when OFF
-),
-
-
-  ],
-),
-SizedBox(height: 16),
-
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Submit as Anonymous",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                  ),
+                  Switch(
+                    value: _isAnonymous,
+                    onChanged: (value) {
+                      setState(() {
+                        _isAnonymous = value;
+                      });
+                    },
+                    activeColor: Colors.white, // Thumb color when ON
+                    activeTrackColor: Colors.blue, // Track color when ON
+                    inactiveThumbColor: Colors.grey, // Thumb color when OFF
+                    inactiveTrackColor: Colors.black26, // Track color when OFF
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
 
               // Location Section
               FadeInUp(
@@ -658,11 +682,17 @@ SizedBox(height: 16),
                   width: double.infinity,
                   padding: EdgeInsets.all(cardPadding),
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-                    borderRadius: BorderRadius.circular(isVerySmallScreen ? 16 : 20),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[800]
+                        : Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(isVerySmallScreen ? 16 : 20),
                     boxShadow: [
                       BoxShadow(
-                        color: (themeProvider.isDarkMode ? Colors.black : Colors.grey).withOpacity(0.1),
+                        color: (themeProvider.isDarkMode
+                                ? Colors.black
+                                : Colors.grey)
+                            .withOpacity(0.1),
                         spreadRadius: 2,
                         blurRadius: 10,
                         offset: const Offset(0, 3),
@@ -693,7 +723,9 @@ SizedBox(height: 16),
                               style: TextStyle(
                                 fontSize: isSmallScreen ? 16 : 18,
                                 fontWeight: FontWeight.bold,
-                                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -712,30 +744,38 @@ SizedBox(height: 16),
                           border: Border.all(
                             color: _selectedState != null
                                 ? const Color(0xFF42A5F5)
-                                : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
+                                : (themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!),
                             width: _selectedState != null ? 2 : 1,
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
                           value: _selectedState,
                           hint: Text(
-                            isVerySmallScreen ? "Select Region" : "Select the Wizarding Region",
+                            isVerySmallScreen
+                                ? "Select Region"
+                                : "Select the Wizarding Region",
                             style: TextStyle(
                               fontSize: isVerySmallScreen ? 13 : 14,
-                              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                             ),
                           ),
                           items: _states.keys
                               .map((s) => DropdownMenuItem(
-                              value: s,
-                              child: Text(
-                                s,
-                                style: TextStyle(
-                                  fontSize: isVerySmallScreen ? 13 : 14,
-                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              )))
+                                  value: s,
+                                  child: Text(
+                                    s,
+                                    style: TextStyle(
+                                      fontSize: isVerySmallScreen ? 13 : 14,
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  )))
                               .toList(),
                           onChanged: (value) => setState(() {
                             _selectedState = value;
@@ -751,10 +791,14 @@ SizedBox(height: 16),
                               Icons.map,
                               color: _selectedState != null
                                   ? const Color(0xFF42A5F5)
-                                  : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+                                  : (themeProvider.isDarkMode
+                                      ? Colors.grey[500]
+                                      : Colors.grey[400]),
                             ),
                           ),
-                          dropdownColor: themeProvider.isDarkMode ? Colors.grey[700] : Colors.white,
+                          dropdownColor: themeProvider.isDarkMode
+                              ? Colors.grey[700]
+                              : Colors.white,
                           isExpanded: true,
                         ),
                       ),
@@ -770,34 +814,43 @@ SizedBox(height: 16),
                           border: Border.all(
                             color: _selectedCity != null
                                 ? const Color(0xFF42A5F5)
-                                : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
+                                : (themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!),
                             width: _selectedCity != null ? 2 : 1,
                           ),
                         ),
                         child: DropdownButtonFormField<String>(
                           value: _selectedCity,
                           hint: Text(
-                            isVerySmallScreen ? "Select District" : "Select the Nearest Magical District",
+                            isVerySmallScreen
+                                ? "Select District"
+                                : "Select the Nearest Magical District",
                             style: TextStyle(
                               fontSize: isVerySmallScreen ? 13 : 14,
-                              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                             ),
                           ),
                           items: _selectedState != null
                               ? _states[_selectedState]!
-                              .map((city) => DropdownMenuItem(
-                              value: city,
-                              child: Text(
-                                city,
-                                style: TextStyle(
-                                  fontSize: isVerySmallScreen ? 13 : 14,
-                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              )))
-                              .toList()
+                                  .map((city) => DropdownMenuItem(
+                                      value: city,
+                                      child: Text(
+                                        city,
+                                        style: TextStyle(
+                                          fontSize: isVerySmallScreen ? 13 : 14,
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      )))
+                                  .toList()
                               : [],
-                          onChanged: (value) => setState(() => _selectedCity = value),
+                          onChanged: (value) =>
+                              setState(() => _selectedCity = value),
                           decoration: InputDecoration(
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
@@ -808,10 +861,14 @@ SizedBox(height: 16),
                               Icons.location_city,
                               color: _selectedCity != null
                                   ? const Color(0xFF42A5F5)
-                                  : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+                                  : (themeProvider.isDarkMode
+                                      ? Colors.grey[500]
+                                      : Colors.grey[400]),
                             ),
                           ),
-                          dropdownColor: themeProvider.isDarkMode ? Colors.grey[700] : Colors.white,
+                          dropdownColor: themeProvider.isDarkMode
+                              ? Colors.grey[700]
+                              : Colors.white,
                           isExpanded: true,
                         ),
                       ),
@@ -827,21 +884,31 @@ SizedBox(height: 16),
                           border: Border.all(
                             color: _locationController.text.trim().isNotEmpty
                                 ? const Color(0xFF42A5F5)
-                                : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
-                            width: _locationController.text.trim().isNotEmpty ? 2 : 1,
+                                : (themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!),
+                            width: _locationController.text.trim().isNotEmpty
+                                ? 2
+                                : 1,
                           ),
                         ),
                         child: TextField(
                           controller: _locationController,
                           style: TextStyle(
                             fontSize: isVerySmallScreen ? 13 : 14,
-                            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                            color: themeProvider.isDarkMode
+                                ? Colors.white
+                                : Colors.black87,
                           ),
                           decoration: InputDecoration(
-                            labelText: isVerySmallScreen ? "Secret Location" : "Reveal the Secret Location",
+                            labelText: isVerySmallScreen
+                                ? "Secret Location"
+                                : "Reveal the Secret Location",
                             labelStyle: TextStyle(
                               fontSize: isVerySmallScreen ? 13 : 14,
-                              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                             ),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
@@ -852,7 +919,9 @@ SizedBox(height: 16),
                               Icons.place,
                               color: _locationController.text.trim().isNotEmpty
                                   ? const Color(0xFF42A5F5)
-                                  : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+                                  : (themeProvider.isDarkMode
+                                      ? Colors.grey[500]
+                                      : Colors.grey[400]),
                             ),
                             suffixIcon: Container(
                               margin: const EdgeInsets.all(8),
@@ -861,7 +930,8 @@ SizedBox(height: 16),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: IconButton(
-                                icon: const Icon(Icons.my_location, color: Color(0xFF42A5F5)),
+                                icon: const Icon(Icons.my_location,
+                                    color: Color(0xFF42A5F5)),
                                 onPressed: _getCurrentLocation,
                               ),
                             ),
@@ -881,11 +951,17 @@ SizedBox(height: 16),
                   width: double.infinity,
                   padding: EdgeInsets.all(cardPadding),
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-                    borderRadius: BorderRadius.circular(isVerySmallScreen ? 16 : 20),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[800]
+                        : Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(isVerySmallScreen ? 16 : 20),
                     boxShadow: [
                       BoxShadow(
-                        color: (themeProvider.isDarkMode ? Colors.black : Colors.grey).withOpacity(0.1),
+                        color: (themeProvider.isDarkMode
+                                ? Colors.black
+                                : Colors.grey)
+                            .withOpacity(0.1),
                         spreadRadius: 2,
                         blurRadius: 10,
                         offset: const Offset(0, 3),
@@ -912,11 +988,15 @@ SizedBox(height: 16),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              isVerySmallScreen ? "Description" : "Incident Description",
+                              isVerySmallScreen
+                                  ? "Description"
+                                  : "Incident Description",
                               style: TextStyle(
                                 fontSize: isSmallScreen ? 16 : 18,
                                 fontWeight: FontWeight.bold,
-                                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -924,7 +1004,6 @@ SizedBox(height: 16),
                         ],
                       ),
                       SizedBox(height: isVerySmallScreen ? 16 : 20),
-
                       Container(
                         decoration: BoxDecoration(
                           color: themeProvider.isDarkMode
@@ -934,18 +1013,28 @@ SizedBox(height: 16),
                           border: Border.all(
                             color: _descriptionController.text.trim().isNotEmpty
                                 ? const Color(0xFF42A5F5)
-                                : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
-                            width: _descriptionController.text.trim().isNotEmpty ? 2 : 1,
+                                : (themeProvider.isDarkMode
+                                    ? Colors.grey[600]!
+                                    : Colors.grey[300]!),
+                            width: _descriptionController.text.trim().isNotEmpty
+                                ? 2
+                                : 1,
                           ),
                         ),
                         child: TextField(
                           controller: _descriptionController,
                           maxLines: isVerySmallScreen ? 2 : 3,
                           maxLength: 250,
-                          buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                          buildCounter: (_,
+                                  {required currentLength,
+                                  required isFocused,
+                                  maxLength}) =>
+                              null,
                           style: TextStyle(
                             fontSize: isVerySmallScreen ? 13 : 14,
-                            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                            color: themeProvider.isDarkMode
+                                ? Colors.white
+                                : Colors.black87,
                           ),
                           decoration: InputDecoration(
                             labelText: isVerySmallScreen
@@ -953,7 +1042,9 @@ SizedBox(height: 16),
                                 : "Describe the Strange Occurence or Speak a spell",
                             labelStyle: TextStyle(
                               fontSize: isVerySmallScreen ? 13 : 14,
-                              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                             ),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
@@ -961,37 +1052,47 @@ SizedBox(height: 16),
                               vertical: isVerySmallScreen ? 12 : 16,
                             ),
                             prefixIcon: Padding(
-                              padding: EdgeInsets.only(bottom: isVerySmallScreen ? 20 : 40),
+                              padding: EdgeInsets.only(
+                                  bottom: isVerySmallScreen ? 20 : 40),
                               child: Icon(
                                 Icons.edit,
-                                color: _descriptionController.text.trim().isNotEmpty
+                                color: _descriptionController.text
+                                        .trim()
+                                        .isNotEmpty
                                     ? const Color(0xFF42A5F5)
-                                    : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+                                    : (themeProvider.isDarkMode
+                                        ? Colors.grey[500]
+                                        : Colors.grey[400]),
                               ),
                             ),
                             suffixIcon: Padding(
-                              padding: EdgeInsets.only(bottom: isVerySmallScreen ? 20 : 40),
+                              padding: EdgeInsets.only(
+                                  bottom: isVerySmallScreen ? 20 : 40),
                               child: Container(
                                 margin: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: _isListening
                                       ? const Color(0xFFf44336).withOpacity(0.1)
-                                      : const Color(0xFF42A5F5).withOpacity(0.1),
+                                      : const Color(0xFF42A5F5)
+                                          .withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: IconButton(
                                   icon: Icon(
                                     _isListening ? Icons.mic : Icons.mic_none,
-                                    color: _isListening ? const Color(0xFFf44336) : const Color(0xFF42A5F5),
+                                    color: _isListening
+                                        ? const Color(0xFFf44336)
+                                        : const Color(0xFF42A5F5),
                                   ),
-                                  onPressed: _isListening ? _stopListening : _startListening,
+                                  onPressed: _isListening
+                                      ? _stopListening
+                                      : _startListening,
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-
                       Align(
                         alignment: Alignment.centerRight,
                         child: Padding(
@@ -1002,7 +1103,9 @@ SizedBox(height: 16),
                               fontSize: isVerySmallScreen ? 11 : 12,
                               color: _remainingCharacters <= 0
                                   ? const Color(0xFFf44336)
-                                  : (themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                                  : (themeProvider.isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600]),
                               fontWeight: _remainingCharacters <= 0
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -1023,11 +1126,17 @@ SizedBox(height: 16),
                   width: double.infinity,
                   padding: EdgeInsets.all(cardPadding),
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-                    borderRadius: BorderRadius.circular(isVerySmallScreen ? 16 : 20),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[800]
+                        : Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(isVerySmallScreen ? 16 : 20),
                     boxShadow: [
                       BoxShadow(
-                        color: (themeProvider.isDarkMode ? Colors.black : Colors.grey).withOpacity(0.1),
+                        color: (themeProvider.isDarkMode
+                                ? Colors.black
+                                : Colors.grey)
+                            .withOpacity(0.1),
                         spreadRadius: 2,
                         blurRadius: 10,
                         offset: const Offset(0, 3),
@@ -1054,11 +1163,15 @@ SizedBox(height: 16),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              isVerySmallScreen ? "Evidence" : "Upload Evidence",
+                              isVerySmallScreen
+                                  ? "Evidence"
+                                  : "Upload Evidence",
                               style: TextStyle(
                                 fontSize: isSmallScreen ? 16 : 18,
                                 fontWeight: FontWeight.bold,
-                                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1069,7 +1182,9 @@ SizedBox(height: 16),
 
                       // Upload Image button
                       _buildModernUploadButton(
-                        isVerySmallScreen ? "Upload Image 📷" : "Reveal a Magical Proof 📷",
+                        isVerySmallScreen
+                            ? "Upload Image 📷"
+                            : "Reveal a Magical Proof 📷",
                         Icons.image,
                         _selectedImage != null,
                         _pickImage,
@@ -1113,7 +1228,8 @@ SizedBox(height: 16),
                                 top: 8,
                                 right: 8,
                                 child: GestureDetector(
-                                  onTap: () => _confirmMediaRemoval(isVideo: false),
+                                  onTap: () =>
+                                      _confirmMediaRemoval(isVideo: false),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: Colors.black.withOpacity(0.7),
@@ -1121,7 +1237,8 @@ SizedBox(height: 16),
                                     ),
                                     child: const Padding(
                                       padding: EdgeInsets.all(8),
-                                      child: Icon(Icons.close, color: Color(0xFFf44336), size: 16),
+                                      child: Icon(Icons.close,
+                                          color: Color(0xFFf44336), size: 16),
                                     ),
                                   ),
                                 ),
@@ -1130,7 +1247,8 @@ SizedBox(height: 16),
                           ),
                         ),
 
-                      if (_selectedImage != null) SizedBox(height: isVerySmallScreen ? 12 : 16),
+                      if (_selectedImage != null)
+                        SizedBox(height: isVerySmallScreen ? 12 : 16),
 
                       // Centered "or" text with dividers
                       Row(
@@ -1138,24 +1256,31 @@ SizedBox(height: 16),
                           Expanded(
                             child: Divider(
                               thickness: 1,
-                              color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[600]
+                                  : Colors.grey[300],
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                             child: Text(
                               "or",
                               style: TextStyle(
                                 fontSize: isVerySmallScreen ? 14 : 16,
                                 fontWeight: FontWeight.w500,
-                                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                               ),
                             ),
                           ),
                           Expanded(
                             child: Divider(
                               thickness: 1,
-                              color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[600]
+                                  : Colors.grey[300],
                             ),
                           ),
                         ],
@@ -1165,7 +1290,9 @@ SizedBox(height: 16),
 
                       // Upload Video button
                       _buildModernUploadButton(
-                        isVerySmallScreen ? "Upload Video" : "Upload Video (max 10s)",
+                        isVerySmallScreen
+                            ? "Upload Video"
+                            : "Upload Video (max 10s)",
                         Icons.videocam,
                         _selectedVideo != null,
                         _pickVideo,
@@ -1174,7 +1301,8 @@ SizedBox(height: 16),
                       ),
                       SizedBox(height: isVerySmallScreen ? 12 : 16),
 
-                      if (_videoController != null && _videoController!.value.isInitialized)
+                      if (_videoController != null &&
+                          _videoController!.value.isInitialized)
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(15),
@@ -1195,7 +1323,8 @@ SizedBox(height: 16),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(15),
                                   child: AspectRatio(
-                                    aspectRatio: _videoController!.value.aspectRatio,
+                                    aspectRatio:
+                                        _videoController!.value.aspectRatio,
                                     child: VideoPlayer(_videoController!),
                                   ),
                                 ),
@@ -1210,7 +1339,9 @@ SizedBox(height: 16),
                                     ),
                                     child: IconButton(
                                       icon: Icon(
-                                        _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                                        _videoController!.value.isPlaying
+                                            ? Icons.pause
+                                            : Icons.play_arrow,
                                         color: Colors.white,
                                         size: isVerySmallScreen ? 30 : 40,
                                       ),
@@ -1231,7 +1362,8 @@ SizedBox(height: 16),
                                 top: 8,
                                 right: 8,
                                 child: GestureDetector(
-                                  onTap: () => _confirmMediaRemoval(isVideo: true),
+                                  onTap: () =>
+                                      _confirmMediaRemoval(isVideo: true),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: Colors.black.withOpacity(0.7),
@@ -1239,7 +1371,8 @@ SizedBox(height: 16),
                                     ),
                                     child: const Padding(
                                       padding: EdgeInsets.all(8),
-                                      child: Icon(Icons.close, color: Color(0xFFf44336), size: 16),
+                                      child: Icon(Icons.close,
+                                          color: Color(0xFFf44336), size: 16),
                                     ),
                                   ),
                                 ),
@@ -1262,60 +1395,64 @@ SizedBox(height: 16),
                   decoration: BoxDecoration(
                     gradient: !_canSubmit
                         ? LinearGradient(
-                      colors: [Colors.grey[400]!, Colors.grey[500]!],
-                    )
+                            colors: [Colors.grey[400]!, Colors.grey[500]!],
+                          )
                         : const LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
-                    ),
-                    borderRadius: BorderRadius.circular(isVerySmallScreen ? 12 : 16),
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
+                          ),
+                    borderRadius:
+                        BorderRadius.circular(isVerySmallScreen ? 12 : 16),
                     boxShadow: !_canSubmit
                         ? []
                         : [
-                      BoxShadow(
-                        color: const Color(0xFF42A5F5).withOpacity(0.3),
-                        spreadRadius: 2,
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                            BoxShadow(
+                              color: const Color(0xFF42A5F5).withOpacity(0.3),
+                              spreadRadius: 2,
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(isVerySmallScreen ? 12 : 16),
+                      borderRadius:
+                          BorderRadius.circular(isVerySmallScreen ? 12 : 16),
                       onTap: (!_canSubmit || _isUploading) ? null : _submitForm,
                       child: Center(
                         child: _isUploading
                             ? CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: isVerySmallScreen ? 1.5 : 2,
-                        )
+                                color: Colors.white,
+                                strokeWidth: isVerySmallScreen ? 1.5 : 2,
+                              )
                             : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.send,
-                              color: Colors.white,
-                              size: isVerySmallScreen ? 18 : 20,
-                            ),
-                            SizedBox(width: isVerySmallScreen ? 6 : 8),
-                            Flexible(
-                              child: Text(
-                                isVerySmallScreen ? "Send" : "Send via Owl Post",
-                                style: TextStyle(
-                                  fontSize: isVerySmallScreen ? 14 : 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.send,
+                                    color: Colors.white,
+                                    size: isVerySmallScreen ? 18 : 20,
+                                  ),
+                                  SizedBox(width: isVerySmallScreen ? 6 : 8),
+                                  Flexible(
+                                    child: Text(
+                                      isVerySmallScreen
+                                          ? "Send"
+                                          : "Send via Owl Post",
+                                      style: TextStyle(
+                                        fontSize: isVerySmallScreen ? 14 : 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
@@ -1330,20 +1467,24 @@ SizedBox(height: 16),
     });
   }
 
-
-  Widget _buildModernUploadButton(String text, IconData icon, bool isSelected, VoidCallback onPressed, ThemeProvider themeProvider, Color accentColor) {
+  Widget _buildModernUploadButton(String text, IconData icon, bool isSelected,
+      VoidCallback onPressed, ThemeProvider themeProvider, Color accentColor) {
     return Container(
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
         color: isSelected
             ? accentColor.withOpacity(0.1)
-            : (themeProvider.isDarkMode ? Colors.grey[700]!.withOpacity(0.3) : Colors.grey[50]),
+            : (themeProvider.isDarkMode
+                ? Colors.grey[700]!.withOpacity(0.3)
+                : Colors.grey[50]),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
           color: isSelected
               ? accentColor
-              : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
+              : (themeProvider.isDarkMode
+                  ? Colors.grey[600]!
+                  : Colors.grey[300]!),
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -1373,7 +1514,9 @@ SizedBox(height: 16),
                       fontWeight: FontWeight.w600,
                       color: isSelected
                           ? accentColor
-                          : (themeProvider.isDarkMode ? Colors.white : Colors.black87),
+                          : (themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87),
                     ),
                   ),
                 ),
@@ -1404,7 +1547,7 @@ SizedBox(height: 16),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(icon,
                 color:
-                themeProvider.isDarkMode ? Colors.white70 : Colors.black54),
+                    themeProvider.isDarkMode ? Colors.white70 : Colors.black54),
             const SizedBox(width: 10),
             Text(filled ? "Change" : label,
                 style: TextStyle(

@@ -632,7 +632,6 @@ class MessageWidgets {
                                           fontWeight: FontWeight.w500,
                                           height: 1.4,
                                         ),
-                                        
                                       ),
                                     ],
 

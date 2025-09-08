@@ -24,7 +24,8 @@ class RegisterScreen extends StatefulWidget {
   RegisterScreenState createState() => RegisterScreenState();
 }
 
-class RegisterScreenState extends State<RegisterScreen> with TickerProviderStateMixin {
+class RegisterScreenState extends State<RegisterScreen>
+    with TickerProviderStateMixin {
   // Firebase instances
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref("users");
@@ -45,7 +46,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
   bool showOtpField = false;
 
   // NEW: Control whether phone verification is enabled
-  static const bool ENABLE_PHONE_VERIFICATION = false; // Set to true when you have billing
+  static const bool ENABLE_PHONE_VERIFICATION =
+      false; // Set to true when you have billing
 
   // Password validation flags
   bool hasUppercase = false;
@@ -78,11 +80,14 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _registerButtonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _registerButtonAnimationController, curve: Curves.easeInOut),
+    _registerButtonScaleAnimation =
+        Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(
+          parent: _registerButtonAnimationController, curve: Curves.easeInOut),
     );
     _guestButtonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _guestButtonAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+          parent: _guestButtonAnimationController, curve: Curves.easeInOut),
     );
   }
 
@@ -91,7 +96,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
       final text = _nameController.text;
       final capitalized = text
           .split(' ')
-          .map((word) => word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '')
+          .map((word) =>
+              word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '')
           .join(' ');
 
       if (text != capitalized) {
@@ -232,7 +238,6 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
       });
 
       Fluttertoast.showToast(msg: "Phone number verified successfully!");
-
     } catch (e) {
       setState(() {
         isPhoneVerifying = false;
@@ -266,7 +271,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
     // MODIFIED: Only validate phone number if verification is enabled AND phone is provided
     if (ENABLE_PHONE_VERIFICATION && _phoneController.text.trim().isNotEmpty) {
       if (!_isValidPhoneNumber(_phoneController.text.trim())) {
-        Fluttertoast.showToast(msg: "Please enter a valid phone number or leave it empty");
+        Fluttertoast.showToast(
+            msg: "Please enter a valid phone number or leave it empty");
         return;
       }
 
@@ -281,7 +287,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
       setState(() {
         showPasswordRequirements = true;
       });
-      Fluttertoast.showToast(msg: "Password does not meet the required criteria.");
+      Fluttertoast.showToast(
+          msg: "Password does not meet the required criteria.");
       return;
     }
 
@@ -291,7 +298,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
 
     try {
       // Create user with email and password
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: password,
       );
@@ -309,13 +317,16 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
       // Add phone data only if provided
       if (_phoneController.text.trim().isNotEmpty) {
         userData["phone"] = _phoneController.text.trim();
-        userData["phoneVerified"] = ENABLE_PHONE_VERIFICATION ? isPhoneVerified : false;
+        userData["phoneVerified"] =
+            ENABLE_PHONE_VERIFICATION ? isPhoneVerified : false;
       }
 
       await _dbRef.child(userCredential.user!.uid).set(userData);
 
-      String successMessage = "Registration successful! Please verify your email before logging in.";
-      if (!ENABLE_PHONE_VERIFICATION && _phoneController.text.trim().isNotEmpty) {
+      String successMessage =
+          "Registration successful! Please verify your email before logging in.";
+      if (!ENABLE_PHONE_VERIFICATION &&
+          _phoneController.text.trim().isNotEmpty) {
         successMessage += " Phone verification is currently disabled.";
       }
 
@@ -385,7 +396,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
         final screenWidth = MediaQuery.of(context).size.width;
 
         return Scaffold(
-          backgroundColor: isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+          backgroundColor:
+              isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -402,7 +414,9 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                 padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+                    minHeight: screenHeight -
+                        MediaQuery.of(context).padding.top -
+                        MediaQuery.of(context).padding.bottom,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -418,7 +432,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                               style: TextStyle(
                                 fontSize: screenWidth * 0.08,
                                 fontWeight: FontWeight.bold,
-                                color: isDarkMode ? Colors.white : Colors.black87,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -427,7 +442,9 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: screenWidth * 0.04,
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                color: isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -447,8 +464,14 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
                               colors: isDarkMode
-                                  ? [Colors.teal.withOpacity(0.2), Colors.teal.withOpacity(0.1)]
-                                  : [const Color(0xFF1565C0).withOpacity(0.1), const Color(0xFF42A5F5).withOpacity(0.05)],
+                                  ? [
+                                      Colors.teal.withOpacity(0.2),
+                                      Colors.teal.withOpacity(0.1)
+                                    ]
+                                  : [
+                                      const Color(0xFF1565C0).withOpacity(0.1),
+                                      const Color(0xFF42A5F5).withOpacity(0.05)
+                                    ],
                             ),
                           ),
                           child: Center(
@@ -457,7 +480,9 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                               height: screenHeight * 0.1,
                               width: screenHeight * 0.1,
                               fit: BoxFit.contain,
-                              color: isDarkMode ? Colors.white.withOpacity(0.9) : null,
+                              color: isDarkMode
+                                  ? Colors.white.withOpacity(0.9)
+                                  : null,
                             ),
                           ),
                         ),
@@ -511,8 +536,12 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                               onChanged: _validatePassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
                                   size: 20,
                                 ),
                                 onPressed: () {
@@ -591,21 +620,28 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                 color: isPhoneVerified
                     ? Colors.green.withOpacity(0.1)
                     : ENABLE_PHONE_VERIFICATION
-                        ? (isDarkMode ? Colors.teal.withOpacity(0.1) : const Color(0xFF1565C0).withOpacity(0.1))
+                        ? (isDarkMode
+                            ? Colors.teal.withOpacity(0.1)
+                            : const Color(0xFF1565C0).withOpacity(0.1))
                         : (isDarkMode ? Colors.grey[700] : Colors.grey[300]),
                 border: Border.all(
                   color: isPhoneVerified
                       ? Colors.green
                       : ENABLE_PHONE_VERIFICATION
                           ? (isDarkMode ? Colors.teal : const Color(0xFF1565C0))
-                          : (isDarkMode ? Colors.grey[600]! : Colors.grey[400]!),
+                          : (isDarkMode
+                              ? Colors.grey[600]!
+                              : Colors.grey[400]!),
                 ),
               ),
               child: MaterialButton(
                 onPressed: !ENABLE_PHONE_VERIFICATION
                     ? null
-                    : (isPhoneVerified ? null : (isPhoneVerifying ? null : _sendOtp)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    : (isPhoneVerified
+                        ? null
+                        : (isPhoneVerifying ? null : _sendOtp)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: isPhoneVerifying && ENABLE_PHONE_VERIFICATION
                     ? SizedBox(
                         width: 20,
@@ -618,13 +654,18 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                         ),
                       )
                     : isPhoneVerified && ENABLE_PHONE_VERIFICATION
-                        ? const Icon(Icons.check_circle, color: Colors.green, size: 24)
+                        ? const Icon(Icons.check_circle,
+                            color: Colors.green, size: 24)
                         : Text(
                             ENABLE_PHONE_VERIFICATION ? "Send OTP" : "Disabled",
                             style: TextStyle(
                               color: ENABLE_PHONE_VERIFICATION
-                                  ? (isDarkMode ? Colors.teal : const Color(0xFF1565C0))
-                                  : (isDarkMode ? Colors.grey[500] : Colors.grey[500]),
+                                  ? (isDarkMode
+                                      ? Colors.teal
+                                      : const Color(0xFF1565C0))
+                                  : (isDarkMode
+                                      ? Colors.grey[500]
+                                      : Colors.grey[500]),
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                             ),
@@ -673,14 +714,16 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
               ),
               child: MaterialButton(
                 onPressed: isPhoneVerifying ? null : _verifyOtp,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: isPhoneVerifying
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.green),
                         ),
                       )
                     : const Text(
@@ -711,7 +754,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
               child: Text(
                 "Resend",
                 style: TextStyle(
-                  color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                  color:
+                      isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -732,7 +776,9 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
           color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
+            color: themeProvider.isDarkMode
+                ? Colors.grey[700]!
+                : Colors.grey[200]!,
           ),
         ),
         child: Column(
@@ -741,15 +787,20 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
             Text(
               "Password Requirements:",
               style: TextStyle(
-                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[300]
+                    : Colors.grey[700],
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
             ),
             const SizedBox(height: 8),
-            buildPasswordValidationItem("At least 8 characters", hasMinLength, themeProvider),
-            buildPasswordValidationItem("At least 1 uppercase letter", hasUppercase, themeProvider),
-            buildPasswordValidationItem("At least 1 special character", hasSpecialChar, themeProvider),
+            buildPasswordValidationItem(
+                "At least 8 characters", hasMinLength, themeProvider),
+            buildPasswordValidationItem(
+                "At least 1 uppercase letter", hasUppercase, themeProvider),
+            buildPasswordValidationItem(
+                "At least 1 special character", hasSpecialChar, themeProvider),
           ],
         ),
       ),
@@ -787,7 +838,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: isLoading
@@ -854,7 +906,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
               style: OutlinedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 side: BorderSide.none,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: Row(
@@ -865,7 +918,8 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
                   Text(
                     "Continue as Guest",
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white : const Color(0xFF1565C0),
+                      color:
+                          isDarkMode ? Colors.white : const Color(0xFF1565C0),
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -895,9 +949,11 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => const LoginPage(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                    FadeTransition(opacity: animation, child: child),
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const LoginPage(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) =>
+                        FadeTransition(opacity: animation, child: child),
                 transitionDuration: const Duration(milliseconds: 500),
               ),
             );
@@ -976,21 +1032,27 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
             width: 2,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }
 
-  Widget buildPasswordValidationItem(String text, bool isValid, ThemeProvider themeProvider) {
+  Widget buildPasswordValidationItem(
+      String text, bool isValid, ThemeProvider themeProvider) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Icon(
-            isValid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            isValid
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded,
             color: isValid
                 ? Colors.green
-                : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+                : (themeProvider.isDarkMode
+                    ? Colors.grey[500]
+                    : Colors.grey[400]),
             size: 16,
           ),
           const SizedBox(width: 8),
@@ -1000,7 +1062,9 @@ class RegisterScreenState extends State<RegisterScreen> with TickerProviderState
               style: TextStyle(
                 color: isValid
                     ? Colors.green
-                    : (themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                    : (themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600]),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),

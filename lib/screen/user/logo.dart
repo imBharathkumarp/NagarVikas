@@ -19,8 +19,7 @@ class LogoWidget extends StatefulWidget {
   LogoWidgetState createState() => LogoWidgetState();
 }
 
-class LogoWidgetState extends State<LogoWidget>
-    with TickerProviderStateMixin {
+class LogoWidgetState extends State<LogoWidget> with TickerProviderStateMixin {
   late AnimationController _controller;
   late AnimationController _pulseController;
   late AnimationController _progressController;
@@ -186,11 +185,16 @@ class LogoWidgetState extends State<LogoWidget>
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: context.watch<ThemeProvider>().isDarkMode ? Colors.grey[900] : Colors.white,
+      backgroundColor: context.watch<ThemeProvider>().isDarkMode
+          ? Colors.grey[900]
+          : Colors.white,
       body: AnimatedBuilder(
         animation: Listenable.merge([
-          _controller, _pulseController, _progressController,
-          _treeController, _windController
+          _controller,
+          _pulseController,
+          _progressController,
+          _treeController,
+          _windController
         ]),
         builder: (context, child) {
           return Stack(
@@ -203,28 +207,29 @@ class LogoWidgetState extends State<LogoWidget>
                     end: Alignment.bottomCenter,
                     colors: context.watch<ThemeProvider>().isDarkMode
                         ? [
-                      Colors.grey[900]!,
-                      Colors.grey[850]!,
-                      Colors.grey[800]!,
-                    ]
+                            Colors.grey[900]!,
+                            Colors.grey[850]!,
+                            Colors.grey[800]!,
+                          ]
                         : [
-                      const Color(0xFFF8FFFE),
-                      const Color(0xFFF0FDF4),
-                      Colors.white,
-                    ],
+                            const Color(0xFFF8FFFE),
+                            const Color(0xFFF0FDF4),
+                            Colors.white,
+                          ],
                   ),
                 ),
               ),
 
               // Animated trees in background
               ...List.generate(12, (index) {
-                final double treeX = (index * (screenWidth * 0.12)) - 80 +
-                    (index % 3) * 40;
+                final double treeX =
+                    (index * (screenWidth * 0.12)) - 80 + (index % 3) * 40;
                 final double treeY = -20 + (index % 4) * 15;
                 final double treeScale = 0.4 + (index % 3) * 0.2;
                 final double swayOffset = (index * 0.3) % 1.0;
                 final double swayAmount = _treeSwayAnimation.value *
-                    (1.0 + swayOffset) * (0.5 + (index % 3) * 0.3);
+                    (1.0 + swayOffset) *
+                    (0.5 + (index % 3) * 0.3);
 
                 return _buildRealisticTree(
                   x: treeX,
@@ -239,7 +244,8 @@ class LogoWidgetState extends State<LogoWidget>
               ...List.generate(20, (index) {
                 final double leafX = (index * (screenWidth * 0.05)) +
                     (_windAnimation.value * 100) * (index.isEven ? 1 : -1);
-                final double leafY = 100 + (index * 25) +
+                final double leafY = 100 +
+                    (index * 25) +
                     (_windAnimation.value * 50) * math.sin(index * 0.5);
 
                 return Positioned(
@@ -258,7 +264,8 @@ class LogoWidgetState extends State<LogoWidget>
                             Colors.green.shade400,
                             Colors.lightGreen.shade300,
                             Colors.teal.shade200,
-                          ][index % 4].withOpacity(0.6),
+                          ][index % 4]
+                              .withOpacity(0.6),
                           borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(3),
                             topRight: Radius.circular(1),
@@ -332,7 +339,11 @@ class LogoWidgetState extends State<LogoWidget>
                                       textStyle: GoogleFonts.nunito(
                                         fontSize: 35,
                                         fontWeight: FontWeight.bold,
-                                        color: context.watch<ThemeProvider>().isDarkMode ? Colors.white : Colors.black87,
+                                        color: context
+                                                .watch<ThemeProvider>()
+                                                .isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
                                         letterSpacing: 1.2,
                                       ),
                                       textAlign: TextAlign.center,
@@ -343,7 +354,11 @@ class LogoWidgetState extends State<LogoWidget>
                                       textStyle: GoogleFonts.nunito(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: context.watch<ThemeProvider>().isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                        color: context
+                                                .watch<ThemeProvider>()
+                                                .isDarkMode
+                                            ? Colors.grey[300]
+                                            : Colors.grey[700],
                                         height: 1.5,
                                       ),
                                       textAlign: TextAlign.center,
@@ -387,20 +402,25 @@ class LogoWidgetState extends State<LogoWidget>
                                 child: CircularProgressIndicator(
                                   color: Colors.green,
                                   strokeWidth: 3,
-                                  backgroundColor: Colors.green.withOpacity(0.1),
+                                  backgroundColor:
+                                      Colors.green.withOpacity(0.1),
                                 ),
                               ),
                             ),
                             SizedBox(height: 20),
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 8),
                               decoration: BoxDecoration(
                                 color: context.watch<ThemeProvider>().isDarkMode
                                     ? Colors.grey[800]
                                     : Colors.green.shade50,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: context.watch<ThemeProvider>().isDarkMode ? Colors.grey[600]! : Colors.green.shade200,
+                                  color:
+                                      context.watch<ThemeProvider>().isDarkMode
+                                          ? Colors.grey[600]!
+                                          : Colors.green.shade200,
                                   width: 1,
                                 ),
                               ),
@@ -409,7 +429,10 @@ class LogoWidgetState extends State<LogoWidget>
                                 style: GoogleFonts.nunito(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: context.watch<ThemeProvider>().isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                  color:
+                                      context.watch<ThemeProvider>().isDarkMode
+                                          ? Colors.grey[300]
+                                          : Colors.grey[700],
                                   letterSpacing: 0.3,
                                 ),
                                 textAlign: TextAlign.center,
@@ -453,7 +476,8 @@ class TreePainter extends CustomPainter {
         Colors.green.shade400,
         Colors.green.shade500,
         Colors.teal.shade400,
-      ][treeType % 3].withOpacity(0.3)
+      ][treeType % 3]
+          .withOpacity(0.3)
       ..style = PaintingStyle.fill;
 
     final double centerX = size.width / 2;
@@ -490,13 +514,15 @@ class TreePainter extends CustomPainter {
 
     // Middle layer
     canvas.drawCircle(
-      Offset(centerX - 15 * scale + (windAnimation * 6), crownCenterY - 10 * scale),
+      Offset(centerX - 15 * scale + (windAnimation * 6),
+          crownCenterY - 10 * scale),
       35 * scale,
       Paint()..color = leavesPaint.color.withOpacity(0.4),
     );
 
     canvas.drawCircle(
-      Offset(centerX + 15 * scale + (windAnimation * 6), crownCenterY - 5 * scale),
+      Offset(
+          centerX + 15 * scale + (windAnimation * 6), crownCenterY - 5 * scale),
       30 * scale,
       Paint()..color = leavesPaint.color.withOpacity(0.4),
     );
@@ -512,7 +538,8 @@ class TreePainter extends CustomPainter {
     for (int i = 0; i < 8; i++) {
       final double angle = (i * math.pi / 4) + (windAnimation * 0.5);
       final double radius = 50 * scale;
-      final double clusterX = centerX + math.cos(angle) * radius +
+      final double clusterX = centerX +
+          math.cos(angle) * radius +
           (windAnimation * 3 * (i.isEven ? 1 : -1));
       final double clusterY = crownCenterY + math.sin(angle) * (radius * 0.6);
 
@@ -524,9 +551,15 @@ class TreePainter extends CustomPainter {
     }
   }
 
-  void _drawBranch(Canvas canvas, double startX, double startY,
-      double endOffsetX, double length, double thickness,
-      Paint paint, double windEffect) {
+  void _drawBranch(
+      Canvas canvas,
+      double startX,
+      double startY,
+      double endOffsetX,
+      double length,
+      double thickness,
+      Paint paint,
+      double windEffect) {
     final Path branchPath = Path();
     branchPath.moveTo(startX, startY);
 

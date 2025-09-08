@@ -164,6 +164,7 @@ class NotificationService {
     await _flutterLocalNotificationsPlugin.cancel(id);
   }
 }
+
 extension EveryoneNotifications on NotificationService {
   Future<void> showEveryoneNotification({
     required String senderName,
@@ -198,8 +199,8 @@ extension EveryoneNotifications on NotificationService {
     );
 
     // Truncate message if too long
-    final truncatedMessage = messageText.length > 100 
-        ? '${messageText.substring(0, 100)}...' 
+    final truncatedMessage = messageText.length > 100
+        ? '${messageText.substring(0, 100)}...'
         : messageText;
 
     await _flutterLocalNotificationsPlugin.show(

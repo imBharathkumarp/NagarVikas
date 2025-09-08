@@ -25,7 +25,8 @@ class AdminDrawer extends StatefulWidget {
   AdminDrawerState createState() => AdminDrawerState();
 }
 
-class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin {
+class AdminDrawerState extends State<AdminDrawer>
+    with TickerProviderStateMixin {
   late AnimationController _slideController;
   late AnimationController _fadeController;
   late Animation<Offset> _slideAnimation;
@@ -233,7 +234,8 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 2),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               leading: Container(
                 width: 40,
                 height: 40,
@@ -256,7 +258,9 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
                 ),
               ),
               trailing: Icon(
-                isLogout ? Icons.power_settings_new_rounded : Icons.arrow_forward_ios_rounded,
+                isLogout
+                    ? Icons.power_settings_new_rounded
+                    : Icons.arrow_forward_ios_rounded,
                 color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
                 size: isLogout ? 20 : 16,
               ),
@@ -312,7 +316,8 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) => AlertDialog(
-        backgroundColor: themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -344,7 +349,8 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
           "Are you sure you want to logout from your admin account?",
           style: TextStyle(
             fontSize: 15,
-            color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+            color:
+                themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
           ),
         ),
         actions: [
@@ -353,7 +359,9 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
             child: Text(
               "Cancel",
               style: TextStyle(
-                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -381,7 +389,8 @@ class AdminDrawerState extends State<AdminDrawer> with TickerProviderStateMixin 
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,

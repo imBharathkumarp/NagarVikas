@@ -74,12 +74,16 @@ class _FunGameScreenState extends State<FunGameScreen> {
             );
 
             return AlertDialog(
-              backgroundColor: themeProvider.isDarkMode ? const Color(0xFF2E2E2E) : Colors.white,
+              backgroundColor: themeProvider.isDarkMode
+                  ? const Color(0xFF2E2E2E)
+                  : Colors.white,
               title: Text(
                 'Game Over!',
-                style: textStyle.copyWith(fontSize: 22, fontWeight: FontWeight.bold),
+                style: textStyle.copyWith(
+                    fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              content: Text('Looks like youâ€™re out of moves!', style: textStyle),
+              content:
+                  Text('Looks like youâ€™re out of moves!', style: textStyle),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -104,149 +108,152 @@ class _FunGameScreenState extends State<FunGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          final textColor = themeProvider.isDarkMode ? Colors.white : Colors.black;
+    return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      final textColor = themeProvider.isDarkMode ? Colors.white : Colors.black;
 
-          return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: Colors.white, // Makes the back button white
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: IconThemeData(
+            color: Colors.white, // Makes the back button white
+          ),
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: themeProvider.isDarkMode
+                    ? [
+                        Colors.grey[800]!,
+                        Colors.grey[700]!,
+                        Colors.teal[600]!,
+                      ]
+                    : [
+                        const Color(0xFF1565C0),
+                        const Color(0xFF42A5F5),
+                        const Color(0xFF04CCF0),
+                      ],
+              ),
+            ),
+          ),
+          title: Text('2048',
+              style: GoogleFonts.urbanist(
+                  fontWeight: FontWeight.bold, color: Colors.white)),
+          actions: [
+            IconButton(
+              icon: Icon(
+                themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              ),
+              onPressed: () => themeProvider.toggleTheme(),
+            ),
+            IconButton(
+              icon: const Icon(Icons.restart_alt),
+              onPressed: _restartGame,
+            ),
+          ],
         ),
-        flexibleSpace: Container(
+        body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
+              colors: themeProvider.isDarkMode
+                  ? [const Color(0xFF121212), const Color(0xFF263238)]
+                  : [const Color(0xFFE0F7FA), const Color(0xFFB2EBF2)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: themeProvider.isDarkMode
-                  ? [
-                Colors.grey[800]!,
-                Colors.grey[700]!,
-                Colors.teal[600]!,
-              ]
-                  : [
-                const Color(0xFF1565C0),
-                const Color(0xFF42A5F5),
-                const Color(0xFF04CCF0),
+            ),
+          ),
+          child: GestureDetector(
+            onPanStart: (details) => startSwipeOffset = details.localPosition,
+            onPanEnd: (details) {
+              final dx = details.velocity.pixelsPerSecond.dx;
+              final dy = details.velocity.pixelsPerSecond.dy;
+
+              if (dx.abs() > dy.abs()) {
+                _handleSwipe(dx > 0 ? 'right' : 'left');
+              } else {
+                _handleSwipe(dy > 0 ? 'down' : 'up');
+              }
+            },
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                Text(
+                  'Score: ${game.score}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'High Score: $highScore',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    color: textColor,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.remove('highScore');
+                    setState(() => highScore = 0);
+                  },
+                  child: const Text('Reset High Score',
+                      style: TextStyle(color: Colors.redAccent)),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: GridView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: GameModel.gridSize * GameModel.gridSize,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: GameModel.gridSize,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                        itemBuilder: (context, index) {
+                          int x = index % GameModel.gridSize;
+                          int y = index ~/ GameModel.gridSize;
+                          int value = game.board[y][x];
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            decoration: BoxDecoration(
+                              color: _getTileColor(
+                                  value, themeProvider.isDarkMode),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                value == 0 ? '' : '$value',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: value <= 4
+                                      ? Colors.black87
+                                      : Colors.white,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
-        title: Text('2048',
-            style: GoogleFonts.urbanist(fontWeight: FontWeight.bold, color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: Icon(
-              themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-            ),
-            onPressed: () => themeProvider.toggleTheme(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.restart_alt),
-            onPressed: _restartGame,
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: themeProvider.isDarkMode
-                ? [const Color(0xFF121212), const Color(0xFF263238)]
-                : [const Color(0xFFE0F7FA), const Color(0xFFB2EBF2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: GestureDetector(
-          onPanStart: (details) => startSwipeOffset = details.localPosition,
-          onPanEnd: (details) {
-            final dx = details.velocity.pixelsPerSecond.dx;
-            final dy = details.velocity.pixelsPerSecond.dy;
-
-            if (dx.abs() > dy.abs()) {
-              _handleSwipe(dx > 0 ? 'right' : 'left');
-            } else {
-              _handleSwipe(dy > 0 ? 'down' : 'up');
-            }
-          },
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              Text(
-                'Score: ${game.score}',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'High Score: $highScore',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  color: textColor,
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('highScore');
-                  setState(() => highScore = 0);
-                },
-                child: const Text('Reset High Score',
-                    style: TextStyle(color: Colors.redAccent)),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: GameModel.gridSize * GameModel.gridSize,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: GameModel.gridSize,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemBuilder: (context, index) {
-                        int x = index % GameModel.gridSize;
-                        int y = index ~/ GameModel.gridSize;
-                        int value = game.board[y][x];
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          decoration: BoxDecoration(
-                            color: _getTileColor(value, themeProvider.isDarkMode),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              value == 0 ? '' : '$value',
-                              style: GoogleFonts.poppins(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color:
-                                    value <= 4 ? Colors.black87 : Colors.white,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );});
+      );
+    });
   }
 
   Color _getTileColor(int value, bool isDark) {

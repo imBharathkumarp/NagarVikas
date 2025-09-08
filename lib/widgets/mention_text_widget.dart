@@ -33,14 +33,15 @@ class MentionTextWidget extends StatelessWidget {
       spans.add(TextSpan(
         text: match.group(0),
         style: textStyle?.copyWith(
-          color: mentionColor,
-          fontWeight: FontWeight.bold,
-          backgroundColor: mentionBackgroundColor.withOpacity(0.2),
-        ) ?? TextStyle(
-          color: mentionColor,
-          fontWeight: FontWeight.bold,
-          backgroundColor: mentionBackgroundColor.withOpacity(0.2),
-        ),
+              color: mentionColor,
+              fontWeight: FontWeight.bold,
+              backgroundColor: mentionBackgroundColor.withOpacity(0.2),
+            ) ??
+            TextStyle(
+              color: mentionColor,
+              fontWeight: FontWeight.bold,
+              backgroundColor: mentionBackgroundColor.withOpacity(0.2),
+            ),
       ));
 
       lastMatchEnd = match.end;

@@ -223,13 +223,13 @@ class _Game2048PageState extends State<Game2048Page>
       _animationController.forward().then((_) {
         _animationController.reverse();
       });
-      
+
       if (gameModel.score > oldScore) {
         _scoreAnimationController.forward().then((_) {
           _scoreAnimationController.reverse();
         });
       }
-      
+
       if (gameModel.isGameOver()) {
         _showGameOverDialog();
       }
@@ -244,8 +244,10 @@ class _Game2048PageState extends State<Game2048Page>
         return Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return AlertDialog(
-              backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              backgroundColor:
+                  themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               title: Text(
                 'Game Over!',
                 style: TextStyle(
@@ -260,7 +262,8 @@ class _Game2048PageState extends State<Game2048Page>
                   Icon(
                     Icons.emoji_events,
                     size: 60,
-                    color: themeProvider.isDarkMode ? Colors.amber : Colors.orange,
+                    color:
+                        themeProvider.isDarkMode ? Colors.amber : Colors.orange,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -268,7 +271,9 @@ class _Game2048PageState extends State<Game2048Page>
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white70
+                          : Colors.black87,
                     ),
                   ),
                 ],
@@ -282,13 +287,17 @@ class _Game2048PageState extends State<Game2048Page>
                   child: Text(
                     'Exit',
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.red[300] : Colors.red,
+                      color: themeProvider.isDarkMode
+                          ? Colors.red[300]
+                          : Colors.red,
                     ),
                   ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: themeProvider.isDarkMode ? Colors.teal : const Color(0xFF1565C0),
+                    backgroundColor: themeProvider.isDarkMode
+                        ? Colors.teal
+                        : const Color(0xFF1565C0),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -312,34 +321,37 @@ class _Game2048PageState extends State<Game2048Page>
 
   Color _getTileColor(int value, bool isDarkMode) {
     if (value == 0) return isDarkMode ? Colors.grey[700]! : Colors.grey[200]!;
-    
-    final colors = isDarkMode ? {
-      2: Colors.grey[600]!,
-      4: Colors.grey[500]!,
-      8: Colors.orange[700]!,
-      16: Colors.orange[600]!,
-      32: Colors.red[700]!,
-      64: Colors.red[600]!,
-      128: Colors.yellow[700]!,
-      256: Colors.yellow[600]!,
-      512: Colors.green[700]!,
-      1024: Colors.green[600]!,
-      2048: Colors.blue[700]!,
-    } : {
-      2: Colors.grey[100]!,
-      4: Colors.grey[200]!,
-      8: Colors.orange[200]!,
-      16: Colors.orange[300]!,
-      32: Colors.red[200]!,
-      64: Colors.red[300]!,
-      128: Colors.yellow[200]!,
-      256: Colors.yellow[300]!,
-      512: Colors.green[200]!,
-      1024: Colors.green[300]!,
-      2048: Colors.blue[300]!,
-    };
-    
-    return colors[value] ?? (isDarkMode ? Colors.purple[700]! : Colors.purple[300]!);
+
+    final colors = isDarkMode
+        ? {
+            2: Colors.grey[600]!,
+            4: Colors.grey[500]!,
+            8: Colors.orange[700]!,
+            16: Colors.orange[600]!,
+            32: Colors.red[700]!,
+            64: Colors.red[600]!,
+            128: Colors.yellow[700]!,
+            256: Colors.yellow[600]!,
+            512: Colors.green[700]!,
+            1024: Colors.green[600]!,
+            2048: Colors.blue[700]!,
+          }
+        : {
+            2: Colors.grey[100]!,
+            4: Colors.grey[200]!,
+            8: Colors.orange[200]!,
+            16: Colors.orange[300]!,
+            32: Colors.red[200]!,
+            64: Colors.red[300]!,
+            128: Colors.yellow[200]!,
+            256: Colors.yellow[300]!,
+            512: Colors.green[200]!,
+            1024: Colors.green[300]!,
+            2048: Colors.blue[300]!,
+          };
+
+    return colors[value] ??
+        (isDarkMode ? Colors.purple[700]! : Colors.purple[300]!);
   }
 
   Color _getTextColor(int value, bool isDarkMode) {
@@ -401,7 +413,9 @@ class _Game2048PageState extends State<Game2048Page>
                 ),
                 child: IconButton(
                   icon: Icon(
-                    themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                    themeProvider.isDarkMode
+                        ? Icons.light_mode
+                        : Icons.dark_mode,
                     color: Colors.white,
                   ),
                   onPressed: () {
@@ -442,7 +456,9 @@ class _Game2048PageState extends State<Game2048Page>
                             width: double.infinity,
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
@@ -465,8 +481,8 @@ class _Game2048PageState extends State<Game2048Page>
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: themeProvider.isDarkMode 
-                                            ? Colors.grey[400] 
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.grey[400]
                                             : Colors.grey[600],
                                       ),
                                     ),
@@ -476,8 +492,8 @@ class _Game2048PageState extends State<Game2048Page>
                                       style: TextStyle(
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold,
-                                        color: themeProvider.isDarkMode 
-                                            ? Colors.teal 
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.teal
                                             : const Color(0xFF1565C0),
                                       ),
                                     ),
@@ -486,8 +502,8 @@ class _Game2048PageState extends State<Game2048Page>
                                 Container(
                                   height: 50,
                                   width: 1,
-                                  color: themeProvider.isDarkMode 
-                                      ? Colors.grey[600] 
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.grey[600]
                                       : Colors.grey[300],
                                 ),
                                 Column(
@@ -497,8 +513,8 @@ class _Game2048PageState extends State<Game2048Page>
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: themeProvider.isDarkMode 
-                                            ? Colors.grey[400] 
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.grey[400]
                                             : Colors.grey[600],
                                       ),
                                     ),
@@ -508,8 +524,8 @@ class _Game2048PageState extends State<Game2048Page>
                                       style: TextStyle(
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold,
-                                        color: themeProvider.isDarkMode 
-                                            ? Colors.amber 
+                                        color: themeProvider.isDarkMode
+                                            ? Colors.amber
                                             : Colors.orange,
                                       ),
                                     ),
@@ -521,15 +537,15 @@ class _Game2048PageState extends State<Game2048Page>
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Instructions
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode 
-                            ? Colors.grey[800]?.withOpacity(0.5) 
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[800]?.withOpacity(0.5)
                             : Colors.blue[50],
                         borderRadius: BorderRadius.circular(16),
                         border: themeProvider.isDarkMode
@@ -542,15 +558,15 @@ class _Game2048PageState extends State<Game2048Page>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: themeProvider.isDarkMode 
-                              ? Colors.grey[300] 
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[300]
                               : Colors.blue[800],
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Game Board
                     Expanded(
                       child: Center(
@@ -563,7 +579,8 @@ class _Game2048PageState extends State<Game2048Page>
                                 scale: _scaleAnimation.value,
                                 child: GestureDetector(
                                   onPanEnd: (details) {
-                                    final velocity = details.velocity.pixelsPerSecond;
+                                    final velocity =
+                                        details.velocity.pixelsPerSecond;
                                     if (velocity.dx.abs() > velocity.dy.abs()) {
                                       if (velocity.dx > 0) {
                                         _onSwipe('right');
@@ -581,8 +598,8 @@ class _Game2048PageState extends State<Game2048Page>
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode 
-                                          ? Colors.grey[700] 
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[700]
                                           : Colors.grey[300],
                                       borderRadius: BorderRadius.circular(20),
                                       boxShadow: [
@@ -597,8 +614,10 @@ class _Game2048PageState extends State<Game2048Page>
                                       ],
                                     ),
                                     child: GridView.builder(
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
                                         crossAxisCount: 4,
                                         crossAxisSpacing: 8,
                                         mainAxisSpacing: 8,
@@ -608,31 +627,48 @@ class _Game2048PageState extends State<Game2048Page>
                                         final row = index ~/ 4;
                                         final col = index % 4;
                                         final value = gameModel.board[row][col];
-                                        
+
                                         return AnimatedContainer(
-                                          duration: const Duration(milliseconds: 150),
+                                          duration:
+                                              const Duration(milliseconds: 150),
                                           decoration: BoxDecoration(
-                                            color: _getTileColor(value, themeProvider.isDarkMode),
-                                            borderRadius: BorderRadius.circular(12),
-                                            boxShadow: value != 0 ? [
-                                              BoxShadow(
-                                                color: themeProvider.isDarkMode
-                                                    ? Colors.black38
-                                                    : Colors.grey.withOpacity(0.2),
-                                                spreadRadius: 1,
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ] : null,
+                                            color: _getTileColor(value,
+                                                themeProvider.isDarkMode),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            boxShadow: value != 0
+                                                ? [
+                                                    BoxShadow(
+                                                      color: themeProvider
+                                                              .isDarkMode
+                                                          ? Colors.black38
+                                                          : Colors.grey
+                                                              .withOpacity(0.2),
+                                                      spreadRadius: 1,
+                                                      blurRadius: 4,
+                                                      offset:
+                                                          const Offset(0, 2),
+                                                    ),
+                                                  ]
+                                                : null,
                                           ),
                                           child: Center(
                                             child: value != 0
                                                 ? AnimatedDefaultTextStyle(
-                                                    duration: const Duration(milliseconds: 150),
+                                                    duration: const Duration(
+                                                        milliseconds: 150),
                                                     style: TextStyle(
-                                                      fontSize: value < 100 ? 28 : value < 1000 ? 24 : 20,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: _getTextColor(value, themeProvider.isDarkMode),
+                                                      fontSize: value < 100
+                                                          ? 28
+                                                          : value < 1000
+                                                              ? 24
+                                                              : 20,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: _getTextColor(
+                                                          value,
+                                                          themeProvider
+                                                              .isDarkMode),
                                                     ),
                                                     child: Text('$value'),
                                                   )
@@ -649,9 +685,9 @@ class _Game2048PageState extends State<Game2048Page>
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Control Buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -663,11 +699,12 @@ class _Game2048PageState extends State<Game2048Page>
                             });
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: themeProvider.isDarkMode 
-                                ? Colors.teal 
+                            backgroundColor: themeProvider.isDarkMode
+                                ? Colors.teal
                                 : const Color(0xFF1565C0),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),

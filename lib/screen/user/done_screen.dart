@@ -7,7 +7,7 @@ import '../../theme/theme_provider.dart';
 class DoneScreen extends StatelessWidget {
   final bool isAnonymous;
 
-const DoneScreen({Key? key, required this.isAnonymous}) : super(key: key);
+  const DoneScreen({Key? key, required this.isAnonymous}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +35,8 @@ const DoneScreen({Key? key, required this.isAnonymous}) : super(key: key);
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode
-                        ? Colors.white
-                        : Colors.black,
+                    color:
+                        themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -49,9 +48,8 @@ const DoneScreen({Key? key, required this.isAnonymous}) : super(key: key);
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: themeProvider.isDarkMode
-                        ? Colors.white
-                        : Colors.black,
+                    color:
+                        themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -59,7 +57,7 @@ const DoneScreen({Key? key, required this.isAnonymous}) : super(key: key);
                   isAnonymous
                       ? "Admins will process your anonymous complaint. You can’t track it in 'My Complaints'."
                       : "You can check your issue status in the My Complaints tab.\n\n"
-                        "Estimated resolution time: 10–12 hours (complaints between 12PM–8AM will be processed after 8AM).",
+                          "Estimated resolution time: 10–12 hours (complaints between 12PM–8AM will be processed after 8AM).",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,

@@ -47,7 +47,8 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       vsync: this,
     );
     _buttonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _buttonAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+          parent: _buttonAnimationController, curve: Curves.easeInOut),
     );
   }
 
@@ -111,7 +112,6 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         await Future.delayed(Duration(milliseconds: 3000));
         _showAdminPinDialog(email);
       } else {
-
         // 👉 Show local notifications if any, then navigate
         final notifications = await LocalStatusStorage.getNotifications();
         if (notifications.isNotEmpty) {
@@ -156,9 +156,8 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         return Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return AlertDialog(
-              backgroundColor: themeProvider.isDarkMode
-                  ? Colors.grey[800]
-                  : Colors.white,
+              backgroundColor:
+                  themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -172,7 +171,10 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         gradient: LinearGradient(
                           colors: themeProvider.isDarkMode
                               ? [Colors.teal, Colors.teal[300]!]
-                              : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                              : [
+                                  const Color(0xFF1565C0),
+                                  const Color(0xFF42A5F5)
+                                ],
                         ),
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -186,7 +188,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     Text(
                       "Admin Authentication",
                       style: TextStyle(
-                        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
+                            : Colors.black87,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -200,7 +204,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   Text(
                     "Enter your 4-digit PIN to access the admin dashboard.",
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
                       fontSize: 14,
                     ),
                     textAlign: TextAlign.center,
@@ -212,7 +218,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 4,
@@ -220,27 +228,37 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     decoration: InputDecoration(
                       hintText: "• • • •",
                       hintStyle: TextStyle(
-                        color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400],
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[500]
+                            : Colors.grey[400],
                         fontSize: 20,
                         letterSpacing: 8,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[600]!
+                              : Colors.grey[300]!,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: themeProvider.isDarkMode ? Colors.teal : const Color(0xFF1565C0),
+                          color: themeProvider.isDarkMode
+                              ? Colors.teal
+                              : const Color(0xFF1565C0),
                           width: 2,
                         ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     maxLength: 4,
-                    buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
+                    buildCounter: (context,
+                            {required currentLength,
+                            required isFocused,
+                            maxLength}) =>
+                        null,
                   ),
                 ],
               ),
@@ -253,7 +271,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         child: Text(
                           "Cancel",
                           style: TextStyle(
-                            color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -266,37 +286,50 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           gradient: LinearGradient(
                             colors: themeProvider.isDarkMode
                                 ? [Colors.teal, Colors.teal[300]!]
-                                : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                                : [
+                                    const Color(0xFF1565C0),
+                                    const Color(0xFF42A5F5)
+                                  ],
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton(
                           onPressed: () async {
                             if (pinController.text == "2004") {
-                              SharedPreferences prefs = await SharedPreferences.getInstance();
+                              SharedPreferences prefs =
+                                  await SharedPreferences.getInstance();
                               await prefs.setBool("isAdmin", true);
 
-                              if(!context.mounted) return;
+                              if (!context.mounted) return;
                               Navigator.pop(context);
-                              final adminNotifications = await LocalStatusStorage.getAdminNotifications();
+                              final adminNotifications =
+                                  await LocalStatusStorage
+                                      .getAdminNotifications();
                               if (adminNotifications.isNotEmpty) {
-                                for (var i = 0; i <adminNotifications.length; i++) {
+                                for (var i = 0;
+                                    i < adminNotifications.length;
+                                    i++) {
                                   final n = adminNotifications[i];
                                   await NotificationService().showNotification(
                                     id: i + 500,
                                     title: 'New Complaint Filed',
-                                    body: n['message'] ?? 'A new complaint has been filed.',
+                                    body: n['message'] ??
+                                        'A new complaint has been filed.',
                                     payload: n['complaint_id'] ?? '',
                                   );
                                 }
-                                await LocalStatusStorage.clearAdminNotifications();
+                                await LocalStatusStorage
+                                    .clearAdminNotifications();
                               }
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => MainNavigationWrapper()),
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        MainNavigationWrapper()),
                               );
                             } else {
-                              Fluttertoast.showToast(msg: "Incorrect PIN! Access Denied.");
+                              Fluttertoast.showToast(
+                                  msg: "Incorrect PIN! Access Denied.");
                             }
                           },
                           child: const Text(
@@ -345,7 +378,8 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         final screenWidth = MediaQuery.of(context).size.width;
 
         return Scaffold(
-          backgroundColor: isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+          backgroundColor:
+              isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -362,7 +396,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+                    minHeight: screenHeight -
+                        MediaQuery.of(context).padding.top -
+                        MediaQuery.of(context).padding.bottom,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -377,7 +413,8 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               style: TextStyle(
                                 fontSize: screenWidth * 0.08,
                                 fontWeight: FontWeight.bold,
-                                color: isDarkMode ? Colors.white : Colors.black87,
+                                color:
+                                    isDarkMode ? Colors.white : Colors.black87,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -385,7 +422,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               "Sign in to continue your civic journey",
                               style: TextStyle(
                                 fontSize: screenWidth * 0.04,
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                color: isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -405,8 +444,14 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
                               colors: isDarkMode
-                                  ? [Colors.teal.withOpacity(0.2), Colors.teal.withOpacity(0.1)]
-                                  : [const Color(0xFF1565C0).withOpacity(0.1), const Color(0xFF42A5F5).withOpacity(0.05)],
+                                  ? [
+                                      Colors.teal.withOpacity(0.2),
+                                      Colors.teal.withOpacity(0.1)
+                                    ]
+                                  : [
+                                      const Color(0xFF1565C0).withOpacity(0.1),
+                                      const Color(0xFF42A5F5).withOpacity(0.05)
+                                    ],
                             ),
                           ),
                           child: Center(
@@ -415,7 +460,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               height: screenHeight * 0.15,
                               width: screenHeight * 0.15,
                               fit: BoxFit.contain,
-                              color: isDarkMode ? Colors.white.withOpacity(0.9) : null,
+                              color: isDarkMode
+                                  ? Colors.white.withOpacity(0.9)
+                                  : null,
                             ),
                           ),
                         ),
@@ -446,8 +493,12 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               obscureText: _obscurePassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
                                   size: 20,
                                 ),
                                 onPressed: () {
@@ -469,7 +520,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   "Forgot Password?",
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                                    color: isDarkMode
+                                        ? Colors.teal[300]
+                                        : const Color(0xFF1565C0),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -496,14 +549,18 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   gradient: LinearGradient(
                                     colors: isDarkMode
                                         ? [Colors.teal, Colors.teal[300]!]
-                                        : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                                        : [
+                                            const Color(0xFF1565C0),
+                                            const Color(0xFF42A5F5)
+                                          ],
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
                                       color: isDarkMode
                                           ? Colors.teal.withOpacity(0.3)
-                                          : const Color(0xFF1565C0).withOpacity(0.3),
+                                          : const Color(0xFF1565C0)
+                                              .withOpacity(0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
@@ -525,13 +582,17 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                           height: 20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
                                           ),
                                         )
                                       : const Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
-                                            Icon(Icons.login, color: Colors.white, size: 20),
+                                            Icon(Icons.login,
+                                                color: Colors.white, size: 20),
                                             SizedBox(width: 8),
                                             Text(
                                               "Sign In",
@@ -561,7 +622,9 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             Text(
                               "Don't have an account? ",
                               style: TextStyle(
-                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                color: isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                                 fontSize: 14,
                               ),
                             ),
@@ -570,19 +633,24 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                 Navigator.push(
                                   context,
                                   PageRouteBuilder(
-                                    pageBuilder: (context, animation, secondaryAnimation) =>
+                                    pageBuilder: (context, animation,
+                                            secondaryAnimation) =>
                                         const RegisterScreen(),
-                                    transitionsBuilder:
-                                        (context, animation, secondaryAnimation, child) =>
-                                            FadeTransition(opacity: animation, child: child),
-                                    transitionDuration: const Duration(milliseconds: 500),
+                                    transitionsBuilder: (context, animation,
+                                            secondaryAnimation, child) =>
+                                        FadeTransition(
+                                            opacity: animation, child: child),
+                                    transitionDuration:
+                                        const Duration(milliseconds: 500),
                                   ),
                                 );
                               },
                               child: Text(
                                 "Sign Up",
                                 style: TextStyle(
-                                  color: isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                                  color: isDarkMode
+                                      ? Colors.teal[300]
+                                      : const Color(0xFF1565C0),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -643,7 +711,8 @@ class LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             width: 2,
           ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

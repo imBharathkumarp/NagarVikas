@@ -14,7 +14,8 @@ class FeedbackPage extends StatefulWidget {
   FeedbackPageState createState() => FeedbackPageState();
 }
 
-class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixin {
+class FeedbackPageState extends State<FeedbackPage>
+    with TickerProviderStateMixin {
   // ⭐ User rating value (0.0 to 5.0)
   double _rating = 0.0;
 
@@ -89,7 +90,9 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[900]
+                        : const Color(0xFFF8F9FA),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(28),
                       topRight: Radius.circular(28),
@@ -108,15 +111,21 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                               children: [
                                 // Header section with emoji and title
                                 _buildHeaderSection(themeProvider),
-                                SizedBox(height: MediaQuery.of(context).size.height * 0.025),
+                                SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.025),
 
                                 // Rating section
                                 _buildRatingSection(themeProvider),
-                                SizedBox(height: MediaQuery.of(context).size.height * 0.025),
+                                SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.025),
 
                                 // Feedback section
                                 _buildFeedbackSection(themeProvider),
-                                SizedBox(height: MediaQuery.of(context).size.height * 0.025),
+                                SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.025),
 
                                 // Suggestions section
                                 _buildSuggestionsSection(themeProvider),
@@ -250,7 +259,10 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             padding: EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.withOpacity(0.1), Colors.purple.withOpacity(0.1)],
+                colors: [
+                  Colors.blue.withOpacity(0.1),
+                  Colors.purple.withOpacity(0.1)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -276,7 +288,9 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             'Help us improve by sharing your experience',
             style: TextStyle(
               fontSize: 16,
-              color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[300]
+                  : Colors.grey[600],
               fontWeight: FontWeight.w500,
               height: 1.4,
             ),
@@ -349,19 +363,26 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             decoration: BoxDecoration(
               gradient: isSelected
                   ? LinearGradient(
-                      colors: [Colors.amber.withOpacity(0.15), Colors.orange.withOpacity(0.1)],
+                      colors: [
+                        Colors.amber.withOpacity(0.15),
+                        Colors.orange.withOpacity(0.1)
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : null,
               color: !isSelected
-                  ? (themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[100])
+                  ? (themeProvider.isDarkMode
+                      ? Colors.grey[700]
+                      : Colors.grey[100])
                   : null,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected
                     ? Colors.amber.withOpacity(0.4)
-                    : (themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!),
+                    : (themeProvider.isDarkMode
+                        ? Colors.grey[600]!
+                        : Colors.grey[300]!),
                 width: 1.5,
               ),
             ),
@@ -369,7 +390,9 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
               isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
               color: isSelected
                   ? Colors.amber[600]
-                  : (themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500]),
+                  : (themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[500]),
               size: 28,
             ),
           ),
@@ -381,7 +404,8 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
   /// 💬 Rating feedback text
   Widget _buildRatingFeedbackText(ThemeProvider themeProvider) {
     String feedbackText = '';
-    Color textColor = themeProvider.isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
+    Color textColor =
+        themeProvider.isDarkMode ? Colors.grey[400]! : Colors.grey[600]!;
 
     if (_rating >= 4) {
       feedbackText = 'Awesome! 🎉';
@@ -450,12 +474,15 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
             decoration: InputDecoration(
               hintText: 'Share your thoughts, suggestions, or report issues...',
               hintStyle: TextStyle(
-                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Colors.grey[500],
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
               ),
               filled: true,
-              fillColor: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
+              fillColor:
+                  themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
@@ -463,11 +490,10 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide(
-                  color: themeProvider.isDarkMode
-                      ? Colors.blue[400]!
-                      : const Color.fromARGB(255, 21, 172, 241),
-                  width: 2
-                ),
+                    color: themeProvider.isDarkMode
+                        ? Colors.blue[400]!
+                        : const Color.fromARGB(255, 21, 172, 241),
+                    width: 2),
               ),
               contentPadding: EdgeInsets.all(20),
             ),
@@ -516,7 +542,9 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                   : const Color.fromARGB(255, 21, 172, 241),
               checkColor: Colors.white,
               side: BorderSide(
-                color: themeProvider.isDarkMode ? Colors.grey[500]! : Colors.grey[400]!,
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[500]!
+                    : Colors.grey[400]!,
                 width: 2,
               ),
               shape: RoundedRectangleBorder(
@@ -588,7 +616,8 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                       BoxShadow(
                         color: themeProvider.isDarkMode
                             ? Colors.blue.withOpacity(0.3)
-                            : const Color.fromARGB(255, 21, 172, 241).withOpacity(0.25),
+                            : const Color.fromARGB(255, 21, 172, 241)
+                                .withOpacity(0.25),
                         blurRadius: 15,
                         offset: Offset(0, 6),
                       ),
@@ -638,8 +667,10 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
         return Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-              backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28)),
+              backgroundColor:
+                  themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
               child: Padding(
                 padding: EdgeInsets.all(32),
                 child: Column(
@@ -649,7 +680,10 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                       padding: EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.green.withOpacity(0.15), Colors.teal.withOpacity(0.1)],
+                          colors: [
+                            Colors.green.withOpacity(0.15),
+                            Colors.teal.withOpacity(0.1)
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -667,7 +701,9 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
-                        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                        color: themeProvider.isDarkMode
+                            ? Colors.white
+                            : Colors.black87,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -677,7 +713,9 @@ class FeedbackPageState extends State<FeedbackPage> with TickerProviderStateMixi
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[300]
+                            : Colors.grey[600],
                         height: 1.5,
                         fontWeight: FontWeight.w500,
                       ),

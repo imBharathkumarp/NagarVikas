@@ -248,7 +248,10 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
               end: Alignment.bottomCenter,
               colors: themeProvider.isDarkMode
                   ? [Colors.grey[800]!, Colors.grey[800]!]
-                  : [const Color.fromARGB(255, 21, 172, 241), const Color.fromARGB(255, 21, 172, 241)],
+                  : [
+                      const Color.fromARGB(255, 21, 172, 241),
+                      const Color.fromARGB(255, 21, 172, 241)
+                    ],
             ),
           ),
           child: Column(
@@ -260,7 +263,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[900]
+                        : const Color(0xFFF8F9FA),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
@@ -274,10 +279,13 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
 
                             // Category Selection Header
                             Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 20),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 20),
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[800]
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
@@ -290,7 +298,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                                 ],
                               ),
                               child: Row(
-                                children: List.generate(categories.length, (index) {
+                                children:
+                                    List.generate(categories.length, (index) {
                                   bool isSelected = _currentPage == index;
                                   List<Map<String, dynamic>> complaints =
                                       _getComplaintsForCategory(index);
@@ -300,23 +309,28 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                                       onTap: () {
                                         _pageController.animateToPage(
                                           index,
-                                          duration: const Duration(milliseconds: 300),
+                                          duration:
+                                              const Duration(milliseconds: 300),
                                           curve: Curves.easeInOut,
                                         );
                                       },
                                       child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
+                                        duration:
+                                            const Duration(milliseconds: 200),
                                         margin: const EdgeInsets.all(3),
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16),
                                         decoration: BoxDecoration(
                                           color: isSelected
                                               ? categoryColors[index]
                                               : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
                                           boxShadow: isSelected
                                               ? [
                                                   BoxShadow(
-                                                    color: categoryColors[index].withOpacity(0.3),
+                                                    color: categoryColors[index]
+                                                        .withOpacity(0.3),
                                                     blurRadius: 12,
                                                     offset: const Offset(0, 6),
                                                   ),
@@ -330,9 +344,12 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                                               padding: const EdgeInsets.all(8),
                                               decoration: BoxDecoration(
                                                 color: isSelected
-                                                    ? Colors.white.withOpacity(0.2)
-                                                    : categoryColors[index].withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(10),
+                                                    ? Colors.white
+                                                        .withOpacity(0.2)
+                                                    : categoryColors[index]
+                                                        .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
                                               ),
                                               child: Icon(
                                                 categoryIcons[index],
@@ -350,7 +367,10 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                                                 fontWeight: FontWeight.bold,
                                                 color: isSelected
                                                     ? Colors.white
-                                                    : (themeProvider.isDarkMode ? Colors.white : categoryColors[index]),
+                                                    : (themeProvider.isDarkMode
+                                                        ? Colors.white
+                                                        : categoryColors[
+                                                            index]),
                                               ),
                                             ),
                                             const SizedBox(height: 2),
@@ -361,7 +381,10 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                                                 fontWeight: FontWeight.w600,
                                                 color: isSelected
                                                     ? Colors.white
-                                                    : (themeProvider.isDarkMode ? Colors.grey[400] : categoryColors[index]),
+                                                    : (themeProvider.isDarkMode
+                                                        ? Colors.grey[400]
+                                                        : categoryColors[
+                                                            index]),
                                               ),
                                             ),
                                           ],
@@ -379,16 +402,20 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                             Container(
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(categories.length, (index) {
+                                children:
+                                    List.generate(categories.length, (index) {
                                   return AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
-                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 4),
                                     height: 6,
                                     width: _currentPage == index ? 28 : 10,
                                     decoration: BoxDecoration(
                                       color: _currentPage == index
                                           ? categoryColors[_currentPage]
-                                          : (themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300]),
+                                          : (themeProvider.isDarkMode
+                                              ? Colors.grey[600]
+                                              : Colors.grey[300]),
                                       borderRadius: BorderRadius.circular(3),
                                     ),
                                   );
@@ -411,7 +438,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                                 itemBuilder: (context, pageIndex) {
                                   List<Map<String, dynamic>> complaints =
                                       _getComplaintsForCategory(pageIndex);
-                                  return _buildComplaintsList(complaints, pageIndex, themeProvider);
+                                  return _buildComplaintsList(
+                                      complaints, pageIndex, themeProvider);
                                 },
                               ),
                             ),
@@ -422,7 +450,6 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
             ],
           ),
         ),
-
       );
     });
   }
@@ -431,7 +458,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 46, 20, 16),
       decoration: BoxDecoration(
-        color: themeProvider.isDarkMode ? Colors.grey[800] : const Color.fromARGB(255, 21, 172, 241),
+        color: themeProvider.isDarkMode
+            ? Colors.grey[800]
+            : const Color.fromARGB(255, 21, 172, 241),
         boxShadow: [
           BoxShadow(
             color: themeProvider.isDarkMode
@@ -523,7 +552,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                         margin: const EdgeInsets.all(4),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[700]
+                              : Colors.grey[300],
                           borderRadius: BorderRadius.circular(16),
                         ),
                         height: 90,
@@ -545,7 +576,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                       height: 6,
                       width: 10,
                       decoration: BoxDecoration(
-                        color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[600]
+                            : Colors.grey[300],
                         borderRadius: BorderRadius.circular(3),
                       ),
                     )),
@@ -563,7 +596,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                color:
+                    themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -584,7 +618,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[700]
+                              : Colors.grey[300],
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
@@ -597,7 +633,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                               height: 18,
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[700]
+                                    : Colors.grey[300],
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -606,7 +644,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                               height: 14,
                               width: 120,
                               decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[700]
+                                    : Colors.grey[300],
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -617,7 +657,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                         width: 70,
                         height: 28,
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[700]
+                              : Colors.grey[300],
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
@@ -628,7 +670,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                     height: 14,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[700]
+                          : Colors.grey[300],
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -637,7 +681,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                     height: 14,
                     width: 200,
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[700]
+                          : Colors.grey[300],
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -650,8 +696,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
     );
   }
 
-  Widget _buildComplaintsList(
-      List<Map<String, dynamic>> complaints, int categoryIndex, ThemeProvider themeProvider) {
+  Widget _buildComplaintsList(List<Map<String, dynamic>> complaints,
+      int categoryIndex, ThemeProvider themeProvider) {
     if (complaints.isEmpty) {
       return RefreshIndicator(
         onRefresh: fetchComplaintsByCategory,
@@ -688,7 +734,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                     'No ${categories[categoryIndex].toLowerCase()} complaints found',
                     style: GoogleFonts.poppins(
                       fontSize: 18,
-                      color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -697,7 +745,9 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                     'Pull to refresh and check for updates',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
-                      color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[500],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[500]
+                          : Colors.grey[500],
                     ),
                   ),
                 ],
@@ -717,7 +767,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
             // Scroll to bottom to refresh functionality
             if (scrollInfo is ScrollUpdateNotification) {
               // Check if user has scrolled to the bottom and then scrolled a bit more (overscroll)
-              if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent + 50) {
+              if (scrollInfo.metrics.pixels >=
+                  scrollInfo.metrics.maxScrollExtent + 50) {
                 fetchComplaintsByCategory();
               }
             }
@@ -734,7 +785,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                 child: SlideAnimation(
                   verticalOffset: 30.0,
                   child: FadeInAnimation(
-                    child: _buildComplaintCard(complaints[index], categoryIndex, themeProvider),
+                    child: _buildComplaintCard(
+                        complaints[index], categoryIndex, themeProvider),
                   ),
                 ),
               );
@@ -745,8 +797,8 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
     );
   }
 
-  Widget _buildComplaintCard(
-      Map<String, dynamic> complaint, int categoryIndex, ThemeProvider themeProvider) {
+  Widget _buildComplaintCard(Map<String, dynamic> complaint, int categoryIndex,
+      ThemeProvider themeProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -786,9 +838,11 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                       height: 60,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: _getStatusColor(complaint["status"]).withOpacity(0.1),
+                        color: _getStatusColor(complaint["status"])
+                            .withOpacity(0.1),
                         border: Border.all(
-                          color: _getStatusColor(complaint["status"]).withOpacity(0.3),
+                          color: _getStatusColor(complaint["status"])
+                              .withOpacity(0.3),
                         ),
                       ),
                       child: complaint["media_type"] == "image"
@@ -831,28 +885,38 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: themeProvider.isDarkMode ? Colors.white : const Color(0xFF1A1A1A),
+                              color: themeProvider.isDarkMode
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[100],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.location_on_rounded,
-                                    size: 14, color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                                    size: 14,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600]),
                                 const SizedBox(width: 4),
                                 Text(
                                   "${complaint["city"]}, ${complaint["state"]}",
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
                                   ),
                                 ),
                               ],
@@ -864,17 +928,21 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
 
                     // Enhanced Status badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(complaint["status"]).withOpacity(0.1),
+                        color: _getStatusColor(complaint["status"])
+                            .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: _getStatusColor(complaint["status"]).withOpacity(0.5),
+                          color: _getStatusColor(complaint["status"])
+                              .withOpacity(0.5),
                           width: 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: _getStatusColor(complaint["status"]).withOpacity(0.2),
+                            color: _getStatusColor(complaint["status"])
+                                .withOpacity(0.2),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),
@@ -898,14 +966,18 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[700]
+                        : Colors.grey[50],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     complaint["description"] ?? "No description",
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[300]
+                          : Colors.grey[700],
                       height: 1.4,
                     ),
                     maxLines: 2,
@@ -919,29 +991,39 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[700]
+                        : Colors.grey[50],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[600]
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.person_outline,
-                                size: 14, color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                                size: 14,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
                               complaint["user_name"] ?? "Unknown",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[300]
+                                    : Colors.grey[700],
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -949,22 +1031,30 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[600]
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.access_time,
-                                size: 14, color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                                size: 14,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
                               "${complaint["date"]} ${complaint["time"]}",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[300]
+                                    : Colors.grey[700],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

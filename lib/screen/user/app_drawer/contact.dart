@@ -132,9 +132,8 @@ class _ContactUsPageState extends State<ContactUsPage>
       floating: false,
       pinned: false,
       elevation: 0,
-      backgroundColor: themeProvider.isDarkMode
-          ? Colors.grey[800]
-          : const Color(0xFF1565C0),
+      backgroundColor:
+          themeProvider.isDarkMode ? Colors.grey[800] : const Color(0xFF1565C0),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -156,7 +155,8 @@ class _ContactUsPageState extends State<ContactUsPage>
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -610,9 +610,9 @@ class _ContactUsPageState extends State<ContactUsPage>
         // Gmail fallback
         final fallbackUrl = Uri.parse(
           'https://mail.google.com/mail/?view=cm&fs=1'
-              '&to=${Uri.encodeComponent(widget.email)}'
-              '&su=${Uri.encodeComponent(subject)}'
-              '&body=${Uri.encodeComponent(body)}',
+          '&to=${Uri.encodeComponent(widget.email)}'
+          '&su=${Uri.encodeComponent(subject)}'
+          '&body=${Uri.encodeComponent(body)}',
         );
 
         if (await canLaunchUrl(fallbackUrl)) {

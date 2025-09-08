@@ -1,7 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-class BarChartWidget extends StatelessWidget { //Bar Chart Widget
+class BarChartWidget extends StatelessWidget {
+  //Bar Chart Widget
   final List<double> values;
   final List<String> labels;
   final List<Color> colors;
@@ -42,18 +43,21 @@ class BarChartWidget extends StatelessWidget { //Bar Chart Widget
                   showTitles: true,
                   getTitlesWidget: (value, meta) {
                     int index = value.toInt();
-                    if (index < 0 || index >= labels.length) return const Text('');
+                    if (index < 0 || index >= labels.length)
+                      return const Text('');
                     return Padding(
                       padding: const EdgeInsets.only(top: 6.0),
                       child: Text(
                         labels[index],
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     );
                   },
                 ),
               ),
-              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles:
+                  AxisTitles(sideTitles: SideTitles(showTitles: false)),
               topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
             gridData: FlGridData(show: true, drawVerticalLine: false),
@@ -89,6 +93,3 @@ class BarChartWidget extends StatelessWidget { //Bar Chart Widget
     return (max + 5).ceilToDouble();
   }
 }
-
-
-

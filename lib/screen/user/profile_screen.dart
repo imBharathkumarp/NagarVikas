@@ -706,7 +706,7 @@ class ProfilePageState extends State<ProfilePage>
         }, themeProvider),
         _buildActionTile("Report Issue", Icons.report_problem_outlined,
             const Color(0xFFE91E63), () {
-              ReportIssueService.showReportIssueDialog(context, themeProvider);
+          ReportIssueService.showReportIssueDialog(context, themeProvider);
         }, themeProvider),
         _buildActionTile(
             "Logout",

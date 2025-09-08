@@ -10,7 +10,8 @@ class ChatbotFloatingButton extends StatefulWidget {
   State<ChatbotFloatingButton> createState() => _ChatbotFloatingButtonState();
 }
 
-class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with SingleTickerProviderStateMixin {
+class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton>
+    with SingleTickerProviderStateMixin {
   bool _isChatOpen = false;
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -22,7 +23,8 @@ class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with Sing
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
-    _scaleAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _scaleAnimation =
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
   }
 
   @override
@@ -105,10 +107,12 @@ class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with Sing
                         onTap: _openFullPageChat,
                         child: Container(
                           constraints: const BoxConstraints(minHeight: 60),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: Colors.blueAccent,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(20)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -116,27 +120,34 @@ class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with Sing
                               Expanded(
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.smart_toy, color: Colors.white),
+                                    const Icon(Icons.smart_toy,
+                                        color: Colors.white),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             "Nagar Vikas Assistant",
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           // NEW: Added tap hint
                                           Text(
                                             "Tap to expand",
                                             style: TextStyle(
-                                              color: Colors.white.withOpacity(0.8),
+                                              color:
+                                                  Colors.white.withOpacity(0.8),
                                               fontSize: 11,
                                             ),
                                             overflow: TextOverflow.ellipsis,
@@ -148,7 +159,8 @@ class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with Sing
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white),
+                                icon: const Icon(Icons.close,
+                                    color: Colors.white),
                                 splashRadius: 20,
                                 onPressed: _closeChat,
                                 padding: EdgeInsets.zero,
@@ -182,7 +194,7 @@ class _ChatbotFloatingButtonState extends State<ChatbotFloatingButton> with Sing
 // NEW: Full page chatbot widget with minimize functionality
 class ChatbotFullPage extends StatelessWidget {
   final VoidCallback? onMinimize;
-  
+
   const ChatbotFullPage({
     Key? key,
     this.onMinimize,
@@ -280,10 +292,12 @@ class ChatbotConversationWidget extends StatefulWidget {
   const ChatbotConversationWidget({Key? key}) : super(key: key);
 
   @override
-  State<ChatbotConversationWidget> createState() => _ChatbotConversationWidgetState();
+  State<ChatbotConversationWidget> createState() =>
+      _ChatbotConversationWidgetState();
 }
 
-class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> with TickerProviderStateMixin {
+class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget>
+    with TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _messages = [
@@ -300,7 +314,7 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> w
   double _confidenceLevel = 0;
   late AnimationController _micAnimationController;
   late Animation<double> _micAnimation;
-  
+
   // Timer variables
   Timer? _recordingTimer;
   Duration _recordingDuration = Duration.zero;
@@ -309,7 +323,7 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> w
   void initState() {
     super.initState();
     _initSpeech();
-    
+
     // Initialize mic animation controller
     _micAnimationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -337,7 +351,7 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> w
         setState(() {
           _isListening = status == 'listening';
         });
-        
+
         if (status == 'listening') {
           _micAnimationController.repeat(reverse: true);
           _startRecordingTimer();
@@ -354,7 +368,7 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> w
         _micAnimationController.stop();
         _micAnimationController.reset();
         _stopRecordingTimer();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Speech recognition error: ${error.errorMsg}'),
@@ -377,10 +391,10 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> w
   }
 
   void _stopRecordingTimer() {
-  _recordingTimer?.cancel();
-  _recordingTimer = null;
-  // don’t reset here
-}
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+    // don’t reset here
+  }
 
   // Format duration to MM:SS format
   String _formatDuration(Duration duration) {
@@ -392,57 +406,56 @@ class _ChatbotConversationWidgetState extends State<ChatbotConversationWidget> w
 
   // Start listening to speech
   void _startListening() async {
-  var status = await Permission.microphone.request();
-  if (status != PermissionStatus.granted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Microphone permission is required for voice input'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-    return;
+    var status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Microphone permission is required for voice input'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_speechEnabled && !_isListening) {
+      _recordingDuration = Duration.zero; // reset here at start
+      _startRecordingTimer();
+
+      await _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _wordsSpoken = result.recognizedWords;
+            _confidenceLevel = result.confidence;
+            _controller.text = _wordsSpoken;
+          });
+        },
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
+        partialResults: true,
+        cancelOnError: false,
+        listenMode: stt.ListenMode.confirmation,
+      );
+    }
   }
 
-  if (_speechEnabled && !_isListening) {
-    _recordingDuration = Duration.zero; // reset here at start
-    _startRecordingTimer();
-
-    await _speech.listen(
-      onResult: (result) {
-        setState(() {
-          _wordsSpoken = result.recognizedWords;
-          _confidenceLevel = result.confidence;
-          _controller.text = _wordsSpoken;
-        });
-      },
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
-      partialResults: true,
-      cancelOnError: false,
-      listenMode: stt.ListenMode.confirmation,
-    );
+  void _stopListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      _stopRecordingTimer();
+      setState(() => _isListening = false);
+    }
   }
-}
-
-void _stopListening() async {
-  if (_isListening) {
-    await _speech.stop();
-    _stopRecordingTimer();
-    setState(() => _isListening = false);
-  }
-}
-
 
   void _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    
+
     setState(() {
       _messages.add(_ChatMessage(text: text, isBot: false));
       _isTyping = true;
     });
     _controller.clear();
-    
+
     // Scroll to bottom
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -455,12 +468,12 @@ void _stopListening() async {
     });
 
     await Future.delayed(const Duration(seconds: 2));
-    
+
     setState(() {
       _isTyping = false;
       _messages.add(_ChatMessage(text: getMessage(text), isBot: true));
     });
-    
+
     // Scroll to bottom again after bot response
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -476,21 +489,28 @@ void _stopListening() async {
   String getMessage(String input) {
     final lower = input.toLowerCase();
     // FAQ keyword logic
-    if (lower.contains('report') || (lower.contains('issue') || lower.contains('complaint'))) {
+    if (lower.contains('report') ||
+        (lower.contains('issue') || lower.contains('complaint'))) {
       return 'To report an issue, go to the Issues section from the main menu and fill out the form with details and photos.';
     } else if (lower.contains('register') || lower.contains('sign up')) {
       return 'To register, tap on the Register button on the home screen and fill in your details.';
-    } else if (lower.contains('track') && (lower.contains('complaint') || lower.contains('issue') || lower.contains('status'))) {
+    } else if (lower.contains('track') &&
+        (lower.contains('complaint') ||
+            lower.contains('issue') ||
+            lower.contains('status'))) {
       return 'You can track your complaint or issue status in the My Complaints section.';
-    } else if (lower.contains('contact') && (lower.contains('support') || lower.contains('help'))) {
+    } else if (lower.contains('contact') &&
+        (lower.contains('support') || lower.contains('help'))) {
       return 'For support, contact us at support@nagarvikas.com or call our helpline at 1800-123-456.';
     } else if (lower.contains('reset') && lower.contains('password')) {
       return 'To reset your password, use the Forgot Password link on the login page.';
-    } else if (lower.contains('edit') && (lower.contains('profile') || lower.contains('account'))) {
+    } else if (lower.contains('edit') &&
+        (lower.contains('profile') || lower.contains('account'))) {
       return 'To edit your profile, go to the Profile section and tap on Edit.';
     } else if (lower.contains('delete') && lower.contains('account')) {
       return 'To delete your account, please contact support for assistance.';
-    } else if ((lower.contains('app') || lower.contains('application')) && lower.contains('update')) {
+    } else if ((lower.contains('app') || lower.contains('application')) &&
+        lower.contains('update')) {
       return 'To update the app, visit the Play Store or App Store and check for updates.';
     } else if (lower.contains('language')) {
       return 'You can change the app language from the Settings menu.';
@@ -520,8 +540,10 @@ void _stopListening() async {
                 return Align(
                   alignment: Alignment.centerLeft,
                   child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
                       color: Colors.blue[50],
                       borderRadius: BorderRadius.circular(16),
@@ -540,13 +562,13 @@ void _stopListening() async {
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2, 
+                            strokeWidth: 2,
                             color: Colors.blueAccent,
                           ),
                         ),
                         const SizedBox(width: 10),
                         const Text(
-                          "Assistant is typing...", 
+                          "Assistant is typing...",
                           style: TextStyle(color: Colors.black54),
                         ),
                       ],
@@ -554,12 +576,16 @@ void _stopListening() async {
                   ),
                 );
               }
-              final msg = _messages[_messages.length - 1 - (index - (_isTyping ? 1 : 0))];
+              final msg = _messages[
+                  _messages.length - 1 - (index - (_isTyping ? 1 : 0))];
               return Align(
-                alignment: msg.isBot ? Alignment.centerLeft : Alignment.centerRight,
+                alignment:
+                    msg.isBot ? Alignment.centerLeft : Alignment.centerRight,
                 child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * 0.8,
                   ),
@@ -625,7 +651,8 @@ void _stopListening() async {
                 if (_confidenceLevel > 0.7)
                   Container(
                     margin: const EdgeInsets.only(left: 8),
-                    child: Icon(Icons.check_circle, color: Colors.green, size: 14),
+                    child:
+                        Icon(Icons.check_circle, color: Colors.green, size: 14),
                   ),
               ],
             ),
@@ -663,11 +690,12 @@ void _stopListening() async {
                           color: _isListening ? Colors.white : Colors.grey[600],
                           size: 20,
                         ),
-                        onPressed: _speechEnabled 
-                          ? (_isListening ? _stopListening : _startListening)
-                          : null,
+                        onPressed: _speechEnabled
+                            ? (_isListening ? _stopListening : _startListening)
+                            : null,
                         splashRadius: 20,
-                        tooltip: _isListening ? 'Stop listening' : 'Voice input',
+                        tooltip:
+                            _isListening ? 'Stop listening' : 'Voice input',
                       ),
                     ),
                   );
@@ -681,7 +709,8 @@ void _stopListening() async {
                     hintText: "Type or speak your message...",
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   ),
                   maxLines: null,
                   textInputAction: TextInputAction.send,
@@ -719,11 +748,8 @@ class ChatbotWrapper extends StatefulWidget {
   final Widget child;
   final bool hideChat;
 
-  const ChatbotWrapper({
-    required this.child,
-    this.hideChat = false,
-    Key? key
-  }) : super(key: key);
+  const ChatbotWrapper({required this.child, this.hideChat = false, Key? key})
+      : super(key: key);
 
   @override
   State<ChatbotWrapper> createState() => _ChatbotWrapperState();
@@ -745,8 +771,7 @@ class _ChatbotWrapperState extends State<ChatbotWrapper> {
         children: [
           widget.child,
           // Only show chatbot when hideChat is false AND drawer is not open
-          if (!widget.hideChat && !_isDrawerOpen)
-            const ChatbotFloatingButton(),
+          if (!widget.hideChat && !_isDrawerOpen) const ChatbotFloatingButton(),
         ],
       ),
     );

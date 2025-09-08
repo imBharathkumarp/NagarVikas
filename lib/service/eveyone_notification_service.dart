@@ -5,11 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
 
 class EveryoneNotificationService {
-  static final EveryoneNotificationService _instance = EveryoneNotificationService._internal();
+  static final EveryoneNotificationService _instance =
+      EveryoneNotificationService._internal();
   factory EveryoneNotificationService() => _instance;
   EveryoneNotificationService._internal();
 
-  final DatabaseReference _notificationsRef = FirebaseDatabase.instance.ref("everyone_notifications/");
+  final DatabaseReference _notificationsRef =
+      FirebaseDatabase.instance.ref("everyone_notifications/");
   final DatabaseReference _usersRef = FirebaseDatabase.instance.ref("users/");
 
   /// Send @everyone notification
@@ -36,8 +38,9 @@ class EveryoneNotificationService {
       // Get all users to send notifications
       final usersSnapshot = await _usersRef.once();
       if (usersSnapshot.snapshot.exists) {
-        final usersData = Map<String, dynamic>.from(usersSnapshot.snapshot.value as Map);
-        
+        final usersData =
+            Map<String, dynamic>.from(usersSnapshot.snapshot.value as Map);
+
         // Send local notification to all users (except sender)
         for (String userId in usersData.keys) {
           if (userId != senderId) {
@@ -52,19 +55,20 @@ class EveryoneNotificationService {
   }
 
   /// Send local notification to specific user
-  Future<void> _sendLocalNotificationToUser(String userId, String senderName, String messageText) async {
+  Future<void> _sendLocalNotificationToUser(
+      String userId, String senderName, String messageText) async {
     try {
       // Check if user has already been notified for this message
       final prefs = await SharedPreferences.getInstance();
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-      
+
       // Only send notification if this is the target user
       if (currentUserId == userId) {
         await NotificationService().showNotification(
           id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           title: '@everyone from $senderName',
-          body: messageText.length > 50 
-              ? '${messageText.substring(0, 50)}...' 
+          body: messageText.length > 50
+              ? '${messageText.substring(0, 50)}...'
               : messageText,
           payload: 'everyone_message',
         );
@@ -88,21 +92,23 @@ class EveryoneNotificationService {
   }
 
   /// Listen for @everyone notifications for current user
-  StreamSubscription<DatabaseEvent>? listenForEveryoneNotifications(String userId, Function(Map<String, dynamic>) onNotification) {
+  StreamSubscription<DatabaseEvent>? listenForEveryoneNotifications(
+      String userId, Function(Map<String, dynamic>) onNotification) {
     return _notificationsRef
         .orderByChild('timestamp')
         .limitToLast(1)
         .onChildAdded
         .listen((event) async {
       if (event.snapshot.exists) {
-        final notificationData = Map<String, dynamic>.from(event.snapshot.value as Map);
-        
+        final notificationData =
+            Map<String, dynamic>.from(event.snapshot.value as Map);
+
         // Don't notify the sender
         if (notificationData['senderId'] != userId) {
           // Check if we've already notified this user for this message
           final prefs = await SharedPreferences.getInstance();
           final notifiedKey = 'notified_${event.snapshot.key}_$userId';
-          
+
           if (!prefs.containsKey(notifiedKey)) {
             await prefs.setBool(notifiedKey, true);
             onNotification(notificationData);

@@ -32,7 +32,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     BottomNavigationBarItem(
       icon: Icon(Icons.home),
       label: 'Home',
-    ),BottomNavigationBarItem(
+    ),
+    BottomNavigationBarItem(
       icon: Icon(Icons.analytics),
       label: 'Analytics',
     ),
