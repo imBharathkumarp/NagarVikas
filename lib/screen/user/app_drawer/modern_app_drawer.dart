@@ -105,7 +105,9 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
               _buildDrawerHeader(themeProvider),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 100), // Add bottom padding to account for potential bottom nav
+                  padding: const EdgeInsets.only(
+                      bottom:
+                          100), // Add bottom padding to account for potential bottom nav
                   child: Column(
                     children: [
                       _buildLanguageSelector(),
@@ -138,22 +140,23 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
           end: Alignment.bottomRight,
           colors: themeProvider.isDarkMode
               ? [
-            Colors.grey[800]!,
-            Colors.grey[700]!,
-            Colors.teal[600]!,
-          ]
+                  Colors.grey[800]!,
+                  Colors.grey[700]!,
+                  Colors.teal[600]!,
+                ]
               : [
-            const Color(0xFF1565C0),
-            const Color(0xFF42A5F5),
-            const Color(0xFF81C784),
-          ],
+                  const Color(0xFF1565C0),
+                  const Color(0xFF42A5F5),
+                  const Color(0xFF81C784),
+                ],
         ),
       ),
       child: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -285,7 +288,6 @@ class _ModernAppDrawerState extends State<ModernAppDrawer>
       ),
     );
   }
-
 
   Widget _buildLanguageSelector() {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {

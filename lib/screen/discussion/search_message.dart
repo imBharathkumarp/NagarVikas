@@ -14,7 +14,7 @@ class MessageSearchDelegate extends SearchDelegate<String> {
   final Function(String messageId) onMessageFound;
   final MessageSearchLogic _searchLogic;
   Timer? _debounceTimer;
-  
+
   // Add a notifier to trigger rebuilds
   final ValueNotifier<int> _refreshNotifier = ValueNotifier<int>(0);
 
@@ -28,7 +28,8 @@ class MessageSearchDelegate extends SearchDelegate<String> {
   ThemeData appBarTheme(BuildContext context) {
     return Theme.of(context).copyWith(
       appBarTheme: AppBarTheme(
-        backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         iconTheme: IconThemeData(
           color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
         ),
@@ -51,7 +52,8 @@ class MessageSearchDelegate extends SearchDelegate<String> {
           color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
         ),
       ),
-      scaffoldBackgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
+      scaffoldBackgroundColor:
+          themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
     );
   }
 
@@ -119,7 +121,9 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                 Text(
                   'Searching for "$query"...',
                   style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.white70 : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white70
+                        : Colors.black87,
                   ),
                 ),
               ],
@@ -128,7 +132,8 @@ class MessageSearchDelegate extends SearchDelegate<String> {
         }
 
         if (snapshot.hasError) {
-          return _buildErrorState('Error searching messages: ${snapshot.error}');
+          return _buildErrorState(
+              'Error searching messages: ${snapshot.error}');
         }
 
         final results = snapshot.data ?? [];
@@ -178,7 +183,9 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[300]
+                                : Colors.grey[700],
                           ),
                         ),
                         if (recentTerms.isNotEmpty)
@@ -206,12 +213,16 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                         return ListTile(
                           leading: Icon(
                             Icons.history,
-                            color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
                           ),
                           title: Text(
                             term,
                             style: TextStyle(
-                              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
                             ),
                           ),
                           onTap: () {
@@ -222,7 +233,9 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                             icon: Icon(
                               Icons.close,
                               size: 18,
-                              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                             ),
                             onPressed: () async {
                               await _searchLogic.removeRecentSearchTerm(term);
@@ -305,7 +318,9 @@ class MessageSearchDelegate extends SearchDelegate<String> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Colors.grey[600],
               ),
             ),
             SizedBox(height: 2),
@@ -314,7 +329,8 @@ class MessageSearchDelegate extends SearchDelegate<String> {
               text: TextSpan(
                 children: _highlightMatch(result.message, query),
                 style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
                   fontSize: 14,
                 ),
               ),
@@ -329,13 +345,16 @@ class MessageSearchDelegate extends SearchDelegate<String> {
             _formatTimestamp(result.timestamp),
             style: TextStyle(
               fontSize: 11,
-              color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[500],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[500]
+                  : Colors.grey[500],
             ),
           ),
         ),
         onTap: () async {
           // Only save to history when user actually selects a message
-          if (query.trim().length >= 2) { // Only save if search term is meaningful
+          if (query.trim().length >= 2) {
+            // Only save if search term is meaningful
             await _searchLogic.saveRecentSearchTerm(query.trim());
           }
           close(context, result.messageId);
@@ -355,7 +374,8 @@ class MessageSearchDelegate extends SearchDelegate<String> {
         borderRadius: BorderRadius.circular(12),
         onTap: () async {
           // Only save to history when user actually selects a message
-          if (query.trim().length >= 2) { // Only save if search term is meaningful
+          if (query.trim().length >= 2) {
+            // Only save if search term is meaningful
             await _searchLogic.saveRecentSearchTerm(query.trim());
           }
           close(context, result.messageId);
@@ -382,7 +402,9 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                     child: Text(
                       result.senderName,
                       style: TextStyle(
-                        color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[300]
+                            : Colors.grey[700],
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -391,27 +413,29 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                   Text(
                     _formatTimestamp(result.timestamp),
                     style: TextStyle(
-                      color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[500],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[500]
+                          : Colors.grey[500],
                       fontSize: 11,
                     ),
                   ),
                 ],
               ),
-              
+
               SizedBox(height: 8),
-              
+
               // Message content with highlighting
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: themeProvider.isDarkMode 
-                    ? Colors.grey[700]?.withOpacity(0.5) 
-                    : Colors.grey[100],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[700]?.withOpacity(0.5)
+                      : Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: themeProvider.isDarkMode 
-                      ? Colors.grey[600]! 
-                      : Colors.grey[300]!,
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[600]!
+                        : Colors.grey[300]!,
                     width: 0.5,
                   ),
                 ),
@@ -423,11 +447,11 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                       Row(
                         children: [
                           Icon(
-                            result.messageType == 'image' 
-                              ? Icons.image 
-                              : result.messageType == 'video' 
-                                ? Icons.video_library
-                                : Icons.poll,
+                            result.messageType == 'image'
+                                ? Icons.image
+                                : result.messageType == 'video'
+                                    ? Icons.video_library
+                                    : Icons.poll,
                             size: 14,
                             color: Color(0xFF2196F3),
                           ),
@@ -444,13 +468,15 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                       ),
                       SizedBox(height: 6),
                     ],
-                    
+
                     // Message text with highlighting
                     RichText(
                       text: TextSpan(
                         children: _highlightMatch(result.message, query),
                         style: TextStyle(
-                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          color: themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
                           fontSize: 15,
                           height: 1.3,
                         ),
@@ -461,9 +487,9 @@ class MessageSearchDelegate extends SearchDelegate<String> {
                   ],
                 ),
               ),
-              
+
               SizedBox(height: 8),
-              
+
               // Action hint
               Row(
                 children: [
@@ -492,10 +518,18 @@ class MessageSearchDelegate extends SearchDelegate<String> {
 
   Color _getAvatarColor(String name) {
     final colors = [
-      Color(0xFF2196F3), Color(0xFF4CAF50), Color(0xFFFF9800),
-      Color(0xFF9C27B0), Color(0xFFE91E63), Color(0xFF00BCD4),
-      Color(0xFF795548), Color(0xFF607D8B), Color(0xFFFF5722),
-      Color(0xFF3F51B5), Color(0xFF8BC34A), Color(0xFFFFC107),
+      Color(0xFF2196F3),
+      Color(0xFF4CAF50),
+      Color(0xFFFF9800),
+      Color(0xFF9C27B0),
+      Color(0xFFE91E63),
+      Color(0xFF00BCD4),
+      Color(0xFF795548),
+      Color(0xFF607D8B),
+      Color(0xFFFF5722),
+      Color(0xFF3F51B5),
+      Color(0xFF8BC34A),
+      Color(0xFFFFC107),
     ];
     return colors[name.hashCode.abs() % colors.length];
   }
@@ -508,14 +542,17 @@ class MessageSearchDelegate extends SearchDelegate<String> {
           Icon(
             Icons.search_off,
             size: 64,
-            color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[400],
+            color:
+                themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[400],
           ),
           SizedBox(height: 16),
           Text(
             message,
             style: TextStyle(
               fontSize: 16,
-              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[400]
+                  : Colors.grey[600],
             ),
             textAlign: TextAlign.center,
           ),
@@ -696,12 +733,13 @@ class MessageSearchLogic {
             final messageContent = searchResult.message.toLowerCase();
             final senderName = searchResult.senderName.toLowerCase();
 
-            bool matchFound = messageContent.contains(queryLower) || 
-                            senderName.contains(queryLower);
+            bool matchFound = messageContent.contains(queryLower) ||
+                senderName.contains(queryLower);
 
             // Also search in message type descriptions for media
             if (!matchFound && searchResult.messageType != 'text') {
-              final typeDescription = '${searchResult.messageType} message'.toLowerCase();
+              final typeDescription =
+                  '${searchResult.messageType} message'.toLowerCase();
               matchFound = typeDescription.contains(queryLower);
             }
 
@@ -719,17 +757,17 @@ class MessageSearchLogic {
         // Prioritize exact username matches
         final aExactUser = a.senderName.toLowerCase() == queryLower;
         final bExactUser = b.senderName.toLowerCase() == queryLower;
-        
+
         if (aExactUser && !bExactUser) return -1;
         if (!aExactUser && bExactUser) return 1;
-        
+
         // Then by message content relevance (starts with query)
         final aStartsWith = a.message.toLowerCase().startsWith(queryLower);
         final bStartsWith = b.message.toLowerCase().startsWith(queryLower);
-        
+
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
-        
+
         // Finally by timestamp (newest first)
         return b.timestamp.compareTo(a.timestamp);
       });
@@ -786,7 +824,8 @@ class MessageSearchLogic {
             final message = (msgMap['message'] ?? '').toString();
 
             // Add username suggestions
-            if (senderName.toLowerCase().startsWith(queryLower) && senderName.isNotEmpty) {
+            if (senderName.toLowerCase().startsWith(queryLower) &&
+                senderName.isNotEmpty) {
               suggestions.add(senderName);
             }
 
@@ -795,7 +834,8 @@ class MessageSearchLogic {
               final words = message.split(RegExp(r'\s+'));
               for (final word in words) {
                 final cleanWord = word.replaceAll(RegExp(r'[^\w]'), '');
-                if (cleanWord.toLowerCase().startsWith(queryLower) && cleanWord.length > 2) {
+                if (cleanWord.toLowerCase().startsWith(queryLower) &&
+                    cleanWord.length > 2) {
                   suggestions.add(cleanWord);
                 }
               }
@@ -822,7 +862,8 @@ class MessageSearchLogic {
       if (cleanTerm.isEmpty || cleanTerm.length < 2) return;
 
       final prefs = await SharedPreferences.getInstance();
-      List<String> recentSearches = prefs.getStringList(_recentSearchesKey) ?? [];
+      List<String> recentSearches =
+          prefs.getStringList(_recentSearchesKey) ?? [];
 
       // Remove if already exists to avoid duplicates
       recentSearches.remove(cleanTerm);
@@ -855,7 +896,8 @@ class MessageSearchLogic {
   Future<void> removeRecentSearchTerm(String term) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      List<String> recentSearches = prefs.getStringList(_recentSearchesKey) ?? [];
+      List<String> recentSearches =
+          prefs.getStringList(_recentSearchesKey) ?? [];
       recentSearches.remove(term);
       await prefs.setStringList(_recentSearchesKey, recentSearches);
     } catch (e) {

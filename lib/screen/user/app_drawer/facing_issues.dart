@@ -20,7 +20,10 @@ class FacingIssuesPage extends StatelessWidget {
               end: Alignment.bottomCenter,
               colors: themeProvider.isDarkMode
                   ? [Colors.grey[800]!, Colors.grey[800]!]
-                  : [const Color.fromARGB(255, 21, 172, 241), const Color.fromARGB(255, 21, 172, 241)],
+                  : [
+                      const Color.fromARGB(255, 21, 172, 241),
+                      const Color.fromARGB(255, 21, 172, 241)
+                    ],
             ),
           ),
           child: Column(
@@ -32,7 +35,9 @@ class FacingIssuesPage extends StatelessWidget {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[900]
+                        : const Color(0xFFF8F9FA),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
@@ -40,7 +45,8 @@ class FacingIssuesPage extends StatelessWidget {
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -141,7 +147,9 @@ class FacingIssuesPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 46, 20, 16),
       decoration: BoxDecoration(
-        color: themeProvider.isDarkMode ? Colors.grey[800] : const Color.fromARGB(255, 21, 172, 241),
+        color: themeProvider.isDarkMode
+            ? Colors.grey[800]
+            : const Color.fromARGB(255, 21, 172, 241),
         boxShadow: [
           BoxShadow(
             color: themeProvider.isDarkMode
@@ -244,7 +252,9 @@ class FacingIssuesPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -252,7 +262,9 @@ class FacingIssuesPage extends StatelessWidget {
                   'Find solutions to common problems and troubleshooting steps',
                   style: TextStyle(
                     fontSize: 14,
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
                   ),
                 ),
               ],
@@ -312,7 +324,9 @@ class FacingIssuesPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
               ],
@@ -341,7 +355,8 @@ class FacingIssuesPage extends StatelessWidget {
         color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
+          color:
+              themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
           width: 1,
         ),
       ),
@@ -373,19 +388,23 @@ class FacingIssuesPage extends StatelessWidget {
             ),
           ),
           iconColor: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-          collapsedIconColor: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+          collapsedIconColor:
+              themeProvider.isDarkMode ? Colors.white : Colors.black87,
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                color:
+                    themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 solution,
                 style: TextStyle(
                   fontSize: 14,
-                  color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[300]
+                      : Colors.grey[700],
                   height: 1.4,
                 ),
               ),
@@ -410,7 +429,8 @@ class FacingIssuesPage extends StatelessWidget {
         color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
+          color:
+              themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
           width: 1,
         ),
       ),
@@ -449,7 +469,9 @@ class FacingIssuesPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -457,7 +479,9 @@ class FacingIssuesPage extends StatelessWidget {
                   description,
                   style: TextStyle(
                     fontSize: 14,
-                    color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[300]
+                        : Colors.grey[700],
                     height: 1.4,
                   ),
                 ),

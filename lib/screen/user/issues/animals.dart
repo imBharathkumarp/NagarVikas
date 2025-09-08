@@ -9,23 +9,24 @@ class AnimalsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return Scaffold(
-            backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
-            appBar: CustomGradientAppBar(
-              title: "Stray Animals Issue",
-              subtitle: "Please give accurate and correct information for a faster solution",
-              isDarkMode: themeProvider.isDarkMode,
-            ),
-            body: const SharedIssueForm(
-              issueType: "Stray Animals",
-              headingText: "Stray animals issue selected",
-              infoText:
+    return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
+      return Scaffold(
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
+        appBar: CustomGradientAppBar(
+          title: "Stray Animals Issue",
+          subtitle:
+              "Please give accurate and correct information for a faster solution",
+          isDarkMode: themeProvider.isDarkMode,
+        ),
+        body: const SharedIssueForm(
+          issueType: "Stray Animals",
+          headingText: "Stray animals issue selected",
+          infoText:
               "Please give accurate and correct information for a faster solution.",
-              imageAsset: "assets/selected.png",
-            ),
-          );
-        });
+          imageAsset: "assets/selected.png",
+        ),
+      );
+    });
   }
 }

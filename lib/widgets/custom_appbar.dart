@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart'; // Make sure to import your animation package
 
-class CustomGradientAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CustomGradientAppBar extends StatelessWidget
+    implements PreferredSizeWidget {
   final String title;
   final String? subtitle;
   final VoidCallback? onBackPressed;
@@ -31,20 +32,21 @@ class CustomGradientAppBar extends StatelessWidget implements PreferredSizeWidge
             end: Alignment.bottomRight,
             colors: isDarkMode
                 ? [
-              Colors.grey[850]!,
-              Colors.grey[800]!,
-              Colors.grey[700]!,
-            ]
+                    Colors.grey[850]!,
+                    Colors.grey[800]!,
+                    Colors.grey[700]!,
+                  ]
                 : [
-              const Color(0xFF1565C0),
-              const Color(0xFF42A5F5),
-              const Color(0xFF81C784),
-            ],
+                    const Color(0xFF1565C0),
+                    const Color(0xFF42A5F5),
+                    const Color(0xFF81C784),
+                  ],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [

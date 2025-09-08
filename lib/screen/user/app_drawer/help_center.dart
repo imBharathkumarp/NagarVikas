@@ -3,7 +3,6 @@ import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/theme_provider.dart';
 
-
 class HelpCenterPage extends StatefulWidget {
   const HelpCenterPage({super.key});
 
@@ -111,9 +110,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
       floating: false,
       pinned: true,
       elevation: 0,
-      backgroundColor: themeProvider.isDarkMode
-          ? Colors.grey[850]
-          : const Color(0xFF1565C0),
+      backgroundColor:
+          themeProvider.isDarkMode ? Colors.grey[850] : const Color(0xFF1565C0),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -135,7 +133,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -252,7 +251,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
               ],
@@ -268,7 +269,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
               decoration: InputDecoration(
                 hintText: "What can we help you with?",
                 hintStyle: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
                 ),
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF2196F3)),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -292,7 +295,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF2196F3), width: 2),
                 ),
               ),
               style: TextStyle(
@@ -320,7 +324,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
             ),
@@ -378,7 +383,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
     );
   }
 
-  Widget _buildQuickActionCard(String title, IconData icon, Color color, String subtitle, ThemeProvider themeProvider) {
+  Widget _buildQuickActionCard(String title, IconData icon, Color color,
+      String subtitle, ThemeProvider themeProvider) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -423,7 +429,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
             subtitle,
             style: TextStyle(
               fontSize: 12,
-              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[400]
+                  : Colors.grey[600],
             ),
             textAlign: TextAlign.center,
           ),
@@ -639,7 +647,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
               ],
@@ -649,7 +659,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
               "Can't find what you're looking for? Our support team is available 24/7 to help you.",
               style: TextStyle(
                 fontSize: 14,
-                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[300]
+                    : Colors.grey[600],
               ),
             ),
             const SizedBox(height: 20),
@@ -706,7 +718,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
     );
   }
 
-  Widget _buildHelpSection(String title, IconData icon, Color color, List<Widget> children, ThemeProvider themeProvider) {
+  Widget _buildHelpSection(String title, IconData icon, Color color,
+      List<Widget> children, ThemeProvider themeProvider) {
     return FadeInUp(
       duration: const Duration(milliseconds: 600),
       child: Container(
@@ -749,7 +762,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                 ],
@@ -768,7 +783,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
     );
   }
 
-  Widget _buildHelpItem(String title, String subtitle, IconData icon, ThemeProvider themeProvider) {
+  Widget _buildHelpItem(String title, String subtitle, IconData icon,
+      ThemeProvider themeProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -815,7 +831,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          color: themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -823,7 +841,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
                         subtitle,
                         style: TextStyle(
                           fontSize: 14,
-                          color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
                         ),
                       ),
                     ],
@@ -832,7 +852,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
                 ),
               ],
             ),
@@ -842,7 +864,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
     );
   }
 
-  Widget _buildFAQItem(String question, String answer, ThemeProvider themeProvider) {
+  Widget _buildFAQItem(
+      String question, String answer, ThemeProvider themeProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
@@ -878,7 +901,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
           ),
         ),
         iconColor: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-        collapsedIconColor: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+        collapsedIconColor:
+            themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -887,7 +911,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
               style: TextStyle(
                 fontSize: 14,
                 height: 1.5,
-                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[300]
+                    : Colors.grey[700],
               ),
             ),
           ),
@@ -896,7 +922,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
     );
   }
 
-  Widget _buildContactOption(String title, IconData icon, String subtitle, Color color, ThemeProvider themeProvider) {
+  Widget _buildContactOption(String title, IconData icon, String subtitle,
+      Color color, ThemeProvider themeProvider) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -933,7 +960,8 @@ class HelpCenterPageState extends State<HelpCenterPage>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -942,7 +970,9 @@ class HelpCenterPageState extends State<HelpCenterPage>
                 subtitle,
                 style: TextStyle(
                   fontSize: 12,
-                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
                 ),
                 textAlign: TextAlign.center,
               ),

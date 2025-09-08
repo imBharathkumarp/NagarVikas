@@ -47,11 +47,12 @@ class _MentionTextFieldState extends State<MentionTextField> {
   void _onTextChanged() {
     final text = widget.controller.text;
     final selection = widget.controller.selection;
-    
+
     // Check if user is typing @ at current cursor position
     if (selection.baseOffset > 0) {
       final beforeCursor = text.substring(0, selection.baseOffset);
-      if (beforeCursor.endsWith('@') || beforeCursor.toLowerCase().endsWith('@e')) {
+      if (beforeCursor.endsWith('@') ||
+          beforeCursor.toLowerCase().endsWith('@e')) {
         _showSuggestion();
       } else {
         _hideSuggestion();
@@ -59,7 +60,7 @@ class _MentionTextFieldState extends State<MentionTextField> {
     } else {
       _hideSuggestion();
     }
-    
+
     if (widget.onChanged != null) {
       widget.onChanged!(text);
     }
@@ -67,22 +68,22 @@ class _MentionTextFieldState extends State<MentionTextField> {
 
   void _showSuggestion() {
     if (_showMentionSuggestion) return;
-    
+
     setState(() {
       _showMentionSuggestion = true;
     });
-    
+
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context)?.insert(_overlayEntry!);
   }
 
   void _hideSuggestion() {
     if (!_showMentionSuggestion) return;
-    
+
     setState(() {
       _showMentionSuggestion = false;
     });
-    
+
     _removeOverlay();
   }
 
@@ -146,7 +147,7 @@ class _MentionTextFieldState extends State<MentionTextField> {
   void _insertEveryone() {
     final text = widget.controller.text;
     final selection = widget.controller.selection;
-    
+
     // Find the @ symbol position
     int atPosition = -1;
     for (int i = selection.baseOffset - 1; i >= 0; i--) {
@@ -155,20 +156,20 @@ class _MentionTextFieldState extends State<MentionTextField> {
         break;
       }
     }
-    
+
     if (atPosition >= 0) {
       final beforeAt = text.substring(0, atPosition);
       final afterCursor = text.substring(selection.baseOffset);
       final newText = beforeAt + '@everyone' + afterCursor;
-      
+
       widget.controller.text = newText;
       widget.controller.selection = TextSelection.collapsed(
         offset: atPosition + 9, // '@everyone'.length
       );
     }
-    
+
     _hideSuggestion();
-    
+
     // Add haptic feedback
     HapticFeedback.lightImpact();
   }

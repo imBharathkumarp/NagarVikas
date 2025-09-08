@@ -11,9 +11,8 @@ class AboutAppPage extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-          backgroundColor: themeProvider.isDarkMode
-              ? Colors.grey[900]
-              : Colors.grey[50],
+          backgroundColor:
+              themeProvider.isDarkMode ? Colors.grey[900] : Colors.grey[50],
           appBar: AppBar(
             title: Text(
               'About NagarVikas',
@@ -31,15 +30,15 @@ class AboutAppPage extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: themeProvider.isDarkMode
                       ? [
-                    Colors.grey[800]!,
-                    Colors.grey[700]!,
-                    Colors.teal[600]!,
-                  ]
+                          Colors.grey[800]!,
+                          Colors.grey[700]!,
+                          Colors.teal[600]!,
+                        ]
                       : [
-                    const Color(0xFF1565C0),
-                    const Color(0xFF42A5F5),
-                    const Color(0xFF04CCF0),
-                  ],
+                          const Color(0xFF1565C0),
+                          const Color(0xFF42A5F5),
+                          const Color(0xFF04CCF0),
+                        ],
                 ),
               ),
             ),
@@ -120,7 +119,9 @@ class AboutAppPage extends StatelessWidget {
             'Version 1.0.0',
             style: TextStyle(
               fontSize: 14,
-              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[400]
+                  : Colors.grey[600],
             ),
           ),
           const SizedBox(height: 15),
@@ -129,7 +130,9 @@ class AboutAppPage extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[300]
+                  : Colors.grey[700],
             ),
           ),
         ],
@@ -183,53 +186,59 @@ class AboutAppPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          ...features.map((feature) => Padding(
-            padding: const EdgeInsets.only(bottom: 15),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode
-                        ? Colors.teal[800]!.withOpacity(0.3)
-                        : const Color(0xFF1565C0).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    feature['icon'] as IconData,
-                    color: themeProvider.isDarkMode
-                        ? Colors.teal[200]
-                        : const Color(0xFF1565C0),
-                  ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        feature['title'] as String,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+          ...features
+              .map((feature) => Padding(
+                    padding: const EdgeInsets.only(bottom: 15),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: themeProvider.isDarkMode
+                                ? Colors.teal[800]!.withOpacity(0.3)
+                                : const Color(0xFF1565C0).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            feature['icon'] as IconData,
+                            color: themeProvider.isDarkMode
+                                ? Colors.teal[200]
+                                : const Color(0xFF1565C0),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        feature['description'] as String,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                feature['title'] as String,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                feature['description'] as String,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
+                      ],
+                    ),
+                  ))
+              .toList(),
         ],
       ),
     );
@@ -267,7 +276,9 @@ class AboutAppPage extends StatelessWidget {
             'NagarVikas was developed by a passionate team of developers and civic enthusiasts committed to improving urban living through technology.',
             style: TextStyle(
               fontSize: 16,
-              color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[300]
+                  : Colors.grey[700],
             ),
           ),
           const SizedBox(height: 15),
@@ -299,7 +310,8 @@ class AboutAppPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTeamMember(ThemeProvider themeProvider, String role, IconData icon, Color color) {
+  Widget _buildTeamMember(
+      ThemeProvider themeProvider, String role, IconData icon, Color color) {
     return Column(
       children: [
         Container(
@@ -313,9 +325,7 @@ class AboutAppPage extends StatelessWidget {
           child: Icon(
             icon,
             size: 30,
-            color: themeProvider.isDarkMode
-                ? color.withOpacity(0.8)
-                : color,
+            color: themeProvider.isDarkMode ? color.withOpacity(0.8) : color,
           ),
         ),
         const SizedBox(height: 8),
@@ -324,7 +334,8 @@ class AboutAppPage extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+            color:
+                themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
           ),
         ),
       ],
@@ -389,7 +400,9 @@ class AboutAppPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontStyle: FontStyle.italic,
-                color: themeProvider.isDarkMode ? Colors.teal[200] : const Color(0xFF1565C0),
+                color: themeProvider.isDarkMode
+                    ? Colors.teal[200]
+                    : const Color(0xFF1565C0),
               ),
             ),
           ),
@@ -432,7 +445,9 @@ class AboutAppPage extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: 14,
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
                   ),
                 ),
                 Text(
@@ -440,7 +455,8 @@ class AboutAppPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+                    color:
+                        themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
               ],

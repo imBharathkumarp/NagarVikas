@@ -9,14 +9,15 @@ class FavoritesPage extends StatefulWidget {
   final List<Map<String, dynamic>> favoriteComplaints;
   final Function(Map<String, dynamic>)? onRemoveFavorite;
 
-  const FavoritesPage({Key? key, required this.favoriteComplaints, this.onRemoveFavorite}) : super(key: key);
+  const FavoritesPage(
+      {Key? key, required this.favoriteComplaints, this.onRemoveFavorite})
+      : super(key: key);
 
   @override
   State<FavoritesPage> createState() => _FavoritesPageState();
 }
 
 class _FavoritesPageState extends State<FavoritesPage> {
-
   void _removeFavorite(int index) {
     final complaint = widget.favoriteComplaints[index];
     setState(() {
@@ -39,7 +40,9 @@ class _FavoritesPageState extends State<FavoritesPage> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-          backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF0F9FF),
+          backgroundColor: themeProvider.isDarkMode
+              ? Colors.grey[900]
+              : const Color(0xFFF0F9FF),
           appBar: AppBar(
             toolbarHeight: 80,
             elevation: 0,
@@ -84,54 +87,62 @@ class _FavoritesPageState extends State<FavoritesPage> {
           ),
           body: widget.favoriteComplaints.isEmpty
               ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.favorite_border,
-                  size: 80,
-                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No favorite complaints yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.favorite_border,
+                        size: 80,
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[400]
+                            : Colors.grey,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'No favorite complaints yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[300]
+                              : Colors.grey,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Tap the heart icon on complaints to add them here',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Tap the heart icon on complaints to add them here',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          )
+                )
               : Padding(
-            padding: const EdgeInsets.all(16),
-            child: ListView.builder(
-              itemCount: widget.favoriteComplaints.length,
-              itemBuilder: (context, index) {
-                final complaint = widget.favoriteComplaints[index];
-                return RealTimeComplaintCard(
-                  complaintId: complaint["id"] ?? complaint.hashCode.toString(),
-                  isFavorite: true, // Always true in favorites page
-                  onFavoriteToggle: () => _removeFavorite(index),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ComplaintDetailPage(complaintId: complaint["id"]),
-                    ),
+                  padding: const EdgeInsets.all(16),
+                  child: ListView.builder(
+                    itemCount: widget.favoriteComplaints.length,
+                    itemBuilder: (context, index) {
+                      final complaint = widget.favoriteComplaints[index];
+                      return RealTimeComplaintCard(
+                        complaintId:
+                            complaint["id"] ?? complaint.hashCode.toString(),
+                        isFavorite: true, // Always true in favorites page
+                        onFavoriteToggle: () => _removeFavorite(index),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ComplaintDetailPage(
+                                complaintId: complaint["id"]),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
-          ),
+                ),
         );
       },
     );
@@ -174,7 +185,8 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
   }
 
   void _setupRealTimeListener() {
-    DatabaseReference complaintRef = FirebaseDatabase.instance.ref('complaints/${widget.complaintId}');
+    DatabaseReference complaintRef =
+        FirebaseDatabase.instance.ref('complaints/${widget.complaintId}');
     DatabaseReference usersRef = FirebaseDatabase.instance.ref('users');
 
     _subscription = complaintRef.onValue.listen((event) async {
@@ -199,9 +211,10 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
           time = "${dateTime.hour}:${dateTime.minute}";
         }
 
-        String? mediaUrl = complaintData["media_url"] ?? complaintData["image_url"] ?? "";
+        String? mediaUrl =
+            complaintData["media_url"] ?? complaintData["image_url"] ?? "";
         String mediaType = (complaintData["media_type"] ??
-            (complaintData["image_url"] != null ? "image" : "video"))
+                (complaintData["image_url"] != null ? "image" : "video"))
             .toString()
             .toLowerCase();
 
@@ -246,7 +259,9 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
               color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[700]!
+                    : Colors.grey[200]!,
                 width: 1,
               ),
             ),
@@ -258,7 +273,9 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[700]
+                          : Colors.grey[300],
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -271,7 +288,9 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
                           height: 16,
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[700]
+                                : Colors.grey[300],
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -280,7 +299,9 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
                           height: 12,
                           width: 80,
                           decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[700]
+                                : Colors.grey[300],
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -289,7 +310,9 @@ class _RealTimeComplaintCardState extends State<RealTimeComplaintCard> {
                           height: 12,
                           width: 120,
                           decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[700]
+                                : Colors.grey[300],
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -341,17 +364,23 @@ class ComplaintCard extends StatelessWidget {
             color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[200]!,
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[700]!
+                  : Colors.grey[200]!,
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: themeProvider.isDarkMode ? Colors.black26 : Colors.black.withAlpha(10),
+                color: themeProvider.isDarkMode
+                    ? Colors.black26
+                    : Colors.black.withAlpha(10),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
               BoxShadow(
-                color: themeProvider.isDarkMode ? Colors.black12 : Colors.black.withAlpha(5),
+                color: themeProvider.isDarkMode
+                    ? Colors.black12
+                    : Colors.black.withAlpha(5),
                 blurRadius: 1,
                 offset: const Offset(0, 1),
               ),
@@ -360,11 +389,13 @@ class ComplaintCard extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: onTap ?? () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => ComplaintDetailPage(complaintId: complaint["id"]),
-                ),
-              ),
+              onTap: onTap ??
+                  () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ComplaintDetailPage(complaintId: complaint["id"]),
+                        ),
+                      ),
               borderRadius: BorderRadius.circular(16),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -376,41 +407,47 @@ class ComplaintCard extends StatelessWidget {
                       height: 56,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[100],
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[700]
+                            : Colors.grey[100],
                       ),
                       child: complaint["media_type"] == "image"
                           ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          complaint["media_url"],
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.broken_image_rounded,
-                                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
-                                  size: 24,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                complaint["media_url"],
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                  decoration: BoxDecoration(
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[700]
+                                        : Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.broken_image_rounded,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[500],
+                                    size: 24,
+                                  ),
                                 ),
                               ),
-                        ),
-                      )
+                            )
                           : Container(
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.videocam_rounded,
-                          color: Colors.blue[600],
-                          size: 24,
-                        ),
-                      ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.videocam_rounded,
+                                color: Colors.blue[600],
+                                size: 24,
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 16),
 
@@ -428,7 +465,9 @@ class ComplaintCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: themeProvider.isDarkMode ? Colors.white : const Color(0xFF1A1A1A),
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.white
+                                        : const Color(0xFF1A1A1A),
                                     height: 1.3,
                                   ),
                                   maxLines: 1,
@@ -447,7 +486,9 @@ class ComplaintCard extends StatelessWidget {
                                           : Icons.favorite_border_rounded,
                                       color: isFavorite
                                           ? const Color(0xFFE57373)
-                                          : (themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+                                          : (themeProvider.isDarkMode
+                                              ? Colors.grey[500]
+                                              : Colors.grey[400]),
                                       size: 20,
                                     ),
                                   ),
@@ -463,7 +504,8 @@ class ComplaintCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: _getStatusColor(complaint["status"]).withAlpha(25),
+                              color: _getStatusColor(complaint["status"])
+                                  .withAlpha(25),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -483,7 +525,9 @@ class ComplaintCard extends StatelessWidget {
                               Icon(
                                 Icons.location_on_rounded,
                                 size: 14,
-                                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[500],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[400]
+                                    : Colors.grey[500],
                               ),
                               const SizedBox(width: 4),
                               Expanded(
@@ -491,7 +535,9 @@ class ComplaintCard extends StatelessWidget {
                                   "${complaint["city"] ?? "Unknown"}, ${complaint["state"] ?? "Unknown"}",
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
                                     height: 1.3,
                                   ),
                                   maxLines: 1,

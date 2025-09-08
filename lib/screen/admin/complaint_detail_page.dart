@@ -18,7 +18,8 @@ class ComplaintDetailPage extends StatefulWidget {
   State<ComplaintDetailPage> createState() => _ComplaintDetailPageState();
 }
 
-class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerProviderStateMixin {
+class _ComplaintDetailPageState extends State<ComplaintDetailPage>
+    with TickerProviderStateMixin {
   Map<String, dynamic>? complaint;
   late String selectedStatus;
   VideoPlayerController? _videoController;
@@ -38,7 +39,8 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
       vsync: this,
     );
     _deleteButtonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _deleteButtonAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+          parent: _deleteButtonAnimationController, curve: Curves.easeInOut),
     );
   }
 
@@ -58,26 +60,26 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> with TickerPr
 
       // Fetch user data
       String userId = data['user_id'] ?? '';
-bool isAnonymous = data['is_anonymous'] ?? false;
+      bool isAnonymous = data['is_anonymous'] ?? false;
 
-if (isAnonymous || userId == 'anonymous') {
-  data['user_name'] = 'Anonymous';
-  data['user_email'] = 'Hidden';
-  data['user_phone'] = 'Hidden';
-} else {
-  final userSnapshot = await FirebaseDatabase.instance.ref('users/$userId').get();
-  if (userSnapshot.exists) {
-    final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
-    data['user_name'] = userData['name'] ?? 'Unknown';
-    data['user_email'] = userData['email'] ?? 'N/A';
-    data['user_phone'] = userData['phone'] ?? 'Not Provided';
-  } else {
-    data['user_name'] = 'Unknown';
-    data['user_email'] = 'N/A';
-    data['user_phone'] = 'Not Provided';
-  }
-}
-
+      if (isAnonymous || userId == 'anonymous') {
+        data['user_name'] = 'Anonymous';
+        data['user_email'] = 'Hidden';
+        data['user_phone'] = 'Hidden';
+      } else {
+        final userSnapshot =
+            await FirebaseDatabase.instance.ref('users/$userId').get();
+        if (userSnapshot.exists) {
+          final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
+          data['user_name'] = userData['name'] ?? 'Unknown';
+          data['user_email'] = userData['email'] ?? 'N/A';
+          data['user_phone'] = userData['phone'] ?? 'Not Provided';
+        } else {
+          data['user_name'] = 'Unknown';
+          data['user_email'] = 'N/A';
+          data['user_phone'] = 'Not Provided';
+        }
+      }
 
       setState(() {
         complaint = data;
@@ -120,7 +122,7 @@ if (isAnonymous || userId == 'anonymous') {
       // Save notification in local storage for user
       await LocalStatusStorage.saveNotification({
         'message':
-        'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} has been updated to $status.',
+            'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} has been updated to $status.',
         'timestamp': DateTime.now().toIso8601String(),
         'complaint_id': widget.complaintId,
         'status': status,
@@ -132,7 +134,7 @@ if (isAnonymous || userId == 'anonymous') {
         id: DateTime.now().millisecondsSinceEpoch % 100000,
         title: 'Complaint Status Updated',
         body:
-        'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} is now $status.',
+            'Your $issueType complaint from ${data['city'] ?? 'Unknown City'}, ${data['state'] ?? 'Unknown State'} is now $status.',
         payload: widget.complaintId,
       );
     }
@@ -146,19 +148,24 @@ if (isAnonymous || userId == 'anonymous') {
 
       if (complaint == null) {
         return Scaffold(
-          backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+          backgroundColor: themeProvider.isDarkMode
+              ? Colors.grey[900]
+              : const Color(0xFFF8F9FA),
           appBar: _buildAppBar(themeProvider, "Loading...", true),
           body: _buildDetailShimmer(themeProvider, screenHeight, screenWidth),
         );
       }
 
-      final String mediaType = complaint!["media_type"]?.toLowerCase() ?? "image";
+      final String mediaType =
+          complaint!["media_type"]?.toLowerCase() ?? "image";
       final String mediaUrl = (complaint!["media_url"] ?? '').toString().isEmpty
           ? 'https://picsum.photos/250?image=9'
           : complaint!["media_url"];
 
       return Scaffold(
-        backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : const Color.fromARGB(255, 21, 172, 241),
+        backgroundColor: themeProvider.isDarkMode
+            ? Colors.grey[800]
+            : const Color.fromARGB(255, 21, 172, 241),
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -166,19 +173,25 @@ if (isAnonymous || userId == 'anonymous') {
               end: Alignment.bottomCenter,
               colors: themeProvider.isDarkMode
                   ? [Colors.grey[800]!, Colors.grey[800]!]
-                  : [const Color.fromARGB(255, 21, 172, 241), const Color.fromARGB(255, 21, 172, 241)],
+                  : [
+                      const Color.fromARGB(255, 21, 172, 241),
+                      const Color.fromARGB(255, 21, 172, 241)
+                    ],
             ),
           ),
           child: Column(
             children: [
               // Custom App Bar
-              _buildCustomAppBar(themeProvider, complaint!["issue_type"] ?? "Complaint"),
+              _buildCustomAppBar(
+                  themeProvider, complaint!["issue_type"] ?? "Complaint"),
 
               // Main Content - Scrollable
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[900]
+                        : const Color(0xFFF8F9FA),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
@@ -186,7 +199,8 @@ if (isAnonymous || userId == 'anonymous') {
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
@@ -195,7 +209,9 @@ if (isAnonymous || userId == 'anonymous') {
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[800]
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -209,7 +225,8 @@ if (isAnonymous || userId == 'anonymous') {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(20),
-                            child: _buildMediaPreview(mediaType, mediaUrl, themeProvider),
+                            child: _buildMediaPreview(
+                                mediaType, mediaUrl, themeProvider),
                           ),
                         ),
 
@@ -220,7 +237,9 @@ if (isAnonymous || userId == 'anonymous') {
                           width: double.infinity,
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[800]
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -243,26 +262,32 @@ if (isAnonymous || userId == 'anonymous') {
                                     decoration: BoxDecoration(
                                       color: themeProvider.isDarkMode
                                           ? Colors.teal.withOpacity(0.2)
-                                          : const Color(0xFF1565C0).withOpacity(0.1),
+                                          : const Color(0xFF1565C0)
+                                              .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
                                       Icons.info_outline,
-                                      color: themeProvider.isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.teal[300]
+                                          : const Color(0xFF1565C0),
                                       size: 24,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           "Complaint Details",
                                           style: TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
-                                            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                            color: themeProvider.isDarkMode
+                                                ? Colors.white
+                                                : Colors.black87,
                                           ),
                                         ),
                                         const SizedBox(height: 4),
@@ -270,7 +295,9 @@ if (isAnonymous || userId == 'anonymous') {
                                           "Review and manage complaint information",
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                            color: themeProvider.isDarkMode
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600],
                                           ),
                                         ),
                                       ],
@@ -314,7 +341,9 @@ if (isAnonymous || userId == 'anonymous') {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 46, 20, 16),
       decoration: BoxDecoration(
-        color: themeProvider.isDarkMode ? Colors.grey[800] : const Color.fromARGB(255, 21, 172, 241),
+        color: themeProvider.isDarkMode
+            ? Colors.grey[800]
+            : const Color.fromARGB(255, 21, 172, 241),
         boxShadow: [
           BoxShadow(
             color: themeProvider.isDarkMode
@@ -359,7 +388,8 @@ if (isAnonymous || userId == 'anonymous') {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(ThemeProvider themeProvider, String title, bool isShimmer) {
+  PreferredSizeWidget _buildAppBar(
+      ThemeProvider themeProvider, String title, bool isShimmer) {
     return AppBar(
       title: isShimmer
           ? Container(
@@ -371,7 +401,8 @@ if (isAnonymous || userId == 'anonymous') {
               ),
             )
           : Text(title, style: const TextStyle(color: Colors.white)),
-      backgroundColor: themeProvider.isDarkMode ? Colors.teal : const Color(0xFF1565C0),
+      backgroundColor:
+          themeProvider.isDarkMode ? Colors.teal : const Color(0xFF1565C0),
       iconTheme: const IconThemeData(color: Colors.white),
       elevation: 0,
     );
@@ -424,13 +455,15 @@ if (isAnonymous || userId == 'anonymous') {
     ];
 
     return Column(
-      children: infoItems.map((item) => _buildModernInfoItem(
-        item['icon'] as IconData,
-        item['title'] as String,
-        item['value'] as String?,
-        item['color'] as Color,
-        themeProvider,
-      )).toList(),
+      children: infoItems
+          .map((item) => _buildModernInfoItem(
+                item['icon'] as IconData,
+                item['title'] as String,
+                item['value'] as String?,
+                item['color'] as Color,
+                themeProvider,
+              ))
+          .toList(),
     );
   }
 
@@ -448,7 +481,8 @@ if (isAnonymous || userId == 'anonymous') {
         color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
+          color:
+              themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
           width: 1,
         ),
       ),
@@ -477,7 +511,9 @@ if (isAnonymous || userId == 'anonymous') {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[300]
+                        : Colors.grey[700],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -486,7 +522,9 @@ if (isAnonymous || userId == 'anonymous') {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
               ],
@@ -504,7 +542,8 @@ if (isAnonymous || userId == 'anonymous') {
         color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
+          color:
+              themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[200]!,
         ),
       ),
       child: Column(
@@ -520,9 +559,11 @@ if (isAnonymous || userId == 'anonymous') {
                       : Colors.amber.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child:                 Icon(
+                child: Icon(
                   Icons.update_outlined,
-                  color: themeProvider.isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                  color: themeProvider.isDarkMode
+                      ? Colors.teal[300]
+                      : const Color(0xFF1565C0),
                   size: 20,
                 ),
               ),
@@ -532,7 +573,8 @@ if (isAnonymous || userId == 'anonymous') {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  color:
+                      themeProvider.isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
             ],
@@ -543,24 +585,31 @@ if (isAnonymous || userId == 'anonymous') {
               color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: themeProvider.isDarkMode ? Colors.grey[600]! : Colors.grey[300]!,
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[600]!
+                    : Colors.grey[300]!,
               ),
             ),
             child: DropdownButtonFormField<String>(
               value: selectedStatus,
               decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: InputBorder.none,
               ),
-              dropdownColor: themeProvider.isDarkMode ? Colors.grey[700] : Colors.white,
+              dropdownColor:
+                  themeProvider.isDarkMode ? Colors.grey[700] : Colors.white,
               style: TextStyle(
                 color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                 fontSize: 16,
               ),
               items: [
-                _buildDropdownItem("Pending", Icons.schedule, Colors.orange, themeProvider),
-                _buildDropdownItem("In Progress", Icons.work_outline, Colors.blue, themeProvider),
-                _buildDropdownItem("Resolved", Icons.check_circle_outline, Colors.green, themeProvider),
+                _buildDropdownItem(
+                    "Pending", Icons.schedule, Colors.orange, themeProvider),
+                _buildDropdownItem("In Progress", Icons.work_outline,
+                    Colors.blue, themeProvider),
+                _buildDropdownItem("Resolved", Icons.check_circle_outline,
+                    Colors.green, themeProvider),
               ],
               onChanged: (newStatus) {
                 if (newStatus != null) {
@@ -579,11 +628,7 @@ if (isAnonymous || userId == 'anonymous') {
   }
 
   DropdownMenuItem<String> _buildDropdownItem(
-    String status,
-    IconData icon,
-    Color color,
-    ThemeProvider themeProvider
-  ) {
+      String status, IconData icon, Color color, ThemeProvider themeProvider) {
     return DropdownMenuItem(
       value: status,
       child: Row(
@@ -641,7 +686,8 @@ if (isAnonymous || userId == 'anonymous') {
                 ),
                 elevation: 0,
               ),
-              icon: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
+              icon: const Icon(Icons.delete_outline,
+                  color: Colors.white, size: 22),
               label: const Text(
                 "Delete Complaint",
                 style: TextStyle(
@@ -662,7 +708,8 @@ if (isAnonymous || userId == 'anonymous') {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+        backgroundColor:
+            themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -694,7 +741,9 @@ if (isAnonymous || userId == 'anonymous') {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[300]
+                    : Colors.grey[600],
               ),
             ),
             const SizedBox(height: 24),
@@ -706,7 +755,9 @@ if (isAnonymous || userId == 'anonymous') {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: BorderSide(
-                        color: themeProvider.isDarkMode ? Colors.grey[500]! : Colors.grey[400]!,
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[500]!
+                            : Colors.grey[400]!,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -715,7 +766,9 @@ if (isAnonymous || userId == 'anonymous') {
                     child: Text(
                       "Cancel",
                       style: TextStyle(
-                        color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        color: themeProvider.isDarkMode
+                            ? Colors.grey[300]
+                            : Colors.grey[600],
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -734,9 +787,11 @@ if (isAnonymous || userId == 'anonymous') {
 
                       if (!mounted) return;
                       navigator.pushReplacement(
-                        MaterialPageRoute(builder: (context) => MainNavigationWrapper()),
+                        MaterialPageRoute(
+                            builder: (context) => MainNavigationWrapper()),
                       );
-                      Fluttertoast.showToast(msg: "Complaint deleted successfully!");
+                      Fluttertoast.showToast(
+                          msg: "Complaint deleted successfully!");
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -763,7 +818,8 @@ if (isAnonymous || userId == 'anonymous') {
     );
   }
 
-  Widget _buildDetailShimmer(ThemeProvider themeProvider, double screenHeight, double screenWidth) {
+  Widget _buildDetailShimmer(
+      ThemeProvider themeProvider, double screenHeight, double screenWidth) {
     return Column(
       children: [
         // Custom App Bar Shimmer
@@ -791,7 +847,9 @@ if (isAnonymous || userId == 'anonymous') {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[600]
+                      : Colors.grey[300],
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -800,7 +858,9 @@ if (isAnonymous || userId == 'anonymous') {
                 width: screenWidth * 0.4,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[600]
+                      : Colors.grey[300],
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -812,7 +872,9 @@ if (isAnonymous || userId == 'anonymous') {
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode ? Colors.grey[900] : const Color(0xFFF8F9FA),
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[900]
+                  : const Color(0xFFF8F9FA),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
@@ -830,7 +892,9 @@ if (isAnonymous || userId == 'anonymous') {
                     height: screenHeight * 0.25,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[700]
+                          : Colors.grey[300],
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
@@ -842,7 +906,9 @@ if (isAnonymous || userId == 'anonymous') {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[800]
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -863,7 +929,9 @@ if (isAnonymous || userId == 'anonymous') {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                                color: themeProvider.isDarkMode
+                                    ? Colors.grey[600]
+                                    : Colors.grey[300],
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
@@ -876,7 +944,9 @@ if (isAnonymous || userId == 'anonymous') {
                                     height: 20,
                                     width: screenWidth * 0.4,
                                     decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[600]
+                                          : Colors.grey[300],
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),
@@ -885,7 +955,9 @@ if (isAnonymous || userId == 'anonymous') {
                                     height: 14,
                                     width: screenWidth * 0.6,
                                     decoration: BoxDecoration(
-                                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                                      color: themeProvider.isDarkMode
+                                          ? Colors.grey[600]
+                                          : Colors.grey[300],
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),
@@ -903,7 +975,9 @@ if (isAnonymous || userId == 'anonymous') {
                             margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[50],
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[700]
+                                  : Colors.grey[50],
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Row(
@@ -912,21 +986,27 @@ if (isAnonymous || userId == 'anonymous') {
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.grey[600]
+                                        : Colors.grey[300],
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
                                         height: 14,
                                         width: screenWidth * 0.2,
                                         decoration: BoxDecoration(
-                                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(4),
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.grey[600]
+                                              : Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
                                       ),
                                       const SizedBox(height: 8),
@@ -934,8 +1014,11 @@ if (isAnonymous || userId == 'anonymous') {
                                         height: 16,
                                         width: screenWidth * 0.5,
                                         decoration: BoxDecoration(
-                                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(4),
+                                          color: themeProvider.isDarkMode
+                                              ? Colors.grey[600]
+                                              : Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
                                       ),
                                     ],
@@ -953,7 +1036,9 @@ if (isAnonymous || userId == 'anonymous') {
                           height: 80,
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[700]
+                                : Colors.grey[200],
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
@@ -965,7 +1050,9 @@ if (isAnonymous || userId == 'anonymous') {
                           height: 56,
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.grey[300],
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[600]
+                                : Colors.grey[300],
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
@@ -983,7 +1070,8 @@ if (isAnonymous || userId == 'anonymous') {
     );
   }
 
-  Widget _buildMediaPreview(String type, String url, ThemeProvider themeProvider) {
+  Widget _buildMediaPreview(
+      String type, String url, ThemeProvider themeProvider) {
     final uri = Uri.tryParse(url);
     if (url.isEmpty || uri == null || !uri.isAbsolute) {
       return Container(
@@ -999,13 +1087,17 @@ if (isAnonymous || userId == 'anonymous') {
             Icon(
               Icons.image_not_supported_outlined,
               size: 64,
-              color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[500]
+                  : Colors.grey[400],
             ),
             const SizedBox(height: 12),
             Text(
               "No media available",
               style: TextStyle(
-                color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Colors.grey[600],
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -1094,20 +1186,25 @@ if (isAnonymous || userId == 'anonymous') {
         return Container(
           height: 250,
           decoration: BoxDecoration(
-            color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+            color:
+                themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(
-                color: themeProvider.isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                color: themeProvider.isDarkMode
+                    ? Colors.teal[300]
+                    : const Color(0xFF1565C0),
               ),
               const SizedBox(height: 16),
               Text(
                 "Loading video...",
                 style: TextStyle(
-                  color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
                   fontSize: 16,
                 ),
               ),
@@ -1129,23 +1226,30 @@ if (isAnonymous || userId == 'anonymous') {
           return Container(
             height: 250,
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[700]
+                  : Colors.grey[300],
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircularProgressIndicator(
-                  color: themeProvider.isDarkMode ? Colors.teal[300] : const Color(0xFF1565C0),
+                  color: themeProvider.isDarkMode
+                      ? Colors.teal[300]
+                      : const Color(0xFF1565C0),
                   value: progress.expectedTotalBytes != null
-                      ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                      ? progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!
                       : null,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   "Loading image...",
                   style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
                     fontSize: 16,
                   ),
                 ),
@@ -1158,7 +1262,9 @@ if (isAnonymous || userId == 'anonymous') {
           return Container(
             height: 250,
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[200],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[700]
+                  : Colors.grey[200],
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -1167,13 +1273,17 @@ if (isAnonymous || userId == 'anonymous') {
                 Icon(
                   Icons.broken_image_outlined,
                   size: 64,
-                  color: themeProvider.isDarkMode ? Colors.grey[500] : Colors.grey[400],
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[500]
+                      : Colors.grey[400],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   "Failed to load image",
                   style: TextStyle(
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                    color: themeProvider.isDarkMode
+                        ? Colors.grey[400]
+                        : Colors.grey[600],
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),

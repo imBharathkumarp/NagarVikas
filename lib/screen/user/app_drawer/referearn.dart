@@ -42,17 +42,14 @@ class ReferAndEarnPage extends StatelessWidget {
             ? Colors.grey[900]!
             : const Color(0xFFF8F9FA);
 
-        final cardColor = themeProvider.isDarkMode
-            ? Colors.grey[800]!
-            : Colors.white;
+        final cardColor =
+            themeProvider.isDarkMode ? Colors.grey[800]! : Colors.white;
 
-        final textColor = themeProvider.isDarkMode
-            ? Colors.white
-            : Colors.black87;
+        final textColor =
+            themeProvider.isDarkMode ? Colors.white : Colors.black87;
 
-        final subtitleColor = themeProvider.isDarkMode
-            ? Colors.grey[300]
-            : Colors.grey[700];
+        final subtitleColor =
+            themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700];
 
         final primaryColor = const Color.fromARGB(255, 4, 204, 240);
         final accentColor = Colors.deepPurpleAccent;
@@ -76,15 +73,15 @@ class ReferAndEarnPage extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: themeProvider.isDarkMode
                       ? [
-                    Colors.grey[800]!,
-                    Colors.grey[700]!,
-                    Colors.teal[600]!,
-                  ]
+                          Colors.grey[800]!,
+                          Colors.grey[700]!,
+                          Colors.teal[600]!,
+                        ]
                       : [
-                    const Color(0xFF1565C0),
-                    const Color(0xFF42A5F5),
-                    const Color(0xFF04CCF0),
-                  ],
+                          const Color(0xFF1565C0),
+                          const Color(0xFF42A5F5),
+                          const Color(0xFF04CCF0),
+                        ],
                 ),
               ),
             ),
@@ -255,7 +252,8 @@ class ReferAndEarnPage extends StatelessWidget {
                                 ),
                               ),
                               IconButton(
-                                onPressed: () => _copyAndShareReferralCode(context),
+                                onPressed: () =>
+                                    _copyAndShareReferralCode(context),
                                 icon: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
@@ -280,7 +278,8 @@ class ReferAndEarnPage extends StatelessWidget {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () => _copyAndShareReferralCode(context),
-                            icon: const Icon(Icons.share, color: Colors.white, size: 20),
+                            icon: const Icon(Icons.share,
+                                color: Colors.white, size: 20),
                             label: const Text(
                               "Share Referral Code",
                               style: TextStyle(
@@ -356,9 +355,27 @@ class ReferAndEarnPage extends StatelessWidget {
                         const SizedBox(height: 20),
 
                         // Steps
-                        _buildStepItem(1, "Share", "Share your referral code with friends", Icons.share, primaryColor, subtitleColor),
-                        _buildStepItem(2, "Sign Up", "Friends sign up using your code", Icons.person_add, primaryColor, subtitleColor),
-                        _buildStepItem(3, "Earn", "Both of you earn amazing rewards", Icons.star, primaryColor, subtitleColor),
+                        _buildStepItem(
+                            1,
+                            "Share",
+                            "Share your referral code with friends",
+                            Icons.share,
+                            primaryColor,
+                            subtitleColor),
+                        _buildStepItem(
+                            2,
+                            "Sign Up",
+                            "Friends sign up using your code",
+                            Icons.person_add,
+                            primaryColor,
+                            subtitleColor),
+                        _buildStepItem(
+                            3,
+                            "Earn",
+                            "Both of you earn amazing rewards",
+                            Icons.star,
+                            primaryColor,
+                            subtitleColor),
                       ],
                     ),
                   ),
@@ -373,7 +390,8 @@ class ReferAndEarnPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStepItem(int step, String title, String description, IconData icon, Color primaryColor, Color? subtitleColor) {
+  Widget _buildStepItem(int step, String title, String description,
+      IconData icon, Color primaryColor, Color? subtitleColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Row(

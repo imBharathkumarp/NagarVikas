@@ -25,7 +25,6 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
   List<Widget> dashboardWidgets = [];
 
-
   @override
   void initState() {
     super.initState();
@@ -46,12 +45,14 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         final data = snapshot.value as Map<dynamic, dynamic>;
         data.forEach((key, value) {
           final complaint = Map<String, dynamic>.from(value);
-          final status = (complaint['status'] ?? 'Pending').toString().toLowerCase();
+          final status =
+              (complaint['status'] ?? 'Pending').toString().toLowerCase();
           if (status == 'resolved') {
             res++;
           } else if (status == 'pending') {
             pen++;
-          } else if (status == 'in progress') { // Changed from rejected to in progress
+          } else if (status == 'in progress') {
+            // Changed from rejected to in progress
             inProg++;
           }
         });
@@ -84,12 +85,17 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   }
 
   void _buildDashboardSections() {
-    final total = resolved + pending + inProgress; // Changed rejected to inProgress
-    final isDarkMode = Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+    final total =
+        resolved + pending + inProgress; // Changed rejected to inProgress
+    final isDarkMode =
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
 
     dashboardWidgets = [
       _buildSectionHeader(Icons.insights, "Complaints Overview"),
-      PieChartWidget(resolved: resolved, pending: pending, rejected: inProgress), // Note: PieChartWidget might need updating too
+      PieChartWidget(
+          resolved: resolved,
+          pending: pending,
+          rejected: inProgress), // Note: PieChartWidget might need updating too
       const SizedBox(height: 20),
       _buildSectionHeader(Icons.bar_chart, "Monthly Complaint Trends"),
       SizedBox(
@@ -101,8 +107,18 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             inProgress.toDouble(), // Changed from rejected
             total.toDouble(),
           ],
-          labels: ['Resolved', 'Pending', 'In Progress', 'Total'], // Updated label
-          colors: [Colors.green, Colors.orange, Colors.blue, Colors.purple], // Changed red to blue for In Progress
+          labels: [
+            'Resolved',
+            'Pending',
+            'In Progress',
+            'Total'
+          ], // Updated label
+          colors: [
+            Colors.green,
+            Colors.orange,
+            Colors.blue,
+            Colors.purple
+          ], // Changed red to blue for In Progress
         ),
       ),
       const SizedBox(height: 20),
@@ -120,10 +136,19 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             runSpacing: spacing,
             alignment: WrapAlignment.center,
             children: [
-              _buildClickableNeumorphicCard('Total', total, Colors.purple, Icons.all_inbox, cardWidth, 'total'),
-              _buildClickableNeumorphicCard('Resolved', resolved, Colors.green, Icons.check_circle, cardWidth, 'resolved'),
-              _buildClickableNeumorphicCard('Pending', pending, Colors.orange, Icons.timelapse, cardWidth, 'pending'),
-              _buildClickableNeumorphicCard('In Progress', inProgress, Colors.blue, Icons.hourglass_empty, cardWidth, 'inprogress'), // Updated
+              _buildClickableNeumorphicCard('Total', total, Colors.purple,
+                  Icons.all_inbox, cardWidth, 'total'),
+              _buildClickableNeumorphicCard('Resolved', resolved, Colors.green,
+                  Icons.check_circle, cardWidth, 'resolved'),
+              _buildClickableNeumorphicCard('Pending', pending, Colors.orange,
+                  Icons.timelapse, cardWidth, 'pending'),
+              _buildClickableNeumorphicCard(
+                  'In Progress',
+                  inProgress,
+                  Colors.blue,
+                  Icons.hourglass_empty,
+                  cardWidth,
+                  'inprogress'), // Updated
             ],
           );
         },
@@ -214,12 +239,14 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               childAspectRatio: 1.2,
-              children: List.generate(4, (index) => Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              )),
+              children: List.generate(
+                  4,
+                  (index) => Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      )),
             ),
           ),
         ],
@@ -232,11 +259,14 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       builder: (context, themeProvider, child) {
         return Row(
           children: [
-            Icon(icon, color: themeProvider.isDarkMode ? Colors.tealAccent : Colors.teal),
+            Icon(icon,
+                color:
+                    themeProvider.isDarkMode ? Colors.tealAccent : Colors.teal),
             const SizedBox(width: 8),
             Text(
               text,
-              style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(
+                  fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         );
@@ -244,8 +274,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     );
   }
 
-  Widget _buildClickableNeumorphicCard(
-      String title, int count, Color color, IconData icon, double width, String category) {
+  Widget _buildClickableNeumorphicCard(String title, int count, Color color,
+      IconData icon, double width, String category) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return GestureDetector(
@@ -268,16 +298,22 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             height: 130, // Increased height from 115 to 130
             padding: const EdgeInsets.all(12), // Reduced padding from 14 to 12
             decoration: BoxDecoration(
-              color: themeProvider.isDarkMode ? const Color(0xFF1F1F1F) : const Color(0xFFEFF3FA),
+              color: themeProvider.isDarkMode
+                  ? const Color(0xFF1F1F1F)
+                  : const Color(0xFFEFF3FA),
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: themeProvider.isDarkMode ? Colors.black54 : Colors.grey.shade300,
+                  color: themeProvider.isDarkMode
+                      ? Colors.black54
+                      : Colors.grey.shade300,
                   offset: const Offset(4, 4),
                   blurRadius: 10,
                 ),
                 BoxShadow(
-                  color: themeProvider.isDarkMode ? Colors.grey.shade800 : Colors.white,
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey.shade800
+                      : Colors.white,
                   offset: const Offset(-4, -4),
                   blurRadius: 10,
                 ),
@@ -285,7 +321,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min, // Added this to minimize space usage
+              mainAxisSize:
+                  MainAxisSize.min, // Added this to minimize space usage
               children: [
                 Container(
                   padding: const EdgeInsets.all(6), // Reduced from 8 to 6
@@ -293,7 +330,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                     color: color.withAlpha(25),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: color, size: 24), // Reduced from 26 to 24
+                  child: Icon(icon,
+                      color: color, size: 24), // Reduced from 26 to 24
                 ),
                 const SizedBox(height: 6), // Reduced from 8 to 6
                 Text(
@@ -328,72 +366,74 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-            appBar: AppBar(
-              toolbarHeight: 80,
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              iconTheme: const IconThemeData(
-                color: Colors.white,
-              ),
-              actionsIconTheme: const IconThemeData(
-                color: Colors.white,
-              ),
-              title: Text(
-                "Analytics Dashboard",
-                style: GoogleFonts.poppins(color: Colors.white),
-              ),
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF00BCD4),
-                      Color(0xFF0097A7),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded),
-                  onPressed: fetchComplaintStats,
-                  tooltip: 'Refresh Data',
-                ),
-                IconButton(
-                  icon: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
-                  onPressed: () {
-                    themeProvider.toggleTheme();
-                  },
-                ),
-              ],
+          appBar: AppBar(
+            toolbarHeight: 80,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            iconTheme: const IconThemeData(
+              color: Colors.white,
             ),
-            body: isLoading
-              ? _buildShimmerDashboard()
-              : RefreshIndicator(
-            onRefresh: fetchComplaintStats,
-            child: AnimationLimiter(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: dashboardWidgets.length,
-                itemBuilder: (context, index) {
-                  return AnimationConfiguration.staggeredList(
-                    position: index,
-                    duration: const Duration(milliseconds: 500),
-                    child: SlideAnimation(
-                      verticalOffset: 30.0,
-                      child: FadeInAnimation(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: dashboardWidgets[index],
-                        ),
-                      ),
-                    ),
-                  );
+            actionsIconTheme: const IconThemeData(
+              color: Colors.white,
+            ),
+            title: Text(
+              "Analytics Dashboard",
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF00BCD4),
+                    Color(0xFF0097A7),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: fetchComplaintStats,
+                tooltip: 'Refresh Data',
+              ),
+              IconButton(
+                icon: Icon(themeProvider.isDarkMode
+                    ? Icons.light_mode
+                    : Icons.dark_mode),
+                onPressed: () {
+                  themeProvider.toggleTheme();
                 },
               ),
-            ),
+            ],
           ),
+          body: isLoading
+              ? _buildShimmerDashboard()
+              : RefreshIndicator(
+                  onRefresh: fetchComplaintStats,
+                  child: AnimationLimiter(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: dashboardWidgets.length,
+                      itemBuilder: (context, index) {
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          duration: const Duration(milliseconds: 500),
+                          child: SlideAnimation(
+                            verticalOffset: 30.0,
+                            child: FadeInAnimation(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 20),
+                                child: dashboardWidgets[index],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
           floatingActionButton: FloatingActionButton(
             onPressed: fetchComplaintStats,
             backgroundColor: Colors.teal,

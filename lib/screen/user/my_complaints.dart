@@ -362,7 +362,9 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                         width: 80,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[600]
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
@@ -370,7 +372,9 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                          color: themeProvider.isDarkMode
+                              ? Colors.grey[600]
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
@@ -381,7 +385,9 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                     width: double.infinity,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[600]
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -390,7 +396,9 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
                     width: 200,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: themeProvider.isDarkMode ? Colors.grey[600] : Colors.white,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[600]
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -402,7 +410,6 @@ class MyComplaintsScreenState extends State<MyComplaintsScreen>
       },
     );
   }
-
 
   Widget _buildEmptyState(ThemeProvider themeProvider) {
     return Center(

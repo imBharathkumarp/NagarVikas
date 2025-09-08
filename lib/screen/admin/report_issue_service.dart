@@ -5,7 +5,8 @@ import '../../theme/theme_provider.dart';
 class ReportIssueService {
   static const String _supportEmail = "prateekch4653@gmail.com";
 
-  static void showReportIssueDialog(BuildContext context, ThemeProvider themeProvider) {
+  static void showReportIssueDialog(
+      BuildContext context, ThemeProvider themeProvider) {
     final TextEditingController issueController = TextEditingController();
     String selectedIssueType = 'Bug Report';
 
@@ -14,9 +15,9 @@ class ReportIssueService {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor:
-          themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+              themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
           shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
               const Icon(Icons.report_problem, color: Color(0xFFE91E63)),
@@ -40,7 +41,7 @@ class ReportIssueService {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color:
-                    themeProvider.isDarkMode ? Colors.white : Colors.black,
+                        themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -51,7 +52,7 @@ class ReportIssueService {
                       : Colors.white,
                   style: TextStyle(
                     color:
-                    themeProvider.isDarkMode ? Colors.white : Colors.black,
+                        themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
@@ -88,7 +89,7 @@ class ReportIssueService {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color:
-                    themeProvider.isDarkMode ? Colors.white : Colors.black,
+                        themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -97,7 +98,7 @@ class ReportIssueService {
                   maxLines: 4,
                   style: TextStyle(
                     color:
-                    themeProvider.isDarkMode ? Colors.white : Colors.black,
+                        themeProvider.isDarkMode ? Colors.white : Colors.black,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Please describe the issue in detail...',
@@ -129,10 +130,7 @@ class ReportIssueService {
                 if (issueController.text.trim().isNotEmpty) {
                   Navigator.pop(context);
                   _sendReportEmail(
-                      context,
-                      selectedIssueType,
-                      issueController.text.trim()
-                  );
+                      context, selectedIssueType, issueController.text.trim());
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -154,21 +152,17 @@ class ReportIssueService {
   }
 
   static Future<void> _sendReportEmail(
-      BuildContext context,
-      String issueType,
-      String description
-      ) async {
+      BuildContext context, String issueType, String description) async {
     final String subject = Uri.encodeComponent('App Issue Report: $issueType');
-    final String body = Uri.encodeComponent(
-        'Issue Type: $issueType\n\n'
-            'Description:\n$description\n\n'
-            '--- Additional Info ---\n'
-            'App: NagarVikas\n'
-            'Platform: Mobile\n'
-            'Timestamp: ${DateTime.now().toIso8601String()}'
-    );
+    final String body = Uri.encodeComponent('Issue Type: $issueType\n\n'
+        'Description:\n$description\n\n'
+        '--- Additional Info ---\n'
+        'App: NagarVikas\n'
+        'Platform: Mobile\n'
+        'Timestamp: ${DateTime.now().toIso8601String()}');
 
-    final Uri emailUri = Uri.parse('mailto:$_supportEmail?subject=$subject&body=$body');
+    final Uri emailUri =
+        Uri.parse('mailto:$_supportEmail?subject=$subject&body=$body');
 
     try {
       if (await canLaunchUrl(emailUri)) {
@@ -185,7 +179,8 @@ class ReportIssueService {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Could not open email app. Please send manually to $_supportEmail'),
+              content: Text(
+                  'Could not open email app. Please send manually to $_supportEmail'),
               backgroundColor: Colors.orange,
               duration: const Duration(seconds: 4),
             ),

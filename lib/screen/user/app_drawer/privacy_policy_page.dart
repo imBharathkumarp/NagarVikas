@@ -110,9 +110,8 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
       floating: false,
       pinned: true,
       elevation: 0,
-      backgroundColor: themeProvider.isDarkMode
-          ? Colors.grey[850]
-          : const Color(0xFF1565C0),
+      backgroundColor:
+          themeProvider.isDarkMode ? Colors.grey[850] : const Color(0xFF1565C0),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -121,20 +120,21 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
               end: Alignment.bottomRight,
               colors: themeProvider.isDarkMode
                   ? [
-                Colors.grey[800]!,
-                Colors.grey[700]!,
-                Colors.teal[600]!,
-              ]
+                      Colors.grey[800]!,
+                      Colors.grey[700]!,
+                      Colors.teal[600]!,
+                    ]
                   : [
-                const Color(0xFF1565C0),
-                const Color(0xFF42A5F5),
-                const Color(0xFF04CCF0),
+                      const Color(0xFF1565C0),
+                      const Color(0xFF42A5F5),
+                      const Color(0xFF04CCF0),
                     ],
             ),
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -251,7 +251,9 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
               ],
@@ -283,7 +285,9 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
-                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[300]
+                          : Colors.black87,
                     ),
                   ),
                 ],
@@ -517,7 +521,9 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
               ],
@@ -540,7 +546,9 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -548,15 +556,20 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     "If you have any questions about this Privacy Policy or our data practices, please contact us:",
                     style: TextStyle(
                       fontSize: 14,
-                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[300]
+                          : Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildContactItem(Icons.email, "privacy@complaintapp.com", themeProvider),
+                  _buildContactItem(
+                      Icons.email, "privacy@complaintapp.com", themeProvider),
                   const SizedBox(height: 8),
-                  _buildContactItem(Icons.phone, "+1 (555) 123-4567", themeProvider),
+                  _buildContactItem(
+                      Icons.phone, "+1 (555) 123-4567", themeProvider),
                   const SizedBox(height: 8),
-                  _buildContactItem(Icons.location_on, "123 Privacy Street, Data City, DC 12345", themeProvider),
+                  _buildContactItem(Icons.location_on,
+                      "123 Privacy Street, Data City, DC 12345", themeProvider),
                 ],
               ),
             ),
@@ -597,7 +610,8 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
     );
   }
 
-  Widget _buildSection(String title, IconData icon, Color color, List<Widget> children, ThemeProvider themeProvider) {
+  Widget _buildSection(String title, IconData icon, Color color,
+      List<Widget> children, ThemeProvider themeProvider) {
     return FadeInUp(
       duration: const Duration(milliseconds: 600),
       child: Container(
@@ -640,7 +654,9 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                 ],
@@ -659,7 +675,8 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
     );
   }
 
-  Widget _buildSubSection(String title, List<String> items, ThemeProvider themeProvider) {
+  Widget _buildSubSection(
+      String title, List<String> items, ThemeProvider themeProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -686,34 +703,40 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
             ),
           ),
           const SizedBox(height: 8),
-          ...items.map((item) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    item,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.4,
-                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+          ...items
+              .map((item) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[300]
+                                  : Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
+                  ))
+              .toList(),
         ],
       ),
     );
@@ -745,7 +768,9 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
               style: TextStyle(
                 fontSize: 14,
                 height: 1.4,
-                color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[300]
+                    : Colors.grey[700],
               ),
             ),
           ),
@@ -754,7 +779,8 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
     );
   }
 
-  Widget _buildContactItem(IconData icon, String text, ThemeProvider themeProvider) {
+  Widget _buildContactItem(
+      IconData icon, String text, ThemeProvider themeProvider) {
     return Row(
       children: [
         Icon(
@@ -768,7 +794,9 @@ class PrivacyPolicyPageState extends State<PrivacyPolicyPage>
             text,
             style: TextStyle(
               fontSize: 14,
-              color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+              color: themeProvider.isDarkMode
+                  ? Colors.grey[300]
+                  : Colors.grey[700],
             ),
           ),
         ),
