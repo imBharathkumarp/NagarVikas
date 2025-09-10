@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../theme/theme_provider.dart';
 import 'forum_logic.dart';
 import 'poll_message_widget.dart';
+import '../../widgets/mention_text_widget.dart';
+import '../../service/eveyone_notification_service.dart';
 
 class MessageWidgets {
   /// Build message widget with image and video support
@@ -18,17 +20,16 @@ class MessageWidgets {
       Function(String) onVideoTap,
       Function(String, String, String) onReply,
       Function(String, String, ThemeProvider, bool, bool, String, String)
-      onMessageOptions,
+          onMessageOptions,
       bool isAdmin,
       String currentUserId,
+      String? currentUserName,
       // NEW PARAMETERS for voting
       Map<String, Map<String, dynamic>> messageVotes,
       Function(String, bool) onVote,
       Function(String) getUserVote,
-// Parameters for jump to message functionality
-          {Function(String)? onJumpToMessage,
-        bool isHighlighted = false}) {
-
+      {Function(String)? onJumpToMessage,
+      bool isHighlighted = false}) {
     final timeString = ForumLogic.formatTime(
         messageData["createdAt"] ?? messageData["timestamp"]);
     final hasReply = messageData["replyTo"] != null;
@@ -71,7 +72,8 @@ class MessageWidgets {
               child: Opacity(
                 opacity: value,
                 child: Align(
-                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment:
+                      isMe ? Alignment.centerRight : Alignment.centerLeft,
                   child: AnimatedContainer(
                     duration: Duration(milliseconds: 500),
                     margin: EdgeInsets.symmetric(vertical: 2, horizontal: 12),
@@ -80,20 +82,20 @@ class MessageWidgets {
                         : EdgeInsets.zero,
                     decoration: _currentlyHighlighted
                         ? BoxDecoration(
-                      color: Color(0xFF87CEEB).withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Color(0xFF87CEEB).withOpacity(0.6),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0xFF87CEEB).withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    )
+                            color: Color(0xFF87CEEB).withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Color(0xFF87CEEB).withOpacity(0.6),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF87CEEB).withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          )
                         : null,
                     child: Column(
                       crossAxisAlignment: isMe
@@ -103,7 +105,8 @@ class MessageWidgets {
                         // Show sender name only for other people's messages
                         if (!isMe)
                           Container(
-                            margin: EdgeInsets.only(left: 12, right: 12, bottom: 4),
+                            margin:
+                                EdgeInsets.only(left: 12, right: 12, bottom: 4),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -111,8 +114,14 @@ class MessageWidgets {
                                   width: 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: ForumLogic.getAvatarColor(
-                                        messageData["senderName"] ?? "Unknown"),
+                                    color: EveryoneNotificationService
+                                            .containsEveryone(
+                                                messageData["message"] ?? "")
+                                        ? Color(
+                                            0xFFFF9800) // Orange dot for @everyone messages
+                                        : ForumLogic.getAvatarColor(
+                                            messageData["senderName"] ??
+                                                "Unknown"),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -122,9 +131,15 @@ class MessageWidgets {
                                   style: TextStyle(
                                     color: _currentlyHighlighted
                                         ? Color(0xFF2E86AB)
-                                        : (themeProvider.isDarkMode
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600]),
+                                        : (EveryoneNotificationService
+                                                .containsEveryone(
+                                                    messageData["message"] ??
+                                                        "")
+                                            ? Color(
+                                                0xFFFF9800) // Orange text for @everyone messages
+                                            : (themeProvider.isDarkMode
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600])),
                                     fontSize: 12,
                                     fontWeight: _currentlyHighlighted
                                         ? FontWeight.bold
@@ -138,15 +153,28 @@ class MessageWidgets {
 
                         // Message content - Handle different message types
                         if (isPollMessage)
-                        // Poll message
+                          // Poll message
                           PollMessageWidget(
                             pollData: messageData,
                             isMe: isMe,
                             themeProvider: themeProvider,
                             currentUserId: currentUserId,
+                            currentUserName: currentUserName,
+                            onMessageOptions: (messageId, messageText,
+                                senderName, senderId, hasMedia, isMyMessage) {
+                              onMessageOptions(
+                                messageId,
+                                messageText,
+                                themeProvider,
+                                hasMedia,
+                                isMyMessage,
+                                senderId,
+                                senderName,
+                              );
+                            },
                           )
                         else
-                        // Regular message bubble for text, image, video
+                          // Regular message bubble for text, image, video
                           GestureDetector(
                             onLongPress: () {
                               onMessageOptions(
@@ -164,7 +192,12 @@ class MessageWidgets {
                               if (!isMe) {
                                 onReply(
                                   messageData["key"] ?? "",
-                                  messageData["message"] ?? (isImageMessage ? "Image" : isVideoMessage ? "Video" : "Message"),
+                                  messageData["message"] ??
+                                      (isImageMessage
+                                          ? "Image"
+                                          : isVideoMessage
+                                              ? "Video"
+                                              : "Message"),
                                   messageData["senderName"] ?? "Unknown User",
                                 );
                               }
@@ -173,30 +206,42 @@ class MessageWidgets {
                               child: AnimatedContainer(
                                 duration: Duration(milliseconds: 300),
                                 constraints: BoxConstraints(
-                                  minWidth: 50.0, // Minimum width for very short messages
-                                  maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                  minWidth:
+                                      50.0, // Minimum width for very short messages
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.75,
                                 ),
                                 padding: EdgeInsets.symmetric(
-                                  vertical: (isImageMessage || isVideoMessage) ? 4 : 8,
-                                  horizontal: (isImageMessage || isVideoMessage) ? 4 : 12,
+                                  vertical: (isImageMessage || isVideoMessage)
+                                      ? 4
+                                      : 8,
+                                  horizontal: (isImageMessage || isVideoMessage)
+                                      ? 4
+                                      : 12,
                                 ),
                                 decoration: BoxDecoration(
                                   gradient: isMe
                                       ? LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: _currentlyHighlighted
-                                        ? [Color(0xFF87CEEB), Color(0xFF4FC3F7)]
-                                        : [Color(0xFF1976D2), Color(0xFF2196F3)],
-                                  )
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: _currentlyHighlighted
+                                              ? [
+                                                  Color(0xFF87CEEB),
+                                                  Color(0xFF4FC3F7)
+                                                ]
+                                              : [
+                                                  Color(0xFF1976D2),
+                                                  Color(0xFF2196F3)
+                                                ], // Regular blue for all messages
+                                        )
                                       : null,
                                   color: isMe
                                       ? null
                                       : (_currentlyHighlighted
-                                      ? Color(0xFF87CEEB).withOpacity(0.4)
-                                      : (themeProvider.isDarkMode
-                                      ? Colors.grey[700]
-                                      : Colors.grey[100])),
+                                          ? Color(0xFF87CEEB).withOpacity(0.4)
+                                          : (themeProvider.isDarkMode
+                                              ? Colors.grey[700]
+                                              : Colors.grey[100])),
                                   borderRadius: BorderRadius.only(
                                     topLeft: Radius.circular(18),
                                     topRight: Radius.circular(18),
@@ -211,23 +256,32 @@ class MessageWidgets {
                                     BoxShadow(
                                       color: _currentlyHighlighted
                                           ? Color(0xFF87CEEB).withOpacity(0.4)
-                                          : (themeProvider.isDarkMode
-                                          ? Colors.black26
-                                          : Colors.grey.withOpacity(0.1)),
-                                      blurRadius: _currentlyHighlighted ? 12 : 8,
-                                      offset: Offset(0, _currentlyHighlighted ? 4 : 2),
+                                          : (EveryoneNotificationService
+                                                  .containsEveryone(
+                                                      messageData["message"] ??
+                                                          "")
+                                              ? // Orange shadow for @everyone
+                                              (themeProvider.isDarkMode
+                                                  ? Colors.black26
+                                                  : Colors.grey
+                                                      .withOpacity(0.1))
+                                              : Colors
+                                                  .transparent), // fallback else
+                                      blurRadius:
+                                          _currentlyHighlighted ? 12 : 8,
+                                      offset: Offset(
+                                          0, _currentlyHighlighted ? 4 : 2),
                                     ),
                                   ],
                                   border: _currentlyHighlighted
                                       ? Border.all(
-                                    color: Color(0xFF87CEEB),
-                                    width: 1.5,
-                                  )
+                                          color: Color(0xFF87CEEB), width: 1.5)
                                       : (!isMe && !themeProvider.isDarkMode
-                                      ? Border.all(
-                                      color: Colors.grey.withOpacity(0.2),
-                                      width: 0.5)
-                                      : null),
+                                          ? Border.all(
+                                              color:
+                                                  Colors.grey.withOpacity(0.2),
+                                              width: 0.5)
+                                          : null),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: isMe
@@ -241,8 +295,10 @@ class MessageWidgets {
                                         decoration: BoxDecoration(
                                           color: isMe
                                               ? Colors.white.withOpacity(0.2)
-                                              : Color(0xFF2E86AB).withOpacity(0.8),
-                                          borderRadius: BorderRadius.circular(10),
+                                              : Color(0xFF2E86AB)
+                                                  .withOpacity(0.8),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                       ),
 
@@ -250,8 +306,10 @@ class MessageWidgets {
                                     if (hasReply) ...[
                                       GestureDetector(
                                         onTap: () {
-                                          if (onJumpToMessage != null && messageData["replyTo"] != null) {
-                                            onJumpToMessage(messageData["replyTo"]);
+                                          if (onJumpToMessage != null &&
+                                              messageData["replyTo"] != null) {
+                                            onJumpToMessage(
+                                                messageData["replyTo"]);
                                           }
                                         },
                                         child: Container(
@@ -260,33 +318,43 @@ class MessageWidgets {
                                           decoration: BoxDecoration(
                                             color: (isMe
                                                 ? Colors.white.withOpacity(0.2)
-                                                : Colors.black.withOpacity(0.1)),
-                                            borderRadius: BorderRadius.circular(6),
+                                                : Colors.black
+                                                    .withOpacity(0.1)),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                             border: Border(
                                               left: BorderSide(
                                                 color: isMe
                                                     ? Colors.white
-                                                    : const Color.fromARGB(255, 4, 204, 240),
+                                                    : const Color.fromARGB(
+                                                        255, 4, 204, 240),
                                                 width: 2,
                                               ),
                                             ),
                                           ),
                                           child: IntrinsicWidth(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Row(
-                                                  mainAxisSize: MainAxisSize.min,
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
                                                   children: [
                                                     Text(
-                                                      messageData["replyToSender"] ?? "Unknown User",
+                                                      messageData[
+                                                              "replyToSender"] ??
+                                                          "Unknown User",
                                                       style: TextStyle(
                                                         color: isMe
                                                             ? Colors.white
-                                                            : const Color.fromARGB(255, 4, 204, 240),
+                                                            : const Color
+                                                                .fromARGB(255,
+                                                                4, 204, 240),
                                                         fontSize: 11,
-                                                        fontWeight: FontWeight.w600,
+                                                        fontWeight:
+                                                            FontWeight.w600,
                                                       ),
                                                     ),
                                                     SizedBox(width: 8),
@@ -295,27 +363,38 @@ class MessageWidgets {
                                                       size: 16,
                                                       color: isMe
                                                           ? Colors.white70
-                                                          : const Color.fromARGB(255, 4, 204, 240),
+                                                          : const Color
+                                                              .fromARGB(
+                                                              255, 4, 204, 240),
                                                     ),
                                                   ],
                                                 ),
                                                 SizedBox(height: 2),
                                                 ConstrainedBox(
                                                   constraints: BoxConstraints(
-                                                    maxWidth: MediaQuery.of(context).size.width * 0.5,
+                                                    maxWidth:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .width *
+                                                            0.5,
                                                   ),
                                                   child: Text(
-                                                    messageData["replyToMessage"] ?? "",
+                                                    messageData[
+                                                            "replyToMessage"] ??
+                                                        "",
                                                     style: TextStyle(
                                                       color: isMe
                                                           ? Colors.white70
-                                                          : (themeProvider.isDarkMode
-                                                          ? Colors.grey[400]
-                                                          : Colors.grey[600]),
+                                                          : (themeProvider
+                                                                  .isDarkMode
+                                                              ? Colors.grey[400]
+                                                              : Colors
+                                                                  .grey[600]),
                                                       fontSize: 12,
                                                     ),
                                                     maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ],
@@ -326,13 +405,15 @@ class MessageWidgets {
                                     ],
 
                                     // Admin deleted message indicator
-                                    if (messageData["messageType"] == "admin_deleted") ...[
+                                    if (messageData["messageType"] ==
+                                        "admin_deleted") ...[
                                       Container(
                                         padding: EdgeInsets.all(8),
                                         margin: EdgeInsets.only(bottom: 6),
                                         decoration: BoxDecoration(
                                           color: Colors.red.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                           border: Border(
                                             left: BorderSide(
                                               color: Colors.red,
@@ -366,35 +447,43 @@ class MessageWidgets {
                                       GestureDetector(
                                         onTap: () => onImageTap(mediaUrl),
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(14),
+                                          borderRadius:
+                                              BorderRadius.circular(14),
                                           child: CachedNetworkImage(
                                             imageUrl: mediaUrl,
                                             width: 200,
                                             height: 200,
                                             fit: BoxFit.cover,
-                                            placeholder: (context, url) => Container(
+                                            placeholder: (context, url) =>
+                                                Container(
                                               width: 200,
                                               height: 200,
                                               decoration: BoxDecoration(
                                                 color: Colors.grey[300],
-                                                borderRadius: BorderRadius.circular(14),
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
                                               ),
                                               child: Center(
-                                                child: CircularProgressIndicator(
+                                                child:
+                                                    CircularProgressIndicator(
                                                   color: Color(0xFF2196F3),
                                                   strokeWidth: 2,
                                                 ),
                                               ),
                                             ),
-                                            errorWidget: (context, url, error) => Container(
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    Container(
                                               width: 200,
                                               height: 200,
                                               decoration: BoxDecoration(
                                                 color: Colors.grey[300],
-                                                borderRadius: BorderRadius.circular(14),
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
                                               ),
                                               child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   Icon(Icons.error_outline,
                                                       color: Colors.grey[600]),
@@ -425,11 +514,11 @@ class MessageWidgets {
                                           decoration: BoxDecoration(
                                             color: Colors.black,
                                             borderRadius:
-                                            BorderRadius.circular(14),
+                                                BorderRadius.circular(14),
                                           ),
                                           child: ClipRRect(
                                             borderRadius:
-                                            BorderRadius.circular(14),
+                                                BorderRadius.circular(14),
                                             child: Stack(
                                               alignment: Alignment.center,
                                               children: [
@@ -440,7 +529,8 @@ class MessageWidgets {
                                                   decoration: BoxDecoration(
                                                     gradient: LinearGradient(
                                                       begin: Alignment.topLeft,
-                                                      end: Alignment.bottomRight,
+                                                      end:
+                                                          Alignment.bottomRight,
                                                       colors: [
                                                         Colors.grey[800]!,
                                                         Colors.grey[900]!,
@@ -458,7 +548,8 @@ class MessageWidgets {
                                                   decoration: BoxDecoration(
                                                     color: Colors.black54,
                                                     borderRadius:
-                                                    BorderRadius.circular(30),
+                                                        BorderRadius.circular(
+                                                            30),
                                                   ),
                                                   padding: EdgeInsets.all(12),
                                                   child: Icon(
@@ -472,19 +563,20 @@ class MessageWidgets {
                                                   bottom: 8,
                                                   left: 8,
                                                   child: Container(
-                                                    padding: EdgeInsets.symmetric(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
                                                       horizontal: 8,
                                                       vertical: 4,
                                                     ),
                                                     decoration: BoxDecoration(
                                                       color: Colors.black54,
                                                       borderRadius:
-                                                      BorderRadius.circular(
-                                                          4),
+                                                          BorderRadius.circular(
+                                                              4),
                                                     ),
                                                     child: Row(
                                                       mainAxisSize:
-                                                      MainAxisSize.min,
+                                                          MainAxisSize.min,
                                                       children: [
                                                         Icon(
                                                           Icons.videocam,
@@ -498,7 +590,7 @@ class MessageWidgets {
                                                             color: Colors.white,
                                                             fontSize: 10,
                                                             fontWeight:
-                                                            FontWeight.w500,
+                                                                FontWeight.w500,
                                                           ),
                                                         ),
                                                       ],
@@ -527,14 +619,15 @@ class MessageWidgets {
                                         ),
                                       ),
                                     ] else if (hasText) ...[
-                                      Text(
-                                        messageData["message"],
-                                        style: TextStyle(
+                                      // Message text with @everyone mention highlighted (only blue text, no background)
+                                      MentionTextWidget(
+                                        text: messageData["message"],
+                                        textStyle: TextStyle(
                                           color: isMe
                                               ? Colors.white
                                               : (themeProvider.isDarkMode
-                                              ? Colors.white
-                                              : Colors.black87),
+                                                  ? Colors.white
+                                                  : Colors.black87),
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           height: 1.4,
@@ -552,10 +645,11 @@ class MessageWidgets {
                                         children: [
                                           // Upvote button
                                           GestureDetector(
-                                            onTap: () => onVote(messageId, true),
+                                            onTap: () =>
+                                                onVote(messageId, true),
                                             child: AnimatedContainer(
                                               duration:
-                                              Duration(milliseconds: 200),
+                                                  Duration(milliseconds: 200),
                                               curve: Curves.easeInOut,
                                               padding: EdgeInsets.symmetric(
                                                 horizontal: 6,
@@ -564,19 +658,21 @@ class MessageWidgets {
                                               decoration: BoxDecoration(
                                                 color: userVote == 'upvote'
                                                     ? Color(0xFF4CAF50)
-                                                    .withOpacity(0.2)
+                                                        .withOpacity(0.2)
                                                     : Colors.transparent,
                                                 borderRadius:
-                                                BorderRadius.circular(12),
+                                                    BorderRadius.circular(12),
                                                 border: userVote == 'upvote'
                                                     ? Border.all(
-                                                  color: Color(0xFF4CAF50),
-                                                  width: 1.5,
-                                                )
+                                                        color:
+                                                            Color(0xFF4CAF50),
+                                                        width: 1.5,
+                                                      )
                                                     : Border.all(
-                                                  color: Colors.transparent,
-                                                  width: 1.5,
-                                                ),
+                                                        color:
+                                                            Colors.transparent,
+                                                        width: 1.5,
+                                                      ),
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
@@ -588,36 +684,50 @@ class MessageWidgets {
                                                       userVote == 'upvote'
                                                           ? Icons.thumb_up
                                                           : Icons
-                                                          .thumb_up_outlined,
+                                                              .thumb_up_outlined,
                                                       key: ValueKey(
                                                           userVote == 'upvote'),
                                                       size: 14,
-                                                      color: userVote == 'upvote'
+                                                      color: userVote ==
+                                                              'upvote'
                                                           ? Color(0xFF4CAF50)
                                                           : (isMe
-                                                          ? Colors.white70
-                                                          : (themeProvider.isDarkMode
-                                                          ? Colors.grey[400]
-                                                          : Colors.grey[600])),
+                                                              ? Colors.white70
+                                                              : (themeProvider
+                                                                      .isDarkMode
+                                                                  ? Colors
+                                                                      .grey[400]
+                                                                  : Colors.grey[
+                                                                      600])),
                                                     ),
                                                   ),
-                                                  if (voteCounts['upvotes']! > 0) ...[
+                                                  if (voteCounts['upvotes']! >
+                                                      0) ...[
                                                     SizedBox(width: 4),
                                                     AnimatedSwitcher(
-                                                      duration: Duration(milliseconds: 200),
+                                                      duration: Duration(
+                                                          milliseconds: 200),
                                                       child: Text(
                                                         '${voteCounts['upvotes']}',
-                                                        key: ValueKey('upvotes-${voteCounts['upvotes']}'),
+                                                        key: ValueKey(
+                                                            'upvotes-${voteCounts['upvotes']}'),
                                                         style: TextStyle(
-                                                          color: userVote == 'upvote'
-                                                              ? Color(0xFF4CAF50)
+                                                          color: userVote ==
+                                                                  'upvote'
+                                                              ? Color(
+                                                                  0xFF4CAF50)
                                                               : (isMe
-                                                              ? Colors.white70
-                                                              : (themeProvider.isDarkMode
-                                                              ? Colors.grey[400]
-                                                              : Colors.grey[600])),
+                                                                  ? Colors
+                                                                      .white70
+                                                                  : (themeProvider
+                                                                          .isDarkMode
+                                                                      ? Colors.grey[
+                                                                          400]
+                                                                      : Colors.grey[
+                                                                          600])),
                                                           fontSize: 12,
-                                                          fontWeight: FontWeight.w600,
+                                                          fontWeight:
+                                                              FontWeight.w600,
                                                         ),
                                                       ),
                                                     ),
@@ -631,9 +741,11 @@ class MessageWidgets {
 
                                           // Downvote button
                                           GestureDetector(
-                                            onTap: () => onVote(messageId, false),
+                                            onTap: () =>
+                                                onVote(messageId, false),
                                             child: AnimatedContainer(
-                                              duration: Duration(milliseconds: 200),
+                                              duration:
+                                                  Duration(milliseconds: 200),
                                               curve: Curves.easeInOut,
                                               padding: EdgeInsets.symmetric(
                                                 horizontal: 6,
@@ -641,56 +753,75 @@ class MessageWidgets {
                                               ),
                                               decoration: BoxDecoration(
                                                 color: userVote == 'downvote'
-                                                    ? Colors.red.withOpacity(0.2)
+                                                    ? Colors.red
+                                                        .withOpacity(0.2)
                                                     : Colors.transparent,
-                                                borderRadius: BorderRadius.circular(12),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
                                                 border: userVote == 'downvote'
                                                     ? Border.all(
-                                                  color: Colors.red,
-                                                  width: 1.5,
-                                                )
+                                                        color: Colors.red,
+                                                        width: 1.5,
+                                                      )
                                                     : Border.all(
-                                                  color: Colors.transparent,
-                                                  width: 1.5,
-                                                ),
+                                                        color:
+                                                            Colors.transparent,
+                                                        width: 1.5,
+                                                      ),
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   AnimatedSwitcher(
-                                                    duration: Duration(milliseconds: 200),
+                                                    duration: Duration(
+                                                        milliseconds: 200),
                                                     child: Icon(
                                                       userVote == 'downvote'
                                                           ? Icons.thumb_down
-                                                          : Icons.thumb_down_outlined,
-                                                      key: ValueKey(userVote == 'downvote'),
+                                                          : Icons
+                                                              .thumb_down_outlined,
+                                                      key: ValueKey(userVote ==
+                                                          'downvote'),
                                                       size: 14,
-                                                      color: userVote == 'downvote'
+                                                      color: userVote ==
+                                                              'downvote'
                                                           ? Colors.red
                                                           : (isMe
-                                                          ? Colors.white70
-                                                          : (themeProvider.isDarkMode
-                                                          ? Colors.grey[400]
-                                                          : Colors.grey[600])),
+                                                              ? Colors.white70
+                                                              : (themeProvider
+                                                                      .isDarkMode
+                                                                  ? Colors
+                                                                      .grey[400]
+                                                                  : Colors.grey[
+                                                                      600])),
                                                     ),
                                                   ),
-                                                  if (voteCounts['downvotes']! > 0) ...[
+                                                  if (voteCounts['downvotes']! >
+                                                      0) ...[
                                                     SizedBox(width: 4),
                                                     AnimatedSwitcher(
-                                                      duration: Duration(milliseconds: 200),
+                                                      duration: Duration(
+                                                          milliseconds: 200),
                                                       child: Text(
                                                         '${voteCounts['downvotes']}',
-                                                        key: ValueKey('downvotes-${voteCounts['downvotes']}'),
+                                                        key: ValueKey(
+                                                            'downvotes-${voteCounts['downvotes']}'),
                                                         style: TextStyle(
-                                                          color: userVote == 'downvote'
+                                                          color: userVote ==
+                                                                  'downvote'
                                                               ? Colors.red
                                                               : (isMe
-                                                              ? Colors.white70
-                                                              : (themeProvider.isDarkMode
-                                                              ? Colors.grey[400]
-                                                              : Colors.grey[600])),
+                                                                  ? Colors
+                                                                      .white70
+                                                                  : (themeProvider
+                                                                          .isDarkMode
+                                                                      ? Colors.grey[
+                                                                          400]
+                                                                      : Colors.grey[
+                                                                          600])),
                                                           fontSize: 12,
-                                                          fontWeight: FontWeight.w600,
+                                                          fontWeight:
+                                                              FontWeight.w600,
                                                         ),
                                                       ),
                                                     ),
@@ -701,7 +832,8 @@ class MessageWidgets {
                                           ),
 
                                           // Spacer for timestamp
-                                          if (timeString.isNotEmpty || messageData["isEdited"] == true)
+                                          if (timeString.isNotEmpty ||
+                                              messageData["isEdited"] == true)
                                             Spacer(),
 
                                           // Timestamp and edited indicator
@@ -712,13 +844,14 @@ class MessageWidgets {
                                                 color: isMe
                                                     ? Colors.white70
                                                     : (themeProvider.isDarkMode
-                                                    ? Colors.grey[400]
-                                                    : Colors.grey[600]),
+                                                        ? Colors.grey[400]
+                                                        : Colors.grey[600]),
                                                 fontSize: 11,
                                               ),
                                             ),
                                           ],
-                                          if (messageData["isEdited"] == true) ...[
+                                          if (messageData["isEdited"] ==
+                                              true) ...[
                                             SizedBox(width: 4),
                                             Text(
                                               "(edited)",
@@ -726,8 +859,8 @@ class MessageWidgets {
                                                 color: isMe
                                                     ? Colors.white70
                                                     : (themeProvider.isDarkMode
-                                                    ? Colors.grey[400]
-                                                    : Colors.grey[600]),
+                                                        ? Colors.grey[400]
+                                                        : Colors.grey[600]),
                                                 fontSize: 10,
                                                 fontStyle: FontStyle.italic,
                                               ),
@@ -753,7 +886,8 @@ class MessageWidgets {
   }
 
   /// Helper function to get vote counts from data
-  static Map<String, int> _getVoteCountsFromData(Map<String, dynamic> voteData) {
+  static Map<String, int> _getVoteCountsFromData(
+      Map<String, dynamic> voteData) {
     int upvotes = 0;
     int downvotes = 0;
 
@@ -770,10 +904,10 @@ class MessageWidgets {
 
   /// Build disclaimer banner
   static Widget buildDisclaimerBanner(
-      ThemeProvider themeProvider,
-      AnimationController disclaimerController,
-      VoidCallback onClose,
-      ) {
+    ThemeProvider themeProvider,
+    AnimationController disclaimerController,
+    VoidCallback onClose,
+  ) {
     return AnimatedBuilder(
       animation: disclaimerController,
       builder: (context, child) {
@@ -834,11 +968,11 @@ class MessageWidgets {
 
   /// Build edit indicator
   static Widget buildEditIndicator(
-      ThemeProvider themeProvider,
-      bool isEditing,
-      String? originalMessage,
-      VoidCallback onCancel,
-      ) {
+    ThemeProvider themeProvider,
+    bool isEditing,
+    String? originalMessage,
+    VoidCallback onCancel,
+  ) {
     if (!isEditing) return SizedBox.shrink();
 
     return Container(
@@ -899,12 +1033,12 @@ class MessageWidgets {
 
   /// Build reply indicator
   static Widget buildReplyIndicator(
-      ThemeProvider themeProvider,
-      bool isReplying,
-      String? replyingToSender,
-      String? replyingToMessage,
-      VoidCallback onCancel,
-      ) {
+    ThemeProvider themeProvider,
+    bool isReplying,
+    String? replyingToSender,
+    String? replyingToMessage,
+    VoidCallback onCancel,
+  ) {
     if (!isReplying) return SizedBox.shrink();
 
     return Container(
@@ -1078,10 +1212,10 @@ class MessageWidgets {
 
   /// Build terms dialog
   static Widget buildTermsDialog(
-      BuildContext context,
-      ThemeProvider themeProvider,
-      VoidCallback onAgree,
-      ) {
+    BuildContext context,
+    ThemeProvider themeProvider,
+    VoidCallback onAgree,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenHeight = constraints.maxHeight;
@@ -1450,89 +1584,89 @@ class _FullScreenVideoViewerState extends State<FullScreenVideoViewer> {
       backgroundColor: Colors.black,
       appBar: _showControls
           ? AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Download feature coming soon!"),
-                  backgroundColor: Color(0xFF2196F3),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: IconThemeData(color: Colors.white),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Download feature coming soon!"),
+                        backgroundColor: Color(0xFF2196F3),
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.download, color: Colors.white),
                 ),
-              );
-            },
-            icon: Icon(Icons.download, color: Colors.white),
-          ),
-        ],
-      )
+              ],
+            )
           : null,
       body: GestureDetector(
         onTap: _toggleControls,
         child: Center(
           child: _hasError
               ? Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, color: Colors.white, size: 48),
-              SizedBox(height: 16),
-              Text(
-                "Failed to load video",
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Go Back"),
-              ),
-            ],
-          )
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.white, size: 48),
+                    SizedBox(height: 16),
+                    Text(
+                      "Failed to load video",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text("Go Back"),
+                    ),
+                  ],
+                )
               : !_isInitialized
-              ? CircularProgressIndicator(
-            color: Color(0xFF2196F3),
-            strokeWidth: 2,
-          )
-              : Stack(
-            alignment: Alignment.center,
-            children: [
-              AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: VideoPlayer(_controller),
-              ),
-              if (_showControls)
-                Container(
-                  color: Colors.black26,
-                  child: Center(
-                    child: IconButton(
-                      onPressed: _togglePlayPause,
-                      icon: Icon(
-                        _controller.value.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                        color: Colors.white,
-                        size: 48,
-                      ),
+                  ? CircularProgressIndicator(
+                      color: Color(0xFF2196F3),
+                      strokeWidth: 2,
+                    )
+                  : Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: _controller.value.aspectRatio,
+                          child: VideoPlayer(_controller),
+                        ),
+                        if (_showControls)
+                          Container(
+                            color: Colors.black26,
+                            child: Center(
+                              child: IconButton(
+                                onPressed: _togglePlayPause,
+                                icon: Icon(
+                                  _controller.value.isPlaying
+                                      ? Icons.pause
+                                      : Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 48,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (_showControls)
+                          Positioned(
+                            bottom: 50,
+                            left: 20,
+                            right: 20,
+                            child: VideoProgressIndicator(
+                              _controller,
+                              allowScrubbing: true,
+                              colors: VideoProgressColors(
+                                playedColor: Color(0xFF2196F3),
+                                bufferedColor: Colors.grey,
+                                backgroundColor: Colors.grey[800]!,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                ),
-              if (_showControls)
-                Positioned(
-                  bottom: 50,
-                  left: 20,
-                  right: 20,
-                  child: VideoProgressIndicator(
-                    _controller,
-                    allowScrubbing: true,
-                    colors: VideoProgressColors(
-                      playedColor: Color(0xFF2196F3),
-                      bufferedColor: Colors.grey,
-                      backgroundColor: Colors.grey[800]!,
-                    ),
-                  ),
-                ),
-            ],
-          ),
         ),
       ),
     );

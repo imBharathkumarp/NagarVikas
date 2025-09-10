@@ -473,7 +473,7 @@ flutter run -d android        # Android device/emulator
 We welcome contributions! Please read our [Contributing Guidelines](Contributing.md) before submitting a pull request.
 
 <div>
-  <h2><img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f49e/512.webp" width="30" height="30"> Our Valuebale Contributors</h2>
+  <h2><img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f49e/512.webp" width="30" height="30"> Our Valuable Contributors</h2>
 </div>
 
 

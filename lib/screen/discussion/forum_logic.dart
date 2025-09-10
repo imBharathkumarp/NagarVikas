@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
+
 class ForumLogic {
   /// Get current user name from Firebase or create default
   static void getCurrentUserName(
@@ -16,9 +17,8 @@ class ForumLogic {
         if (snapshot.snapshot.value != null) {
           final userData =
               Map<String, dynamic>.from(snapshot.snapshot.value as Map);
-          onNameReceived(userData['name'] ??
-              userData['displayName'] ??
-              _getDefaultName());
+          onNameReceived(
+              userData['name'] ?? userData['displayName'] ?? _getDefaultName());
         } else {
           final defaultName = _getDefaultName();
           await usersRef.child(userId).set({
@@ -59,8 +59,7 @@ class ForumLogic {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final messageDate =
-          DateTime(dateTime.year, dateTime.month, dateTime.day);
+      final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
       if (messageDate == today) {
         return DateFormat('h:mm a').format(dateTime);

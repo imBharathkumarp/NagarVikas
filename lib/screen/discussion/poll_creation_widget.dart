@@ -104,7 +104,8 @@ class _PollCreationWidgetState extends State<PollCreationWidget> {
           maxWidth: 500,
         ),
         decoration: BoxDecoration(
-          color: widget.themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+          color:
+              widget.themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -281,7 +282,8 @@ class _PollCreationWidgetState extends State<PollCreationWidget> {
                                         : Colors.black87,
                                   ),
                                   maxLength: 100,
-                                  textCapitalization: TextCapitalization.sentences,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
                                   decoration: InputDecoration(
                                     hintText: 'Option ${index + 1}',
                                     hintStyle: TextStyle(

@@ -6,8 +6,10 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../../../theme/theme_provider.dart';
 
 class MessageReportingSystem {
-  static final DatabaseReference _reportsRef = FirebaseDatabase.instance.ref("message_reports");
-  static final DatabaseReference _messagesRef = FirebaseDatabase.instance.ref("discussion");
+  static final DatabaseReference _reportsRef =
+      FirebaseDatabase.instance.ref("message_reports");
+  static final DatabaseReference _messagesRef =
+      FirebaseDatabase.instance.ref("discussion");
 
   /// Show report dialog for a message
   static void showReportDialog({
@@ -44,13 +46,12 @@ class MessageReportingSystem {
       if (currentUser == null) return false;
 
       // Check if user has already reported this message
-      final existingReportQuery = await _reportsRef
-          .orderByChild('messageId')
-          .equalTo(messageId)
-          .once();
+      final existingReportQuery =
+          await _reportsRef.orderByChild('messageId').equalTo(messageId).once();
 
       if (existingReportQuery.snapshot.exists) {
-        final reports = existingReportQuery.snapshot.value as Map<dynamic, dynamic>;
+        final reports =
+            existingReportQuery.snapshot.value as Map<dynamic, dynamic>;
 
         // Check if current user has already reported this message
         bool alreadyReported = false;
@@ -78,7 +79,8 @@ class MessageReportingSystem {
             .once();
         if (userSnapshot.snapshot.exists) {
           final userData = userSnapshot.snapshot.value as Map<dynamic, dynamic>;
-          reporterName = userData['name'] ?? userData['displayName'] ?? "Anonymous User";
+          reporterName =
+              userData['name'] ?? userData['displayName'] ?? "Anonymous User";
         }
       } catch (e) {
         print('Error getting reporter name: $e');
@@ -100,10 +102,14 @@ class MessageReportingSystem {
       };
 
       // Submit report to message_reports instead of reports
-      await FirebaseDatabase.instance.ref("message_reports").push().set(reportData);
+      await FirebaseDatabase.instance
+          .ref("message_reports")
+          .push()
+          .set(reportData);
 
       Fluttertoast.showToast(
-        msg: "Message reported successfully. Thank you for helping keep our community safe.",
+        msg:
+            "Message reported successfully. Thank you for helping keep our community safe.",
         backgroundColor: Colors.green,
         textColor: Colors.white,
         toastLength: Toast.LENGTH_LONG,
@@ -143,7 +149,8 @@ class MessageReportingSystem {
   }
 
   /// Update report status (admin only)
-  static Future<void> updateReportStatus(String reportId, String newStatus, {String? adminNote}) async {
+  static Future<void> updateReportStatus(String reportId, String newStatus,
+      {String? adminNote}) async {
     try {
       final updateData = <String, dynamic>{
         'status': newStatus,
@@ -325,9 +332,7 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: keyboardHeight > 0 ? 16 : 24
-      ),
+          horizontal: 16, vertical: keyboardHeight > 0 ? 16 : 24),
       child: Container(
         constraints: BoxConstraints(
           maxHeight: keyboardHeight > 0
@@ -336,7 +341,8 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
           maxWidth: 500,
         ),
         decoration: BoxDecoration(
-          color: widget.themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
+          color:
+              widget.themeProvider.isDarkMode ? Colors.grey[850] : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -372,7 +378,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: widget.themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                      color: widget.themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -380,7 +388,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                     "Help us keep the community safe by reporting inappropriate content",
                     style: TextStyle(
                       fontSize: 14,
-                      color: widget.themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      color: widget.themeProvider.isDarkMode
+                          ? Colors.grey[400]
+                          : Colors.grey[600],
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -393,10 +403,14 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
               margin: EdgeInsets.symmetric(horizontal: 20),
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: widget.themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                color: widget.themeProvider.isDarkMode
+                    ? Colors.grey[800]
+                    : Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: widget.themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                  color: widget.themeProvider.isDarkMode
+                      ? Colors.grey[700]!
+                      : Colors.grey[300]!,
                 ),
               ),
               child: Column(
@@ -407,7 +421,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                       Icon(
                         Icons.person,
                         size: 16,
-                        color: widget.themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                        color: widget.themeProvider.isDarkMode
+                            ? Colors.grey[400]
+                            : Colors.grey[600],
                       ),
                       SizedBox(width: 8),
                       Text(
@@ -415,7 +431,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: widget.themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
                         ),
                       ),
                     ],
@@ -427,7 +445,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                         : "Media message or poll",
                     style: TextStyle(
                       fontSize: 14,
-                      color: widget.themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                      color: widget.themeProvider.isDarkMode
+                          ? Colors.grey[300]
+                          : Colors.grey[700],
                     ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -450,7 +470,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: widget.themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
                         ),
                       ),
                       SizedBox(height: 16),
@@ -472,12 +494,16 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? reason['color'].withOpacity(0.1)
-                                      : (widget.themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[50]),
+                                      : (widget.themeProvider.isDarkMode
+                                          ? Colors.grey[800]
+                                          : Colors.grey[50]),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isSelected
                                         ? reason['color']
-                                        : (widget.themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[300]!),
+                                        : (widget.themeProvider.isDarkMode
+                                            ? Colors.grey[700]!
+                                            : Colors.grey[300]!),
                                     width: isSelected ? 2 : 1,
                                   ),
                                 ),
@@ -501,10 +527,14 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                                         reason['label'],
                                         style: TextStyle(
                                           fontSize: 14,
-                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
                                           color: isSelected
                                               ? reason['color']
-                                              : (widget.themeProvider.isDarkMode ? Colors.white : Colors.black87),
+                                              : (widget.themeProvider.isDarkMode
+                                                  ? Colors.white
+                                                  : Colors.black87),
                                         ),
                                       ),
                                     ),
@@ -530,7 +560,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: widget.themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
                         ),
                       ),
                       SizedBox(height: 8),
@@ -540,23 +572,32 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                         maxLength: 500,
                         onTap: _ensureVisible,
                         style: TextStyle(
-                          color: widget.themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.white
+                              : Colors.black87,
                         ),
                         decoration: InputDecoration(
-                          hintText: "Provide more context about why this message violates community guidelines...",
+                          hintText:
+                              "Provide more context about why this message violates community guidelines...",
                           hintStyle: TextStyle(
-                            color: widget.themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                            color: widget.themeProvider.isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: widget.themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                              color: widget.themeProvider.isDarkMode
+                                  ? Colors.grey[700]!
+                                  : Colors.grey[300]!,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: widget.themeProvider.isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                              color: widget.themeProvider.isDarkMode
+                                  ? Colors.grey[700]!
+                                  : Colors.grey[300]!,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -567,7 +608,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                             ),
                           ),
                           filled: true,
-                          fillColor: widget.themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[50],
+                          fillColor: widget.themeProvider.isDarkMode
+                              ? Colors.grey[800]
+                              : Colors.grey[50],
                           contentPadding: EdgeInsets.all(12),
                         ),
                       ),
@@ -583,13 +626,14 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                   left: 20,
                   right: 20,
                   top: 0,
-                  bottom: keyboardHeight > 0 ? 12 : 20
-              ),
+                  bottom: keyboardHeight > 0 ? 12 : 20),
               child: Row(
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+                      onPressed: isSubmitting
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -602,7 +646,9 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                       child: Text(
                         "Cancel",
                         style: TextStyle(
-                          color: widget.themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                          color: widget.themeProvider.isDarkMode
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -624,21 +670,21 @@ class _ReportMessageDialogState extends State<ReportMessageDialog> {
                       ),
                       child: isSubmitting
                           ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : Text(
-                        "Submit Report",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                              "Submit Report",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],
