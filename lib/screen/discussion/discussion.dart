@@ -21,6 +21,7 @@ import 'package:flutter/services.dart';
 import '../../service/eveyone_notification_service.dart';
 import '../../widgets/mention_text_field.dart';
 import '../../service/notification_service.dart';
+import 'admin_only_manager.dart';
 
 /// DiscussionForum with Image and Video Sharing
 /// Enhanced real-time chat interface with image/video upload and full-screen viewing capabilities
@@ -56,6 +57,9 @@ class DiscussionForumState extends State<DiscussionForum>
   StreamSubscription<DatabaseEvent>? _everyoneNotificationSubscription;
   bool _hasEveryoneMention = false;
   OverlayEntry? _mentionOverlay;
+  bool _isAdminOnlyMode = false;
+  bool _isGovAdmin = false;
+  StreamSubscription<DatabaseEvent>? _adminOnlySubscription;
 
   Map<String, Map<String, dynamic>> _messageReactions =
       {}; // Cache message reactions
@@ -222,6 +226,7 @@ class DiscussionForumState extends State<DiscussionForum>
         });
       }
     });
+    _initAdminOnlyMode();
   }
 
   @override
@@ -235,7 +240,29 @@ class DiscussionForumState extends State<DiscussionForum>
     _everyoneNotificationSubscription?.cancel();
     _mentionOverlay?.remove();
     _reactionPickerOverlay?.remove();
+    _adminOnlySubscription?.cancel();
     super.dispose();
+  }
+
+  // Initialize admin-only mode functionality
+  void _initAdminOnlyMode() async {
+    // Check if current user is a gov admin
+    _isGovAdmin = await AdminOnlyManager.checkGovAdminStatus(userId, _isAdmin);
+
+    // Listen to admin-only mode changes
+    _adminOnlySubscription =
+        AdminOnlyManager.listenToAdminOnlyMode((isAdminOnly) {
+      if (mounted) {
+        setState(() {
+          _isAdminOnlyMode = isAdminOnly;
+        });
+      }
+    });
+
+    // Update state
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   /// Load reactions for a specific message
@@ -338,7 +365,23 @@ class DiscussionForumState extends State<DiscussionForum>
 
   /// React to a message
   Future<void> _reactToMessage(String messageId, String emoji) async {
-    if (userId == null || _isUserBanned) return;
+    if (userId == null) return;
+
+    // Check if user can react (not banned and if admin-only mode, user must be admin)
+    if (!AdminOnlyManager.canUserSendMessage(
+      isAdminOnlyMode: _isAdminOnlyMode,
+      isAdmin: _isAdmin,
+      isUserBanned: _isUserBanned,
+    )) {
+      Fluttertoast.showToast(
+        msg: AdminOnlyManager.getBannedMessage(
+          isAdminOnlyMode: _isAdminOnlyMode,
+          isAdmin: _isAdmin,
+          isUserBanned: _isUserBanned,
+        ),
+      );
+      return;
+    }
 
     _hideReactionPicker();
 
@@ -772,10 +815,21 @@ class DiscussionForumState extends State<DiscussionForum>
 
   /// Vote on a message (upvote or downvote)
   Future<void> _voteMessage(String messageId, bool isUpvote) async {
-    if (userId == null || _isUserBanned) {
-      if (_isUserBanned) {
-        Fluttertoast.showToast(msg: "You are banned from voting");
-      }
+    if (userId == null) return;
+
+    // Check if user can vote (not banned and if admin-only mode, user must be admin)
+    if (!AdminOnlyManager.canUserSendMessage(
+      isAdminOnlyMode: _isAdminOnlyMode,
+      isAdmin: _isAdmin,
+      isUserBanned: _isUserBanned,
+    )) {
+      Fluttertoast.showToast(
+        msg: AdminOnlyManager.getBannedMessage(
+          isAdminOnlyMode: _isAdminOnlyMode,
+          isAdmin: _isAdmin,
+          isUserBanned: _isUserBanned,
+        ),
+      );
       return;
     }
 
@@ -791,7 +845,7 @@ class DiscussionForumState extends State<DiscussionForum>
         currentVote = voteData['type'];
       }
 
-      // Determine new vote action - THIS IS THE KEY PART
+      // Determine new vote action
       if (currentVote == null) {
         // No previous vote - add new vote
         await voteRef.set({
@@ -1084,11 +1138,37 @@ class DiscussionForumState extends State<DiscussionForum>
 
   /// Show poll creation dialog
   void _showPollCreation() {
-    if (_isUserBanned) {
+    if (!AdminOnlyManager.canUserSendMessage(
+      isAdminOnlyMode: _isAdminOnlyMode,
+      isAdmin: _isAdmin,
+      isUserBanned: _isUserBanned,
+    )) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('You are banned from creating polls'),
+          content: Row(
+            children: [
+              Icon(
+                AdminOnlyManager.getBannedIcon(
+                  isAdminOnlyMode: _isAdminOnlyMode,
+                  isAdmin: _isAdmin,
+                  isUserBanned: _isUserBanned,
+                ),
+                color: Colors.white,
+                size: 16,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(AdminOnlyManager.getBannedMessage(
+                  isAdminOnlyMode: _isAdminOnlyMode,
+                  isAdmin: _isAdmin,
+                  isUserBanned: _isUserBanned,
+                )),
+              ),
+            ],
+          ),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
       return;
@@ -1446,6 +1526,43 @@ class DiscussionForumState extends State<DiscussionForum>
 
   // NEW: Show media selection bottom sheet (WhatsApp-like)
   void _showMediaOptions() {
+    // Check if user can send messages before showing media options
+    if (!AdminOnlyManager.canUserSendMessage(
+      isAdminOnlyMode: _isAdminOnlyMode,
+      isAdmin: _isAdmin,
+      isUserBanned: _isUserBanned,
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                AdminOnlyManager.getBannedIcon(
+                  isAdminOnlyMode: _isAdminOnlyMode,
+                  isAdmin: _isAdmin,
+                  isUserBanned: _isUserBanned,
+                ),
+                color: Colors.white,
+                size: 16,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(AdminOnlyManager.getBannedMessage(
+                  isAdminOnlyMode: _isAdminOnlyMode,
+                  isAdmin: _isAdmin,
+                  isUserBanned: _isUserBanned,
+                )),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1837,12 +1954,38 @@ class DiscussionForumState extends State<DiscussionForum>
   }
 
   void _sendMessage({String? mediaUrl, String? mediaType}) {
-    // Check if user is banned
-    if (_isUserBanned) {
+    // Check if user can send messages (banned or admin-only mode)
+    if (!AdminOnlyManager.canUserSendMessage(
+      isAdminOnlyMode: _isAdminOnlyMode,
+      isAdmin: _isAdmin,
+      isUserBanned: _isUserBanned,
+    )) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('You are banned from sending messages'),
+          content: Row(
+            children: [
+              Icon(
+                AdminOnlyManager.getBannedIcon(
+                  isAdminOnlyMode: _isAdminOnlyMode,
+                  isAdmin: _isAdmin,
+                  isUserBanned: _isUserBanned,
+                ),
+                color: Colors.white,
+                size: 16,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(AdminOnlyManager.getBannedMessage(
+                  isAdminOnlyMode: _isAdminOnlyMode,
+                  isAdmin: _isAdmin,
+                  isUserBanned: _isUserBanned,
+                )),
+              ),
+            ],
+          ),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
       return;
@@ -2697,9 +2840,54 @@ class DiscussionForumState extends State<DiscussionForum>
                   case 'restore_chat':
                     _restoreAllMessages();
                     break;
+                  case 'toggle_admin_only':
+                    AdminOnlyManager.showToggleAdminOnlyDialog(
+                      context: context,
+                      isGovAdmin: _isGovAdmin,
+                      currentAdminOnlyMode: _isAdminOnlyMode,
+                      currentUserName: currentUserName,
+                    );
+                    break;
                 }
               },
               itemBuilder: (context) => [
+                // Admin-only mode toggle (only for gov admins)
+                if (_isGovAdmin)
+                  PopupMenuItem<String>(
+                    value: 'toggle_admin_only',
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isAdminOnlyMode ? Icons.lock_open : Icons.lock,
+                          color: _isAdminOnlyMode
+                              ? Color(0xFF4CAF50)
+                              : Color(0xFFFF9800),
+                          size: 20,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          _isAdminOnlyMode
+                              ? 'Disable Admin-Only'
+                              : 'Enable Admin-Only',
+                          style: TextStyle(
+                            color: _isAdminOnlyMode
+                                ? Color(0xFF4CAF50)
+                                : Color(0xFFFF9800),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Separator if gov admin
+                if (_isGovAdmin)
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    child: Divider(height: 1),
+                  ),
+
+                // Existing menu items
                 PopupMenuItem<String>(
                   value: 'clear_chat',
                   child: Row(
@@ -2728,11 +2916,7 @@ class DiscussionForumState extends State<DiscussionForum>
                     value: 'restore_chat',
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.restore,
-                          color: Color(0xFF4CAF50),
-                          size: 20,
-                        ),
+                        Icon(Icons.restore, color: Color(0xFF4CAF50), size: 20),
                         SizedBox(width: 12),
                         Text(
                           'Restore All Messages',
@@ -2796,6 +2980,13 @@ class DiscussionForumState extends State<DiscussionForum>
                       _disclaimerController,
                       _hideDisclaimer,
                     ),
+
+                  // Admin-only mode indicator
+                  AdminOnlyManager.buildAdminOnlyIndicator(
+                    context: context,
+                    isAdminOnlyMode: _isAdminOnlyMode,
+                    themeProvider: themeProvider,
+                  ),
 
                   // Restore button at top
                   if (_showRestoreButton)
@@ -3125,7 +3316,11 @@ class DiscussionForumState extends State<DiscussionForum>
                         ),
                       ],
                     ),
-                    child: _isUserBanned
+                    child: !AdminOnlyManager.canUserSendMessage(
+                      isAdminOnlyMode: _isAdminOnlyMode,
+                      isAdmin: _isAdmin,
+                      isUserBanned: _isUserBanned,
+                    )
                         ? Container(
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -3135,11 +3330,23 @@ class DiscussionForumState extends State<DiscussionForum>
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.block, color: Colors.red, size: 20),
+                                Icon(
+                                  AdminOnlyManager.getBannedIcon(
+                                    isAdminOnlyMode: _isAdminOnlyMode,
+                                    isAdmin: _isAdmin,
+                                    isUserBanned: _isUserBanned,
+                                  ),
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'You are banned from sending messages',
+                                    AdminOnlyManager.getBannedMessage(
+                                      isAdminOnlyMode: _isAdminOnlyMode,
+                                      isAdmin: _isAdmin,
+                                      isUserBanned: _isUserBanned,
+                                    ),
                                     style: TextStyle(
                                       color: Colors.red,
                                       fontWeight: FontWeight.w500,
